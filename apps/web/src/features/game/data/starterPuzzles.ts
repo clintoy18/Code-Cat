@@ -1,0 +1,61 @@
+import type { IPuzzleDefinition } from '@/features/game/engine';
+
+export const starterPuzzles: IPuzzleDefinition[] = [
+  {
+    id: 'guided-hallway',
+    title: 'Guided Hallway',
+    lesson: 'Sequencing',
+    objective: 'Use movement functions to guide the cat from the lower-left corner to the door.',
+    rows: 5,
+    cols: 5,
+    start: { row: 4, col: 0 },
+    door: { row: 0, col: 4 },
+    walls: [
+      { row: 4, col: 2 },
+      { row: 3, col: 2 },
+      { row: 1, col: 1 },
+      { row: 1, col: 3 },
+    ],
+    availableBlocks: [
+      { key: 'move-up', label: 'moveUp()', kind: 'MOVE', move: 'UP' },
+      { key: 'move-right', label: 'moveRight()', kind: 'MOVE', move: 'RIGHT' },
+      { key: 'move-down', label: 'moveDown()', kind: 'MOVE', move: 'DOWN' },
+      { key: 'move-left', label: 'moveLeft()', kind: 'MOVE', move: 'LEFT' },
+    ],
+  },
+  {
+    id: 'conditional-corner',
+    title: 'Conditional Corner',
+    lesson: 'Conditionals',
+    objective: 'Use conditional logic so the cat checks whether a path is clear before moving.',
+    rows: 5,
+    cols: 5,
+    start: { row: 4, col: 1 },
+    door: { row: 0, col: 3 },
+    walls: [
+      { row: 3, col: 1 },
+      { row: 2, col: 1 },
+      { row: 2, col: 2 },
+      { row: 1, col: 0 },
+    ],
+    availableBlocks: [
+      { key: 'move-up', label: 'moveUp()', kind: 'MOVE', move: 'UP' },
+      { key: 'move-right', label: 'moveRight()', kind: 'MOVE', move: 'RIGHT' },
+      { key: 'move-left', label: 'moveLeft()', kind: 'MOVE', move: 'LEFT' },
+      {
+        key: 'if-path-right',
+        label: 'if (pathRightClear) moveRight()',
+        kind: 'CONDITIONAL',
+        condition: 'PATH_RIGHT_CLEAR',
+        action: 'RIGHT',
+      },
+      {
+        key: 'if-path-up',
+        label: 'if (pathUpClear) moveUp()',
+        kind: 'CONDITIONAL',
+        condition: 'PATH_UP_CLEAR',
+        action: 'UP',
+      },
+    ],
+  },
+];

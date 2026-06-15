@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum PuzzleType {
+  SEQUENCING
+  LOOP
+  CONDITIONAL
+}
+
+enum CompletionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum ControlMode {
+  DRAG_DROP
+  KEYBOARD
+}
+
+enum ReportType {
+  PLAYER_PROGRESS
+  CONTENT_USAGE
+  ACHIEVEMENT_SUMMARY
+}
+
+model User {
+  id                String            @id @default(auto()) @map("_id") @db.ObjectId
+  username          String            @unique
+  email             String            @unique
+  passwordHash      String            @map("password_hash")
+  role              Role              @default(STUDENT)
+  createdAt         DateTime          @default(now()) @map("created_at")
+  progressEntries   PlayerProgress[]
+  settings          PlayerSettings?
+  achievements      Achievement[]
+  adminLogs         AdminLog[]        @relation("AdminLogs")
+  announcements     Announcement[]    @relation("AdminAnnouncements")
+  adminReports      AdminReport[]     @relation("AdminReports")
+
+  @@map("users")
+}
+
+model Level {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String
+  difficulty  Difficulty
+  order       Int              @map("sort_order")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  puzzles     Puzzle[]
+  progress    PlayerProgress[]
+
+  @@unique([order])
+  @@map("levels")
+}
+
+model Puzzle {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  levelId        String           @map("level_id") @db.ObjectId
+  description    String
+  expectedOutput String           @map("expected_output")
+  hint           String?
+  type           PuzzleType
+  order          Int              @map("sort_order")
+  level          Level            @relation(fields: [levelId], references: [id])
+  progress       PlayerProgress[]
+
+  @@unique([levelId, order])
+  @@map("puzzles")
+}
+
+model PlayerProgress {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String           @map("user_id") @db.ObjectId
+  levelId     String           @map("level_id") @db.ObjectId
+  puzzleId    String           @map("puzzle_id") @db.ObjectId
+  status      CompletionStatus @default(NOT_STARTED)
+  attempts    Int              @default(0)
+  timeSpent   Int              @default(0) @map("time_spent")
+  lastUpdated DateTime         @updatedAt @map("last_updated")
+  user        User             @relation(fields: [userId], references: [id])
+  level       Level            @relation(fields: [levelId], references: [id])
+  puzzle      Puzzle           @relation(fields: [puzzleId], references: [id])
+
+  @@unique([userId, levelId, puzzleId])
+  @@map("player_progress")
+}
+
+model PlayerSettings {
+  id                   String            @id @default(auto()) @map("_id") @db.ObjectId
+  userId               String            @unique @map("user_id") @db.ObjectId
+  volumeLevel          Int               @default(70) @map("volume_level")
+  difficultyPreference Difficulty        @default(EASY) @map("difficulty_preference")
+  themePreference      ThemePreference   @default(SYSTEM) @map("theme_preference")
+  controlMode          ControlMode       @default(DRAG_DROP) @map("control_mode")
+  lastModified         DateTime          @updatedAt @map("last_modified")
+  user                 User              @relation(fields: [userId], references: [id])
+
+  @@map("player_settings")
+}
+
+model Achievement {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @map("user_id") @db.ObjectId
+  name         String
+  description  String
+  dateUnlocked DateTime @default(now()) @map("date_unlocked")
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@map("achievements")
+}
+
+model AdminLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  adminId   String   @map("admin_id") @db.ObjectId
+  action    String
+  details   String
+  timestamp DateTime @default(now())
+  admin     User     @relation("AdminLogs", fields: [adminId], references: [id])
+
+  @@map("admin_logs")
+}
+
+model Announcement {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  adminId     String   @map("admin_id") @db.ObjectId
+  title       String
+  message     String
+  dateCreated DateTime @default(now()) @map("date_created")
+  admin       User     @relation("AdminAnnouncements", fields: [adminId], references: [id])
+
+  @@map("announcements")
+}
+
+model AdminReport {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  adminId     String     @map("admin_id") @db.ObjectId
+  reportType  ReportType @map("report_type")
+  description String
+  generatedAt DateTime   @default(now()) @map("generated_at")
+  admin       User       @relation("AdminReports", fields: [adminId], references: [id])
+
+  @@map("admin_reports")
+}

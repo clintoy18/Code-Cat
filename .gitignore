@@ -1,0 +1,33 @@
+# dependencies
+node_modules
+.pnpm-store
+
+# builds
+dist
+coverage
+.turbo
+vite.config.ts.timestamp-*
+
+# env
+.env
+.env.local
+.env.*.local
+
+# prisma
+apps/api/prisma/dev.db*
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editor
+.DS_Store
+.idea
+.vscode
+
+# tests
+.vitest
+
+# misc
+*.tsbuildinfo

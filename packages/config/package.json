@@ -1,0 +1,18 @@
+{
+  "name": "@codecat/config",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.js",
+  "exports": {
+    "./eslint/base": "./eslint/base.cjs",
+    "./eslint/react": "./eslint/react.cjs",
+    "./prettier": "./prettier/index.cjs",
+    "./tailwind": "./tailwind/preset.cjs"
+  },
+  "scripts": {
+    "build": "echo \"No build step for config\"",
+    "lint": "echo \"No lint step for config\"",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "echo \"No typecheck step for config\""
+  }
+}
