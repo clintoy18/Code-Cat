@@ -4,6 +4,9 @@ export const useGame = () =>
   useGameStore((state) => ({
     puzzles: state.puzzles,
     activePuzzleId: state.activePuzzleId,
+    completedPuzzleIds: state.completedPuzzleIds,
+    unlockedPuzzleIds: state.unlockedPuzzleIds,
+    latestCompletedPuzzleId: state.latestCompletedPuzzleId,
     puzzle: state.puzzle,
     program: state.program,
     catPosition: state.catPosition,

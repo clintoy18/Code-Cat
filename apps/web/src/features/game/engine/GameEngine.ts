@@ -32,6 +32,8 @@ export interface IPuzzleDefinition {
   id: string;
   title: string;
   lesson: 'Sequencing' | 'Conditionals';
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  parMoves: number;
   objective: string;
   rows: number;
   cols: number;

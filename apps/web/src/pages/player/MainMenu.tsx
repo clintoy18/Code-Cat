@@ -1,61 +1,84 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui';
+import { useGame } from '@/hooks/useGame';
 
 const cards = [
-  { title: 'Sequencing Sprint', body: 'Arrange steps in the right order to guide the cat.' },
-  { title: 'Loop Lab', body: 'Reuse blocks efficiently and spot repeated movement.' },
-  { title: 'Condition Maze', body: 'Pick the right path when the puzzle state changes.' },
+  { title: 'Sequencing Sprint', body: 'Arrange move blocks in the right order so the cat reaches the exit.' },
+  { title: 'Conditional Rooms', body: 'Teach the cat to check whether a path is clear before turning.' },
+  { title: 'Incremental Play', body: 'Unlock the next room only after clearing the current lesson.' },
 ];
 
-export const MainMenu = () => (
-  <div className="space-y-6">
-    <motion.section
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="glass-panel overflow-hidden p-8"
-    >
-      <p className="text-sm font-semibold uppercase tracking-[0.3em] text-brand-700">Code Cat</p>
-      <div className="mt-4 grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+export const MainMenu = () => {
+  const { puzzles, unlockedPuzzleIds, completedPuzzleIds } = useGame();
+  const nextPuzzle =
+    puzzles.find((puzzle) => unlockedPuzzleIds.includes(puzzle.id) && !completedPuzzleIds.includes(puzzle.id)) ?? puzzles[0];
+  const completionPercent = puzzles.length ? Math.round((completedPuzzleIds.length / puzzles.length) * 100) : 0;
+
+  return (
+    <div className="pixel-page space-y-6">
+      <motion.section
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="pixel-hero"
+      >
         <div>
-          <h1 className="font-display text-4xl font-extrabold leading-tight">
-            Learn programming logic by helping a cat solve puzzle rooms.
-          </h1>
-          <p className="mt-4 max-w-2xl text-base text-slate-700">
-            Sequence actions, build loops, and unlock achievements while the gameplay stays readable enough
-            for classroom use.
+          <p className="pixel-kicker">Code Cat</p>
+          <h1 className="pixel-hero__title">A classroom puzzle game where code moves the cat tile by tile.</h1>
+          <p className="pixel-hero__body">
+            Students learn logic through short playable rooms, clear one level at a time, and stay focused in a
+            game-first interface instead of a worksheet-like screen.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to="/levels">
-              <Button size="lg">Play Levels</Button>
+              <Button size="lg" className="pixel-button">
+                Open Level Map
+              </Button>
+            </Link>
+            <Link to="/gameplay">
+              <Button variant="secondary" size="lg" className="pixel-button pixel-button--secondary">
+                Continue Mission
+              </Button>
             </Link>
             <Link to="/achievements">
-              <Button variant="ghost" size="lg">View Achievements</Button>
+              <Button variant="ghost" size="lg" className="pixel-button pixel-button--ghost">
+                Achievements
+              </Button>
             </Link>
           </div>
         </div>
-        <div className="rounded-[2rem] bg-brand-900 p-6 text-brand-50">
-          <p className="text-sm uppercase tracking-[0.3em] text-brand-200">Today&apos;s Objective</p>
-          <h2 className="mt-4 font-display text-2xl font-bold">Teach the cat to think in steps.</h2>
+        <div className="pixel-panel pixel-panel--dark">
+          <p className="pixel-kicker pixel-kicker--light">Up Next</p>
+          <h2 className="pixel-panel__title">{nextPuzzle?.title ?? 'Starter mission ready'}</h2>
+          <p className="pixel-panel__body">
+            {nextPuzzle
+              ? `${nextPuzzle.lesson} / ${nextPuzzle.difficulty} / ${nextPuzzle.objective}`
+              : 'All current starter levels are complete.'}
+          </p>
+          <div className="pixel-progress mt-5">
+            <div className="pixel-progress__bar" style={{ width: `${completionPercent}%` }} />
+          </div>
           <p className="mt-3 text-sm text-brand-100">
-            The starter scaffold is ready for a pure TypeScript puzzle engine to feed execution updates into Zustand next.
+            {completedPuzzleIds.length} of {puzzles.length} starter rooms completed.
           </p>
         </div>
-      </div>
-    </motion.section>
-    <section className="grid gap-4 md:grid-cols-3">
-      {cards.map((card, index) => (
-        <motion.article
-          key={card.title}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.08 }}
-          className="glass-panel p-6"
-        >
-          <h3 className="font-display text-xl font-bold">{card.title}</h3>
-          <p className="mt-3 text-sm text-slate-700">{card.body}</p>
-        </motion.article>
-      ))}
-    </section>
-  </div>
-);
+      </motion.section>
+
+      <section className="pixel-card-grid">
+        {cards.map((card, index) => (
+          <motion.article
+            key={card.title}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.08 }}
+            className="pixel-panel"
+          >
+            <p className="pixel-kicker">Game Loop</p>
+            <h3 className="pixel-panel__title">{card.title}</h3>
+            <p className="pixel-panel__body">{card.body}</p>
+          </motion.article>
+        ))}
+      </section>
+    </div>
+  );
+};
