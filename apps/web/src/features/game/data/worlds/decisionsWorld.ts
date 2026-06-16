@@ -38,7 +38,7 @@ const ifDoorRightBlock: IBlockTemplate = {
   action: 'RIGHT',
 };
 
-export const decisionsConditionalsPuzzles: IPuzzleDefinition[] = [
+export const decisionsWorldPuzzles: IPuzzleDefinition[] = [
   {
     id: 'hedge-check',
     title: 'Hedge Check',
@@ -58,28 +58,6 @@ export const decisionsConditionalsPuzzles: IPuzzleDefinition[] = [
     ],
     availableBlocks: [moveUpBlock, ifPathRightBlock],
   },
-  {
-    id: 'gate-detour',
-    title: 'Gate Detour',
-    lesson: 'Conditionals',
-    difficulty: 'Medium',
-    parMoves: 8,
-    objective: 'Slide across the lane, check when the path up opens, and then climb to the exit.',
-    rows: 5,
-    cols: 5,
-    start: { row: 4, col: 0 },
-    door: { row: 0, col: 4 },
-    walls: [
-      { row: 3, col: 0 },
-      { row: 3, col: 1 },
-      { row: 3, col: 2 },
-      { row: 1, col: 2 },
-    ],
-    availableBlocks: [moveUpBlock, moveRightBlock, ifPathUpBlock],
-  },
-];
-
-export const decisionsBooleanThinkingPuzzles: IPuzzleDefinition[] = [
   {
     id: 'door-peek',
     title: 'Door Peek',
@@ -118,11 +96,6 @@ export const decisionsBooleanThinkingPuzzles: IPuzzleDefinition[] = [
     ],
     availableBlocks: [moveUpBlock, moveRightBlock, moveLeftBlock, ifPathUpBlock, ifDoorRightBlock],
   },
-];
-
-export const decisionsWorldPuzzles: IPuzzleDefinition[] = [
-  ...decisionsConditionalsPuzzles,
-  ...decisionsBooleanThinkingPuzzles,
 ];
 
 export const decisionsWorld: ICurriculumWorld = {
