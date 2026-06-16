@@ -26,6 +26,11 @@ const RESULT_DELAY_MS = 180;
 
 type TBlockPath = number[];
 type TRenderableBlock = IBlockTemplate | IProgramBlock;
+type TResultPopup = {
+  tone: 'success' | 'error';
+  title: string;
+  body: string;
+};
 
 const clonePosition = (position: IPosition | null) =>
   position
@@ -130,8 +135,10 @@ export const Gameplay = () => {
   const [insertPath, setInsertPath] = useState<TBlockPath>([]);
   const [loopRepeatCount, setLoopRepeatCount] = useState(2);
   const [whileCondition, setWhileCondition] = useState<GameCondition | null>(null);
+  const [resultPopup, setResultPopup] = useState<TResultPopup | null>(null);
   const playbackTimeoutsRef = useRef<number[]>([]);
   const gameplayShellRef = useRef<HTMLDivElement | null>(null);
+  const previousDisplayStatusRef = useRef(status);
 
   const currentPuzzleIndex = puzzles.findIndex((entry) => entry.id === activePuzzleId);
   const currentLevelNumber = currentPuzzleIndex >= 0 ? currentPuzzleIndex + 1 : 1;
@@ -208,6 +215,41 @@ export const Gameplay = () => {
       setInsertPath([]);
     }
   }, [insertPath, program]);
+
+  useEffect(() => {
+    if (puzzle?.id) {
+      setResultPopup(null);
+    }
+  }, [puzzle?.id]);
+
+  useEffect(() => {
+    const previousStatus = previousDisplayStatusRef.current;
+
+    if (previousStatus !== displayStatus && !isPlaybackRunning) {
+      if (displayStatus === 'success') {
+        setResultPopup({
+          tone: 'success',
+          title: 'Room Cleared',
+          body: nextPuzzle
+            ? `The cat reached the door. Next up: ${nextPuzzle.title}.`
+            : 'The cat reached the door. All current playable rooms are complete.',
+        });
+      }
+
+      if (displayStatus === 'error') {
+        setResultPopup({
+          tone: 'error',
+          title: 'Route Failed',
+          body:
+            log[log.length - 1] && log[log.length - 1] !== 'Program ended before the cat reached the door.'
+              ? log[log.length - 1]
+              : 'The route did not solve the room. Adjust the program and try again.',
+        });
+      }
+    }
+
+    previousDisplayStatusRef.current = displayStatus;
+  }, [displayStatus, isPlaybackRunning, log, nextPuzzle]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -313,6 +355,7 @@ export const Gameplay = () => {
     setCodeDraft('');
     setCodeErrors([]);
     setInsertPath([]);
+    setResultPopup(null);
   };
 
   const handleSwitchEditorMode = (nextMode: 'blocks' | 'code') => {
@@ -511,6 +554,46 @@ export const Gameplay = () => {
           <div className="gameplay-focus__workspace">
             <div className="gameplay-focus__boardShell">
               <Grid puzzle={puzzle} catPosition={animatedCatPosition} visited={animatedVisited} status={displayStatus} />
+              {resultPopup ? (
+                <div
+                  className="gameplay-result-popup"
+                  role="alertdialog"
+                  aria-live="assertive"
+                  aria-label={resultPopup.title}
+                >
+                  <div className={`gameplay-result-popup__card gameplay-result-popup__card--${resultPopup.tone}`}>
+                    <div className="gameplay-result-popup__copy">
+                      <p className="gameplay-result-popup__eyebrow">{resultPopup.tone === 'success' ? 'Success' : 'Try Again'}</p>
+                      <h2 className="gameplay-result-popup__title">{resultPopup.title}</h2>
+                      <p className="gameplay-result-popup__body">{resultPopup.body}</p>
+                    </div>
+                    <div className="gameplay-result-popup__actions">
+                      {resultPopup.tone === 'success' && nextPuzzle && nextPuzzleUnlocked ? (
+                        <Button className="pixel-button" onClick={() => loadAndPlayPuzzle(nextPuzzle)}>
+                          Play Next
+                        </Button>
+                      ) : null}
+                      <Button
+                        variant="ghost"
+                        className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
+                        onClick={() => {
+                          resetPuzzle();
+                          setResultPopup(null);
+                        }}
+                      >
+                        Reset
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
+                        onClick={() => setResultPopup(null)}
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <section className="arcade-panel p-5 gameplay-focus__terminalPanel">
