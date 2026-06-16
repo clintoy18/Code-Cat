@@ -1391,6 +1391,132 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
   }
 
+  .world-roadmap {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+
+  .world-card {
+    display: grid;
+    gap: 14px;
+    border-radius: 12px;
+    padding: 22px;
+    border: 4px solid rgba(94, 94, 102, 0.72);
+    background:
+      linear-gradient(180deg, rgba(41, 41, 46, 0.95), rgba(30, 30, 34, 0.94)),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+    box-shadow:
+      0 0 0 4px rgba(255, 255, 255, 0.03) inset,
+      10px 10px 0 rgba(0, 0, 0, 0.24);
+  }
+
+  .world-card__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .world-card__eyebrow {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+
+  .world-card__title {
+    margin: 8px 0 0;
+    font-family: 'Sora', sans-serif;
+    font-size: 24px;
+    line-height: 1.12;
+    color: var(--text-0);
+  }
+
+  .world-card__status {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    white-space: nowrap;
+  }
+
+  .world-card__status--playable {
+    color: var(--text-0);
+  }
+
+  .world-card__description,
+  .world-card__outcome {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .world-card__description {
+    color: var(--text-1);
+  }
+
+  .world-card__outcome {
+    color: var(--text-2);
+  }
+
+  .world-card__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .world-card__chips span {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+
+  .world-card__details {
+    display: grid;
+    gap: 12px;
+  }
+
+  .world-card__label {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+
+  .world-card__text {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-1);
+  }
+
+  .world-card__footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
   .level-card {
     display: grid;
     gap: 16px;
@@ -1711,6 +1837,10 @@ body {
   }
 
   .level-map {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .world-roadmap {
     grid-template-columns: minmax(0, 1fr);
   }
 

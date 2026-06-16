@@ -1,5 +1,15 @@
 export type GameStatus = 'idle' | 'ready' | 'running' | 'success' | 'error';
 export type MoveDirection = 'UP' | 'RIGHT' | 'DOWN' | 'LEFT';
+export type LessonTopic =
+  | 'Sequencing'
+  | 'Debugging'
+  | 'Efficiency'
+  | 'Conditionals'
+  | 'Boolean Logic'
+  | 'Loops'
+  | 'Functions'
+  | 'Variables'
+  | 'Strategy';
 export type GameCondition =
   | 'PATH_UP_CLEAR'
   | 'PATH_RIGHT_CLEAR'
@@ -31,7 +41,7 @@ export interface IProgramBlock extends IBlockTemplate {
 export interface IPuzzleDefinition {
   id: string;
   title: string;
-  lesson: 'Sequencing' | 'Conditionals';
+  lesson: LessonTopic;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   parMoves: number;
   objective: string;

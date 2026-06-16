@@ -1,17 +1,20 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui';
+import { curriculumWorlds } from '@/features/game/data/curriculumRoadmap';
 import { useGame } from '@/hooks/useGame';
 import codeCatLogo from '@/assets/codecat-logo.png';
 
 const cards = [
-  { title: 'Sequencing Sprint', body: 'Arrange move blocks in the right order so the cat reaches the exit.' },
-  { title: 'Conditional Rooms', body: 'Teach the cat to check whether a path is clear before turning.' },
-  { title: 'Incremental Play', body: 'Unlock the next room only after clearing the current lesson.' },
+  { title: 'Foundations World', body: 'Start with sequencing, debugging, and efficiency before the cat enters richer logic rooms.' },
+  { title: 'Decision World', body: 'Move beyond straight-line routes and teach the cat to react to true and false checks.' },
+  { title: 'Roadmap Worlds', body: 'Loops, functions, variables, and strategy are now mapped as the next curriculum tracks.' },
 ];
 
 export const MainMenu = () => {
   const { puzzles, unlockedPuzzleIds, completedPuzzleIds } = useGame();
+  const playableWorldCount = curriculumWorlds.filter((world) => world.status === 'playable').length;
+  const scaffoldedWorldCount = curriculumWorlds.filter((world) => world.status === 'scaffolded').length;
   const nextPuzzle =
     puzzles.find((puzzle) => unlockedPuzzleIds.includes(puzzle.id) && !completedPuzzleIds.includes(puzzle.id)) ?? puzzles[0];
   const completionPercent = puzzles.length ? Math.round((completedPuzzleIds.length / puzzles.length) * 100) : 0;
@@ -54,13 +57,14 @@ export const MainMenu = () => {
           <p className="pixel-panel__body">
             {nextPuzzle
               ? `${nextPuzzle.lesson} / ${nextPuzzle.difficulty} / ${nextPuzzle.objective}`
-              : 'All current starter levels are complete.'}
+              : 'All current playable rooms are complete.'}
           </p>
           <div className="pixel-progress mt-5">
             <div className="pixel-progress__bar" style={{ width: `${completionPercent}%` }} />
           </div>
           <p className="mt-3 text-sm text-brand-100">
-            {completedPuzzleIds.length} of {puzzles.length} starter rooms completed.
+            {completedPuzzleIds.length} of {puzzles.length} playable rooms completed across {playableWorldCount} live
+            worlds. {scaffoldedWorldCount} more worlds are scoped next.
           </p>
         </div>
       </motion.section>
