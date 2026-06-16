@@ -445,6 +445,38 @@ body {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .gameplay-focus__terminalMode {
+    display: inline-grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 6px;
+    border-radius: 12px;
+    background: rgba(20, 20, 24, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .terminal-mode__toggle {
+    min-width: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 9px 12px;
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+  }
+
+  .terminal-mode__toggle--active {
+    background: linear-gradient(180deg, rgba(104, 104, 112, 0.9), rgba(72, 72, 80, 0.92));
+    color: var(--text-0);
+    border-color: rgba(255, 255, 255, 0.16);
   }
 
   .gameplay-focus__terminalEditor {
@@ -542,6 +574,65 @@ body {
     font-size: 12px;
     line-height: 1.45;
     color: var(--text-2);
+  }
+
+  .gameplay-focus__codeMode {
+    min-height: 0;
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .gameplay-focus__codeInput {
+    width: 100%;
+    min-height: 260px;
+    resize: none;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    background:
+      linear-gradient(180deg, rgba(18, 18, 22, 0.98), rgba(13, 13, 16, 0.98)),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+    padding: 14px 16px;
+    color: var(--text-0);
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    outline: none;
+  }
+
+  .gameplay-focus__codeInput:focus {
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  .gameplay-focus__codeHelp {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .gameplay-focus__codeHelp p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-2);
+  }
+
+  .gameplay-focus__codeErrors {
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 12px 14px;
+    display: grid;
+    gap: 6px;
+  }
+
+  .gameplay-focus__codeErrors p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-1);
   }
 
   .gameplay-focus__boardShell .game-stage__legend {
@@ -1017,62 +1108,16 @@ body {
 
   .board-cat {
     position: absolute;
-    inset: 18% 18% auto auto;
-    width: 48%;
-    height: 48%;
+    inset: 14% auto auto 14%;
+    width: 72%;
+    height: 72%;
     min-width: 22px;
     min-height: 22px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #f1f1f3 0%, #8c8c95 100%);
-    box-shadow:
-      0 10px 20px rgba(0, 0, 0, 0.28),
-      inset 0 3px 0 rgba(255, 255, 255, 0.24);
     z-index: 2;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.22));
     animation: cat-bob 1.1s ease-in-out infinite;
-  }
-
-  .board-cat__ear {
-    position: absolute;
-    top: -8%;
-    width: 28%;
-    height: 28%;
-    border-radius: 6px 6px 2px 2px;
-    background: linear-gradient(180deg, #b4b4bc 0%, #6f6f77 100%);
-    transform: rotate(45deg);
-  }
-
-  .board-cat__ear--left {
-    left: 14%;
-  }
-
-  .board-cat__ear--right {
-    right: 14%;
-    transform: rotate(-45deg);
-  }
-
-  .board-cat__face {
-    position: absolute;
-    inset: 30% 20% auto 20%;
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .board-cat__eye {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #1a1a1d;
-  }
-
-  .board-cat__tail {
-    position: absolute;
-    right: -18%;
-    bottom: 18%;
-    width: 24%;
-    height: 10%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #6d6d75, #a1a1a8);
-    transform: rotate(18deg);
   }
 
   .game-stage__legend {
@@ -1099,7 +1144,11 @@ body {
   }
 
   .legend-dot--cat {
-    background: linear-gradient(180deg, #babac0, #73737a);
+    background:
+      center / contain no-repeat url('./assets/cat-sprite.png'),
+      rgba(255, 255, 255, 0.12);
+    border-radius: 0;
+    image-rendering: pixelated;
   }
 
   .legend-dot--door {
@@ -1324,42 +1373,16 @@ body {
     width: 48px;
     height: 48px;
     flex: none;
-    border-radius: 50%;
-    background: linear-gradient(180deg, #b7b7be 0%, #73737a 100%);
-    box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.14);
+    display: grid;
+    place-items: center;
   }
 
-  .cat-avatar__ear {
-    position: absolute;
-    top: -6%;
-    width: 30%;
-    height: 30%;
-    border-radius: 6px 6px 2px 2px;
-    background: linear-gradient(180deg, #8b8b93 0%, #626269 100%);
-  }
-
-  .cat-avatar__ear--left {
-    left: 12%;
-    transform: rotate(-18deg);
-  }
-
-  .cat-avatar__ear--right {
-    right: 12%;
-    transform: rotate(18deg);
-  }
-
-  .cat-avatar__face {
-    position: absolute;
-    inset: 42% 24% auto;
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .cat-avatar__eye {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #18181b;
+  .cat-avatar__sprite {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.18));
   }
 
   .level-map {
@@ -1584,6 +1607,11 @@ body {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .gameplay-focus__codeHelp {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .pixel-hero {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1643,6 +1671,10 @@ body {
   .gameplay-focus__terminalFunctions,
   .gameplay-focus__actionRow {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gameplay-focus__terminalMode {
+    width: 100%;
   }
 
   .gameplay-shell--fullscreen {

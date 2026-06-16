@@ -1,3 +1,4 @@
+import catSprite from '@/assets/cat-sprite.png';
 import type { IPosition, IPuzzleDefinition } from '@/features/game/engine';
 
 interface IGridProps {
@@ -69,15 +70,7 @@ export const Grid = ({ puzzle, catPosition, visited, status = 'ready' }: IGridPr
               </div>
             ) : null}
             {isCat ? (
-              <div className="board-cat" aria-hidden="true">
-                <span className="board-cat__ear board-cat__ear--left" />
-                <span className="board-cat__ear board-cat__ear--right" />
-                <span className="board-cat__face">
-                  <span className="board-cat__eye" />
-                  <span className="board-cat__eye" />
-                </span>
-                <span className="board-cat__tail" />
-              </div>
+              <img className="board-cat" src={catSprite} alt="" aria-hidden="true" />
             ) : null}
           </div>
         );

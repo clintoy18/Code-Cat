@@ -144,6 +144,22 @@ export class GameEngine {
     this.emit();
   }
 
+  replaceProgram(templates: IBlockTemplate[]) {
+    if (!this.snapshot.puzzle) {
+      return;
+    }
+
+    this.snapshot = {
+      ...this.snapshot,
+      program: templates.map((template) => ({
+        ...template,
+        id: `block-${this.blockSequence++}`,
+      })),
+      status: 'ready',
+    };
+    this.emit();
+  }
+
   removeBlock(blockId: string) {
     this.snapshot = {
       ...this.snapshot,

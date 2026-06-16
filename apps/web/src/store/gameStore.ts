@@ -16,6 +16,7 @@ interface IGameState extends IGameEngineSnapshot {
   latestCompletedPuzzleId: string | null;
   loadPuzzle: (puzzleId: string) => void;
   addBlock: (template: IBlockTemplate) => void;
+  replaceProgram: (templates: IBlockTemplate[]) => void;
   removeBlock: (blockId: string) => void;
   clearProgram: () => void;
   runProgram: () => IGameEngineSnapshot;
@@ -46,6 +47,9 @@ export const useGameStore = create<IGameState>()(
       },
       addBlock: (template) => {
         gameEngine.appendBlock(template);
+      },
+      replaceProgram: (templates) => {
+        gameEngine.replaceProgram(templates);
       },
       removeBlock: (blockId) => {
         gameEngine.removeBlock(blockId);

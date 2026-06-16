@@ -17,6 +17,7 @@ export const useGame = () =>
     didReachDoor: state.didReachDoor,
     loadPuzzle: state.loadPuzzle,
     addBlock: state.addBlock,
+    replaceProgram: state.replaceProgram,
     removeBlock: state.removeBlock,
     clearProgram: state.clearProgram,
     runProgram: state.runProgram,

@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Cat, Grid } from '@/components/game';
 import { Button } from '@/components/ui';
 import { gameAudio } from '@/features/game/audio/gameAudio';
-import type { IGameEngineSnapshot, IPosition, IPuzzleDefinition } from '@/features/game/engine';
+import {
+  parseProgramCode,
+  serializeProgramToCode,
+  type IGameEngineSnapshot,
+  type IPosition,
+  type IPuzzleDefinition,
+} from '@/features/game/engine';
 import { useGame } from '@/hooks/useGame';
 import { useSettingsStore } from '@/store/settingsStore';
 
@@ -42,6 +48,7 @@ export const Gameplay = () => {
     status,
     log,
     addBlock,
+    replaceProgram,
     removeBlock,
     clearProgram,
     runProgram,
@@ -53,6 +60,9 @@ export const Gameplay = () => {
   const [animatedVisited, setAnimatedVisited] = useState<IPosition[]>(visited);
   const [isPlaybackRunning, setIsPlaybackRunning] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [editorMode, setEditorMode] = useState<'blocks' | 'code'>('blocks');
+  const [codeDraft, setCodeDraft] = useState('');
+  const [codeErrors, setCodeErrors] = useState<string[]>([]);
   const playbackTimeoutsRef = useRef<number[]>([]);
   const gameplayShellRef = useRef<HTMLDivElement | null>(null);
 
@@ -90,6 +100,15 @@ export const Gameplay = () => {
       setAnimatedVisited(visited);
     }
   }, [catPosition, visited, isPlaybackRunning, puzzle?.id]);
+
+  useEffect(() => {
+    setCodeDraft(serializeProgramToCode(program));
+  }, [program, puzzle?.id]);
+
+  useEffect(() => {
+    setEditorMode('blocks');
+    setCodeErrors([]);
+  }, [puzzle?.id]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -150,7 +169,28 @@ export const Gameplay = () => {
     playbackTimeoutsRef.current.push(resultTimeoutId);
   };
 
+  const handleApplyCode = () => {
+    if (!puzzle) {
+      return false;
+    }
+
+    const parseResult = parseProgramCode(codeDraft, puzzle);
+
+    if (!parseResult.success) {
+      setCodeErrors(parseResult.errors);
+      return false;
+    }
+
+    replaceProgram(parseResult.blocks);
+    setCodeErrors([]);
+    return true;
+  };
+
   const handleRunProgram = () => {
+    if (editorMode === 'code' && !handleApplyCode()) {
+      return;
+    }
+
     const snapshot = runProgram();
     playRun(snapshot);
   };
@@ -166,6 +206,21 @@ export const Gameplay = () => {
     }
 
     await gameplayShellRef.current.requestFullscreen();
+  };
+
+  const handleClearProgram = () => {
+    clearProgram();
+    setCodeDraft('');
+    setCodeErrors([]);
+  };
+
+  const handleSwitchEditorMode = (nextMode: 'blocks' | 'code') => {
+    setEditorMode(nextMode);
+    setCodeErrors([]);
+
+    if (nextMode === 'code') {
+      setCodeDraft(serializeProgramToCode(program));
+    }
   };
 
   const loadAndPlayPuzzle = (nextTargetPuzzle: IPuzzleDefinition) => {
@@ -231,52 +286,103 @@ export const Gameplay = () => {
                 <span className="game-chip">{commandCount} lines</span>
               </div>
 
-              <div className="gameplay-focus__terminalFunctions mt-4">
-                {puzzle.availableBlocks.map((block) => (
-                  <button
-                    key={block.key}
-                    type="button"
-                    disabled={isPlaybackRunning}
-                    onClick={() => addBlock(block)}
-                    className={`palette-block ${isPlaybackRunning ? 'palette-block--disabled' : ''}`}
-                  >
-                    <span className="palette-block__kind">{block.kind === 'MOVE' ? 'MOVE' : 'IF'}</span>
-                    <span className="palette-block__label">{block.label}</span>
-                  </button>
-                ))}
+              <div className="gameplay-focus__terminalMode mt-4">
+                <button
+                  type="button"
+                  className={`terminal-mode__toggle ${editorMode === 'blocks' ? 'terminal-mode__toggle--active' : ''}`}
+                  onClick={() => handleSwitchEditorMode('blocks')}
+                >
+                  Click Mode
+                </button>
+                <button
+                  type="button"
+                  className={`terminal-mode__toggle ${editorMode === 'code' ? 'terminal-mode__toggle--active' : ''}`}
+                  onClick={() => handleSwitchEditorMode('code')}
+                >
+                  Code Mode
+                </button>
               </div>
 
               <div className="gameplay-focus__terminalEditor mt-4">
                 <div className="gameplay-focus__terminalHeader">
-                  <span>route.cat</span>
+                  <span>{editorMode === 'blocks' ? 'route.cat' : 'route.cat.ts'}</span>
                   <span>{program.length ? `${program.length} commands` : 'empty'}</span>
                 </div>
-                <div className="gameplay-focus__terminalBody">
-                  {program.length ? (
-                    program.map((block, index) => (
-                      <div key={block.id} className="gameplay-focus__terminalLine">
-                        <span className="gameplay-focus__terminalLineNo">{index + 1}</span>
-                        <code className="gameplay-focus__terminalCode">{block.label}</code>
-                        {isPlaybackRunning ? null : (
-                          <button
-                            type="button"
-                            className="gameplay-focus__terminalRemove"
-                            onClick={() => removeBlock(block.id)}
-                          >
-                            remove
-                          </button>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="gameplay-focus__terminalEmpty">
-                      <p className="gameplay-focus__terminalEmptyTitle">No commands in route</p>
-                      <p className="gameplay-focus__terminalEmptyBody">
-                        Add movement functions or condition checks to guide the cat to the exit.
-                      </p>
+
+                {editorMode === 'blocks' ? (
+                  <>
+                    <div className="gameplay-focus__terminalFunctions">
+                      {puzzle.availableBlocks.map((block) => (
+                        <button
+                          key={block.key}
+                          type="button"
+                          disabled={isPlaybackRunning}
+                          onClick={() => addBlock(block)}
+                          className={`palette-block ${isPlaybackRunning ? 'palette-block--disabled' : ''}`}
+                        >
+                          <span className="palette-block__kind">{block.kind === 'MOVE' ? 'MOVE' : 'IF'}</span>
+                          <span className="palette-block__label">{block.label}</span>
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </div>
+
+                    <div className="gameplay-focus__terminalBody">
+                      {program.length ? (
+                        program.map((block, index) => (
+                          <div key={block.id} className="gameplay-focus__terminalLine">
+                            <span className="gameplay-focus__terminalLineNo">{index + 1}</span>
+                            <code className="gameplay-focus__terminalCode">{block.label}</code>
+                            {isPlaybackRunning ? null : (
+                              <button
+                                type="button"
+                                className="gameplay-focus__terminalRemove"
+                                onClick={() => removeBlock(block.id)}
+                              >
+                                remove
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="gameplay-focus__terminalEmpty">
+                          <p className="gameplay-focus__terminalEmptyTitle">No commands in route</p>
+                          <p className="gameplay-focus__terminalEmptyBody">
+                            Add movement functions or condition checks to guide the cat to the exit.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="gameplay-focus__codeMode">
+                    <textarea
+                      value={codeDraft}
+                      disabled={isPlaybackRunning}
+                      onChange={(event) => setCodeDraft(event.target.value)}
+                      className="gameplay-focus__codeInput"
+                      spellCheck={false}
+                      placeholder={`moveUp()\nmoveRight()\nif (pathRightClear) moveRight()`}
+                    />
+                    <div className="gameplay-focus__codeHelp">
+                      <p>Type one command per line. Only functions unlocked in this puzzle will compile.</p>
+                      <Button
+                        variant="ghost"
+                        className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
+                        onClick={handleApplyCode}
+                        disabled={isPlaybackRunning}
+                      >
+                        Apply Code
+                      </Button>
+                    </div>
+                    {codeErrors.length ? (
+                      <div className="gameplay-focus__codeErrors" role="alert">
+                        {codeErrors.map((error) => (
+                          <p key={error}>{error}</p>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </div>
 
               <div className="gameplay-focus__actionRow mt-4">
@@ -298,7 +404,7 @@ export const Gameplay = () => {
                 <Button
                   variant="ghost"
                   className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
-                  onClick={clearProgram}
+                  onClick={handleClearProgram}
                   disabled={isPlaybackRunning}
                 >
                   Clear
