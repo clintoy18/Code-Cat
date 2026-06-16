@@ -8,7 +8,7 @@ import codeCatLogo from '@/assets/codecat-logo.png';
 const cards = [
   { title: 'Foundations World', body: 'Start with sequencing, debugging, and efficiency before the cat enters richer logic rooms.' },
   { title: 'Decision World', body: 'Move beyond straight-line routes and teach the cat to react to true and false checks.' },
-  { title: 'Roadmap Worlds', body: 'Loops, functions, variables, and strategy are now mapped as the next curriculum tracks.' },
+  { title: 'Loops World', body: 'World 3 is now live with repeat blocks, while functions, variables, and strategy remain next on the roadmap.' },
 ];
 
 export const MainMenu = () => {

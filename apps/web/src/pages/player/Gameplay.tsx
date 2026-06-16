@@ -63,6 +63,8 @@ export const Gameplay = () => {
   const [editorMode, setEditorMode] = useState<'blocks' | 'code'>('blocks');
   const [codeDraft, setCodeDraft] = useState('');
   const [codeErrors, setCodeErrors] = useState<string[]>([]);
+  const [loopRepeatCount, setLoopRepeatCount] = useState(2);
+  const [selectedLoopActionKey, setSelectedLoopActionKey] = useState<string | null>(null);
   const playbackTimeoutsRef = useRef<number[]>([]);
   const gameplayShellRef = useRef<HTMLDivElement | null>(null);
 
@@ -73,6 +75,9 @@ export const Gameplay = () => {
   const commandCount = program.length;
   const visitedCount = Math.max(0, animatedVisited.length - 1);
   const nextPuzzleUnlocked = nextPuzzle ? unlockedPuzzleIds.includes(nextPuzzle.id) : false;
+  const actionBlocks = puzzle?.availableBlocks.filter((block) => block.kind !== 'LOOP') ?? [];
+  const loopEnabled = puzzle?.availableBlocks.some((block) => block.kind === 'LOOP') ?? false;
+  const selectedLoopAction = actionBlocks.find((block) => block.key === selectedLoopActionKey) ?? actionBlocks[0] ?? null;
   const statusLabelMap = {
     ready: 'Awaiting run',
     running: 'Executing route',
@@ -108,7 +113,20 @@ export const Gameplay = () => {
   useEffect(() => {
     setEditorMode('blocks');
     setCodeErrors([]);
+    setLoopRepeatCount(2);
+    setSelectedLoopActionKey(null);
   }, [puzzle?.id]);
+
+  useEffect(() => {
+    if (!selectedLoopActionKey && actionBlocks[0]) {
+      setSelectedLoopActionKey(actionBlocks[0].key);
+      return;
+    }
+
+    if (selectedLoopActionKey && !actionBlocks.some((block) => block.key === selectedLoopActionKey)) {
+      setSelectedLoopActionKey(actionBlocks[0]?.key ?? null);
+    }
+  }, [actionBlocks, selectedLoopActionKey]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -228,6 +246,26 @@ export const Gameplay = () => {
     navigate('/gameplay');
   };
 
+  const handleAddLoopBlock = () => {
+    if (!selectedLoopAction) {
+      return;
+    }
+
+    addBlock({
+      key: `repeat-${loopRepeatCount}-${selectedLoopAction.key}`,
+      label: `repeat(${loopRepeatCount}) ${selectedLoopAction.label}`,
+      kind: 'LOOP',
+      repeatCount: loopRepeatCount,
+      loopBody: {
+        label: selectedLoopAction.label,
+        kind: selectedLoopAction.kind === 'CONDITIONAL' ? 'CONDITIONAL' : 'MOVE',
+        move: selectedLoopAction.move,
+        condition: selectedLoopAction.condition,
+        action: selectedLoopAction.action,
+      },
+    });
+  };
+
   if (!puzzle) {
     return (
       <div className="glass-panel m-6 p-6">
@@ -312,7 +350,7 @@ export const Gameplay = () => {
                 {editorMode === 'blocks' ? (
                   <>
                     <div className="gameplay-focus__terminalFunctions">
-                      {puzzle.availableBlocks.map((block) => (
+                      {actionBlocks.map((block) => (
                         <button
                           key={block.key}
                           type="button"
@@ -325,6 +363,58 @@ export const Gameplay = () => {
                         </button>
                       ))}
                     </div>
+
+                    {loopEnabled ? (
+                      <div className="gameplay-focus__loopBuilder">
+                        <div className="gameplay-focus__loopHeader">
+                          <div>
+                            <p className="pixel-kicker">Loop Builder</p>
+                            <p className="gameplay-focus__loopCopy">Repeat one available command without stacking the same line over and over.</p>
+                          </div>
+                          <span className="game-chip">World 3 live</span>
+                        </div>
+
+                        <div className="gameplay-focus__loopCounts">
+                          {[2, 3, 4].map((count) => (
+                            <button
+                              key={count}
+                              type="button"
+                              className={`loop-count ${loopRepeatCount === count ? 'loop-count--active' : ''}`}
+                              onClick={() => setLoopRepeatCount(count)}
+                              disabled={isPlaybackRunning}
+                            >
+                              x{count}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="gameplay-focus__loopActions">
+                          {actionBlocks.map((block) => (
+                            <button
+                              key={`loop-${block.key}`}
+                              type="button"
+                              className={`loop-action ${selectedLoopAction?.key === block.key ? 'loop-action--active' : ''}`}
+                              onClick={() => setSelectedLoopActionKey(block.key)}
+                              disabled={isPlaybackRunning}
+                            >
+                              {block.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="gameplay-focus__loopFooter">
+                          <code>{selectedLoopAction ? `repeat(${loopRepeatCount}) ${selectedLoopAction.label}` : 'Select a command to repeat.'}</code>
+                          <Button
+                            variant="ghost"
+                            className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
+                            onClick={handleAddLoopBlock}
+                            disabled={isPlaybackRunning || !selectedLoopAction}
+                          >
+                            Add Loop
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
 
                     <div className="gameplay-focus__terminalBody">
                       {program.length ? (
@@ -361,10 +451,10 @@ export const Gameplay = () => {
                       onChange={(event) => setCodeDraft(event.target.value)}
                       className="gameplay-focus__codeInput"
                       spellCheck={false}
-                      placeholder={`moveUp()\nmoveRight()\nif (pathRightClear) moveRight()`}
+                      placeholder={`moveUp()\nmoveRight()\nrepeat(3) moveRight()`}
                     />
                     <div className="gameplay-focus__codeHelp">
-                      <p>Type one command per line. Only functions unlocked in this puzzle will compile.</p>
+                      <p>Type one command per line. Use `repeat(3) moveRight()` when the puzzle includes loop support.</p>
                       <Button
                         variant="ghost"
                         className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"

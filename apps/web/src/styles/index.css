@@ -576,6 +576,91 @@ body {
     color: var(--text-2);
   }
 
+  .gameplay-focus__loopBuilder {
+    display: grid;
+    gap: 12px;
+    margin: 0 12px 12px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .gameplay-focus__loopHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .gameplay-focus__loopCopy {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-2);
+  }
+
+  .gameplay-focus__loopCounts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .loop-count,
+  .loop-action {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-2);
+    transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+  }
+
+  .loop-count {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .loop-action {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 0;
+  }
+
+  .loop-count--active,
+  .loop-action--active {
+    background: linear-gradient(180deg, rgba(104, 104, 112, 0.9), rgba(72, 72, 80, 0.92));
+    border-color: rgba(255, 255, 255, 0.16);
+    color: var(--text-0);
+  }
+
+  .gameplay-focus__loopActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .gameplay-focus__loopFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .gameplay-focus__loopFooter code {
+    min-width: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--text-1);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .gameplay-focus__codeMode {
     min-height: 0;
     display: grid;
@@ -1738,6 +1823,12 @@ body {
     align-items: stretch;
   }
 
+  .gameplay-focus__loopHeader,
+  .gameplay-focus__loopFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .pixel-hero {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1801,6 +1892,10 @@ body {
 
   .gameplay-focus__terminalMode {
     width: 100%;
+  }
+
+  .gameplay-focus__loopActions {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .gameplay-shell--fullscreen {

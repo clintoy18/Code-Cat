@@ -1,5 +1,6 @@
 export type GameStatus = 'idle' | 'ready' | 'running' | 'success' | 'error';
 export type MoveDirection = 'UP' | 'RIGHT' | 'DOWN' | 'LEFT';
+  export type BlockKind = 'MOVE' | 'CONDITIONAL' | 'LOOP';
 export type LessonTopic =
   | 'Sequencing'
   | 'Debugging'
@@ -28,10 +29,18 @@ export interface IPosition {
 export interface IBlockTemplate {
   key: string;
   label: string;
-  kind: 'MOVE' | 'CONDITIONAL';
+  kind: BlockKind;
   move?: MoveDirection;
   condition?: GameCondition;
   action?: MoveDirection;
+  repeatCount?: number;
+  loopBody?: {
+    label: string;
+    kind: 'MOVE' | 'CONDITIONAL';
+    move?: MoveDirection;
+    condition?: GameCondition;
+    action?: MoveDirection;
+  };
 }
 
 export interface IProgramBlock extends IBlockTemplate {
@@ -234,45 +243,69 @@ export class GameEngine {
     let stepIndex = 0;
 
     for (const block of this.snapshot.program) {
-      if (status === 'error' || status === 'success') {
+      if (status !== 'running') {
         break;
       }
 
       stepIndex += 1;
 
-      if (block.kind === 'MOVE' && block.move) {
-        const moveResult = this.tryMove(puzzle, catPosition, block.move);
-
-        if (!moveResult.success) {
+      if (block.kind === 'LOOP') {
+        if (!block.repeatCount || block.repeatCount < 2 || !block.loopBody) {
           status = 'error';
-          log.push(`${block.label}: ${moveResult.message}`);
+          log.push(`${block.label}: loop block is incomplete.`);
           break;
         }
 
-        catPosition = moveResult.position;
-        visited.push(clonePosition(catPosition));
-        log.push(`${block.label}: cat moved ${block.move.toLowerCase()}.`);
+        log.push(`${block.label}: starting ${block.repeatCount} iterations.`);
+
+        for (let iteration = 0; iteration < block.repeatCount; iteration += 1) {
+          const execution = this.executeActionBlock(
+            puzzle,
+            catPosition,
+            block.loopBody,
+            `${block.label} [${iteration + 1}/${block.repeatCount}]`,
+          );
+
+          log.push(execution.logEntry);
+
+          if (!execution.success) {
+            status = 'error';
+            break;
+          }
+
+          catPosition = execution.position;
+
+          if (execution.visitedPosition) {
+            visited.push(clonePosition(execution.visitedPosition));
+          }
+
+          if (positionsMatch(catPosition, puzzle.door)) {
+            status = 'success';
+            didReachDoor = true;
+            log.push('Success: the cat reached the door.');
+            break;
+          }
+        }
+
+        if (status !== 'running') {
+          break;
+        }
+
+        continue;
       }
 
-      if (block.kind === 'CONDITIONAL' && block.condition && block.action) {
-        const passed = this.evaluateCondition(puzzle, catPosition, block.condition);
+      const execution = this.executeActionBlock(puzzle, catPosition, block, block.label);
+      log.push(execution.logEntry);
 
-        if (!passed) {
-          log.push(`${block.label}: condition was false, action skipped.`);
-          continue;
-        }
+      if (!execution.success) {
+        status = 'error';
+        break;
+      }
 
-        const moveResult = this.tryMove(puzzle, catPosition, block.action);
+      catPosition = execution.position;
 
-        if (!moveResult.success) {
-          status = 'error';
-          log.push(`${block.label}: ${moveResult.message}`);
-          break;
-        }
-
-        catPosition = moveResult.position;
-        visited.push(clonePosition(catPosition));
-        log.push(`${block.label}: condition passed, action executed.`);
+      if (execution.visitedPosition) {
+        visited.push(clonePosition(execution.visitedPosition));
       }
 
       if (positionsMatch(catPosition, puzzle.door)) {
@@ -282,7 +315,7 @@ export class GameEngine {
       }
     }
 
-    if (!didReachDoor && status !== 'error') {
+    if (!didReachDoor && status === 'running') {
       status = 'error';
       log.push('Program ended before the cat reached the door.');
     }
@@ -300,6 +333,67 @@ export class GameEngine {
     this.emit();
 
     return this.snapshot;
+  }
+
+  private executeActionBlock(
+    puzzle: IPuzzleDefinition,
+    catPosition: IPosition,
+    block: Pick<IBlockTemplate, 'label' | 'kind' | 'move' | 'condition' | 'action'>,
+    label: string,
+  ) {
+    if (block.kind === 'MOVE' && block.move) {
+      const moveResult = this.tryMove(puzzle, catPosition, block.move);
+
+      if (!moveResult.success) {
+        return {
+          success: false as const,
+          position: catPosition,
+          logEntry: `${label}: ${moveResult.message}`,
+        };
+      }
+
+      return {
+        success: true as const,
+        position: moveResult.position,
+        visitedPosition: moveResult.position,
+        logEntry: `${label}: cat moved ${block.move.toLowerCase()}.`,
+      };
+    }
+
+    if (block.kind === 'CONDITIONAL' && block.condition && block.action) {
+      const passed = this.evaluateCondition(puzzle, catPosition, block.condition);
+
+      if (!passed) {
+        return {
+          success: true as const,
+          position: catPosition,
+          logEntry: `${label}: condition was false, action skipped.`,
+        };
+      }
+
+      const moveResult = this.tryMove(puzzle, catPosition, block.action);
+
+      if (!moveResult.success) {
+        return {
+          success: false as const,
+          position: catPosition,
+          logEntry: `${label}: ${moveResult.message}`,
+        };
+      }
+
+      return {
+        success: true as const,
+        position: moveResult.position,
+        visitedPosition: moveResult.position,
+        logEntry: `${label}: condition passed, action executed.`,
+      };
+    }
+
+    return {
+      success: false as const,
+      position: catPosition,
+      logEntry: `${label}: block is incomplete.`,
+    };
   }
 
   private evaluateCondition(puzzle: IPuzzleDefinition, catPosition: IPosition, condition: GameCondition) {

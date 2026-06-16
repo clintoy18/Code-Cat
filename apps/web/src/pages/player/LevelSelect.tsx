@@ -25,7 +25,7 @@ export const LevelSelect = () => {
           <p className="mission-brief__eyebrow">Level Map</p>
           <h1 className="mission-brief__title">Clear the ice rooms one world at a time.</h1>
           <p className="mission-brief__objective">
-            The live game now covers Foundations and Decisions, while the next worlds are already scoped for loops,
+            The live game now covers Foundations, Decisions, and Loops, while the next worlds are already scoped for
             functions, variables, and strategy.
           </p>
         </div>

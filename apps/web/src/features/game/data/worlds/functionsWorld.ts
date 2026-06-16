@@ -1,6 +1,7 @@
 import type { ICurriculumWorld } from '@/features/game/data/lessonRoadmap';
+import type { IPuzzleDefinition } from '@/features/game/engine';
 
-export const functionsWorldPuzzles = [
+export const functionsWorldPuzzles: IPuzzleDefinition[] = [
   {
     id: 'helper-hall',
     title: 'Helper Hall',
@@ -55,7 +56,7 @@ export const functionsWorldPuzzles = [
       },
     ],
   },
-] as const;
+];
 
 export const functionsWorld: ICurriculumWorld = {
   id: 'functions',

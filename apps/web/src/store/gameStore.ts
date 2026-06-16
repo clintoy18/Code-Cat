@@ -23,10 +23,34 @@ interface IGameState extends IGameEngineSnapshot {
   resetPuzzle: () => void;
 }
 
+const getUnlockedPuzzleIds = (completedPuzzleIds: string[]) => {
+  const unlocked = new Set<string>();
+
+  if (starterPuzzles[0]) {
+    unlocked.add(starterPuzzles[0].id);
+  }
+
+  starterPuzzles.forEach((puzzle, index) => {
+    if (!completedPuzzleIds.includes(puzzle.id)) {
+      return;
+    }
+
+    unlocked.add(puzzle.id);
+
+    const nextPuzzle = starterPuzzles[index + 1];
+
+    if (nextPuzzle) {
+      unlocked.add(nextPuzzle.id);
+    }
+  });
+
+  return Array.from(unlocked);
+};
+
 gameEngine.loadPuzzle(starterPuzzles[0]);
 
 const initialSnapshot = gameEngine.getSnapshot();
-const initialUnlockedPuzzleId = starterPuzzles[0]?.id;
+const initialUnlockedPuzzleIds = getUnlockedPuzzleIds([]);
 
 export const useGameStore = create<IGameState>()(
   persist(
@@ -35,7 +59,7 @@ export const useGameStore = create<IGameState>()(
       puzzles: starterPuzzles,
       activePuzzleId: initialSnapshot.puzzle?.id ?? null,
       completedPuzzleIds: [],
-      unlockedPuzzleIds: initialUnlockedPuzzleId ? [initialUnlockedPuzzleId] : [],
+      unlockedPuzzleIds: initialUnlockedPuzzleIds,
       latestCompletedPuzzleId: null,
       loadPuzzle: (puzzleId) => {
         const nextPuzzle = starterPuzzles.find((puzzle) => puzzle.id === puzzleId);
@@ -61,17 +85,14 @@ export const useGameStore = create<IGameState>()(
         const snapshot = gameEngine.run();
 
         if (snapshot.status === 'success' && snapshot.puzzle) {
-          const currentIndex = starterPuzzles.findIndex((puzzle) => puzzle.id === snapshot.puzzle?.id);
-          const nextPuzzleId = currentIndex >= 0 ? starterPuzzles[currentIndex + 1]?.id ?? null : null;
-          const { completedPuzzleIds, unlockedPuzzleIds } = get();
+          const { completedPuzzleIds } = get();
+          const nextCompletedPuzzleIds = completedPuzzleIds.includes(snapshot.puzzle.id)
+            ? completedPuzzleIds
+            : [...completedPuzzleIds, snapshot.puzzle.id];
 
           set({
-            completedPuzzleIds: completedPuzzleIds.includes(snapshot.puzzle.id)
-              ? completedPuzzleIds
-              : [...completedPuzzleIds, snapshot.puzzle.id],
-            unlockedPuzzleIds: nextPuzzleId
-              ? Array.from(new Set([...unlockedPuzzleIds, snapshot.puzzle.id, nextPuzzleId]))
-              : Array.from(new Set([...unlockedPuzzleIds, snapshot.puzzle.id])),
+            completedPuzzleIds: nextCompletedPuzzleIds,
+            unlockedPuzzleIds: getUnlockedPuzzleIds(nextCompletedPuzzleIds),
             latestCompletedPuzzleId: snapshot.puzzle.id,
           });
         }
@@ -87,9 +108,19 @@ export const useGameStore = create<IGameState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         completedPuzzleIds: state.completedPuzzleIds,
-        unlockedPuzzleIds: state.unlockedPuzzleIds,
         latestCompletedPuzzleId: state.latestCompletedPuzzleId,
       }),
+      merge: (persistedState, currentState) => {
+        const typedPersistedState = persistedState as Partial<IGameState> | undefined;
+        const completedPuzzleIds = typedPersistedState?.completedPuzzleIds ?? currentState.completedPuzzleIds;
+
+        return {
+          ...currentState,
+          ...typedPersistedState,
+          completedPuzzleIds,
+          unlockedPuzzleIds: getUnlockedPuzzleIds(completedPuzzleIds),
+        };
+      },
     },
   ),
 );

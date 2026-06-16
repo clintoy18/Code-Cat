@@ -1,54 +1,84 @@
-import type { ICurriculumWorld } from '@/features/game/data/lessonRoadmap';
+import type { IBlockTemplate, IPuzzleDefinition } from '@/features/game/engine';
+import type { ICurriculumWorld } from '../lessonRoadmap';
 
-export const loopsWorldPuzzles = [
+const moveUpBlock: IBlockTemplate = { key: 'move-up', label: 'moveUp()', kind: 'MOVE', move: 'UP' };
+const moveRightBlock: IBlockTemplate = { key: 'move-right', label: 'moveRight()', kind: 'MOVE', move: 'RIGHT' };
+const moveLeftBlock: IBlockTemplate = { key: 'move-left', label: 'moveLeft()', kind: 'MOVE', move: 'LEFT' };
+
+const ifPathUpBlock: IBlockTemplate = {
+  key: 'if-path-up',
+  label: 'if (pathUpClear) moveUp()',
+  kind: 'CONDITIONAL',
+  condition: 'PATH_UP_CLEAR',
+  action: 'UP',
+};
+
+const repeatBlock: IBlockTemplate = {
+  key: 'repeat-loop',
+  label: 'repeat(n) command',
+  kind: 'LOOP',
+  repeatCount: 2,
+  loopBody: {
+    label: 'moveUp()',
+    kind: 'MOVE',
+    move: 'UP',
+  },
+};
+
+export const loopsWorldPuzzles: IPuzzleDefinition[] = [
   {
-    id: 'stair-repeat',
-    title: 'Stair Repeat',
+    id: 'terrace-repeat',
+    title: 'Terrace Repeat',
     lesson: 'Loops',
-    difficulty: 'Medium',
-    parMoves: 8,
-    objective: 'This board is designed for a future repeat block because the cat climbs the same stair pattern three times.',
-    rows: 6,
-    cols: 6,
-    start: { row: 5, col: 0 },
-    door: { row: 0, col: 5 },
-    walls: [
-      { row: 5, col: 2 },
-      { row: 4, col: 2 },
-      { row: 3, col: 4 },
-      { row: 2, col: 4 },
-    ],
-    availableBlocks: [
-      { key: 'move-up', label: 'moveUp()', kind: 'MOVE', move: 'UP' },
-      { key: 'move-right', label: 'moveRight()', kind: 'MOVE', move: 'RIGHT' },
-      { key: 'move-left', label: 'moveLeft()', kind: 'MOVE', move: 'LEFT' },
-    ],
+    difficulty: 'Easy',
+    parMoves: 4,
+    objective: 'Use repeat blocks to climb four tiles, then sprint four tiles to the exit without copying each step by hand.',
+    rows: 5,
+    cols: 5,
+    start: { row: 4, col: 0 },
+    door: { row: 0, col: 4 },
+    walls: [],
+    availableBlocks: [moveUpBlock, moveRightBlock, repeatBlock],
   },
   {
-    id: 'frozen-march',
-    title: 'Frozen March',
+    id: 'checkpoint-climb',
+    title: 'Checkpoint Climb',
     lesson: 'Loops',
     difficulty: 'Medium',
-    parMoves: 10,
-    objective: 'The room repeats the same four-step lane, making it a natural candidate for repeat(n).',
+    parMoves: 6,
+    objective: 'Repeat a safe climb, then turn across the top lane. This is the first room built around looped movement.',
     rows: 6,
-    cols: 7,
+    cols: 5,
     start: { row: 5, col: 0 },
-    door: { row: 0, col: 6 },
+    door: { row: 0, col: 4 },
     walls: [
+      { row: 5, col: 1 },
       { row: 4, col: 1 },
-      { row: 4, col: 3 },
-      { row: 4, col: 5 },
-      { row: 2, col: 2 },
-      { row: 2, col: 4 },
+      { row: 3, col: 1 },
+      { row: 2, col: 1 },
     ],
-    availableBlocks: [
-      { key: 'move-up', label: 'moveUp()', kind: 'MOVE', move: 'UP' },
-      { key: 'move-right', label: 'moveRight()', kind: 'MOVE', move: 'RIGHT' },
-      { key: 'move-left', label: 'moveLeft()', kind: 'MOVE', move: 'LEFT' },
-    ],
+    availableBlocks: [moveUpBlock, moveRightBlock, repeatBlock],
   },
-] as const;
+  {
+    id: 'guarded-rhythm',
+    title: 'Guarded Rhythm',
+    lesson: 'Loops',
+    difficulty: 'Medium',
+    parMoves: 6,
+    objective: 'Repeat a conditional climb until the cat reaches the top lane, then finish the route with direct movement.',
+    rows: 5,
+    cols: 5,
+    start: { row: 4, col: 1 },
+    door: { row: 0, col: 4 },
+    walls: [
+      { row: 4, col: 2 },
+      { row: 3, col: 2 },
+      { row: 2, col: 2 },
+      { row: 1, col: 2 },
+    ],
+    availableBlocks: [moveRightBlock, moveLeftBlock, ifPathUpBlock, repeatBlock],
+  },
+];
 
 export const loopsWorld: ICurriculumWorld = {
   id: 'loops',
@@ -56,11 +86,11 @@ export const loopsWorld: ICurriculumWorld = {
   title: 'World 3: Loops',
   shortLabel: 'Loops',
   focus: ['Loops'],
-  description: 'Students start recognizing repeated path segments and learn when a loop can replace copied commands.',
-  studentOutcome: 'Learners identify patterns and prepare to express repetition as a compact instruction.',
+  description: 'Students stop copy-pasting moves and start expressing repetition as a single instruction.',
+  studentOutcome: 'Learners can use repeat blocks to compress repeated movement and understand why loops reduce route noise.',
   agentOwner: 'Agent Loops',
-  status: 'scaffolded',
-  currentMechanics: ['Patterned boards', 'Move counting'],
-  futureMechanics: ['repeat(n)', 'while(condition)', 'Loop trace view'],
-  puzzles: [...loopsWorldPuzzles],
+  status: 'playable',
+  currentMechanics: ['repeat(n) single-command loops', 'Loop-aware code mode', 'Repeated movement patterns'],
+  futureMechanics: ['Multi-line loop bodies', 'while(condition)', 'Nested loops'],
+  puzzles: loopsWorldPuzzles,
 };
