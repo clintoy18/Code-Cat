@@ -293,6 +293,155 @@ body {
     gap: 24px;
   }
 
+  .gameplay-focus {
+    min-height: 100dvh;
+    padding: 16px;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 16px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 24%),
+      radial-gradient(circle at top right, rgba(255, 255, 255, 0.03), transparent 20%),
+      linear-gradient(180deg, #111114 0%, #1a1a1e 100%);
+  }
+
+  .gameplay-focus--fullscreen {
+    padding: 18px;
+  }
+
+  .gameplay-focus__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 16px;
+    border-radius: 12px;
+    padding: 18px 20px;
+    background: rgba(33, 33, 38, 0.9);
+    border: 4px solid rgba(94, 94, 102, 0.82);
+    box-shadow:
+      0 0 0 4px rgba(255, 255, 255, 0.03) inset,
+      10px 10px 0 rgba(0, 0, 0, 0.28);
+  }
+
+  .gameplay-focus__titleBlock {
+    min-width: 0;
+  }
+
+  .gameplay-focus__eyebrow {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+
+  .gameplay-focus__title {
+    margin: 6px 0 0;
+    font-family: 'Sora', sans-serif;
+    font-size: clamp(1.6rem, 2.8vw, 2.3rem);
+    line-height: 1.08;
+    color: var(--text-0);
+  }
+
+  .gameplay-focus__subtitle {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-2);
+  }
+
+  .gameplay-focus__headerStats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .gameplay-focus__headerActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .gameplay-focus__body {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 16px;
+    overflow: hidden;
+  }
+
+  .gameplay-focus__boardPane {
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 16px;
+  }
+
+  .gameplay-focus__boardShell {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .gameplay-focus__boardShell .game-stage {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .gameplay-focus__boardShell .game-board {
+    flex: 1;
+    align-content: center;
+    justify-content: center;
+    max-height: 100%;
+  }
+
+  .gameplay-focus__boardShell .game-stage__legend {
+    margin-top: 12px;
+  }
+
+  .gameplay-focus__levelRail {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+
+  .gameplay-focus__sidebar {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .gameplay-focus__sidebarScroll {
+    height: 100%;
+    overflow: auto;
+    display: grid;
+    gap: 16px;
+    padding-right: 4px;
+  }
+
+  .gameplay-focus__queuePanel,
+  .gameplay-focus__logPanel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .gameplay-focus__queueList {
+    max-height: 240px;
+    overflow: auto;
+    padding-right: 4px;
+  }
+
+  .gameplay-focus__logList {
+    max-height: 180px;
+    overflow: auto;
+    padding-right: 4px;
+  }
+
   .gameplay-shell--fullscreen {
     min-height: 100vh;
     padding: 24px;
@@ -1018,6 +1167,21 @@ body {
     opacity: 0.72;
   }
 
+  .level-card--interactive {
+    cursor: pointer;
+    transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  }
+
+  .level-card--interactive:hover,
+  .level-card--interactive:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(180, 180, 186, 0.24);
+    box-shadow:
+      0 0 0 4px rgba(255, 255, 255, 0.03) inset,
+      12px 12px 0 rgba(0, 0, 0, 0.28);
+    outline: none;
+  }
+
   .level-card__header {
     display: flex;
     justify-content: space-between;
@@ -1142,6 +1306,35 @@ body {
 }
 
 @media (max-width: 1024px) {
+  .gameplay-focus {
+    overflow: auto;
+  }
+
+  .gameplay-focus__header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gameplay-focus__headerStats,
+  .gameplay-focus__headerActions {
+    justify-content: flex-start;
+  }
+
+  .gameplay-focus__body {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+
+  .gameplay-focus__boardPane {
+    grid-template-rows: auto auto;
+  }
+
+  .gameplay-focus__boardShell,
+  .gameplay-focus__sidebar,
+  .gameplay-focus__queueList,
+  .gameplay-focus__logList {
+    overflow: visible;
+  }
+
   .pixel-hero {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1176,6 +1369,18 @@ body {
 }
 
 @media (max-width: 640px) {
+  .gameplay-focus {
+    padding: 12px;
+  }
+
+  .gameplay-focus__header {
+    padding: 16px;
+  }
+
+  .gameplay-focus__levelRail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .pixel-hero,
   .pixel-panel {
     padding: 18px;

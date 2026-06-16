@@ -9,6 +9,10 @@ export const LevelSelect = () => {
   const nextOpenPuzzleId =
     puzzles.find((puzzle) => unlockedPuzzleIds.includes(puzzle.id) && !completedPuzzleIds.includes(puzzle.id))?.id ??
     puzzles[0]?.id;
+  const openPuzzle = (puzzleId: string) => {
+    loadPuzzle(puzzleId);
+    navigate('/gameplay');
+  };
 
   return (
     <div className="pixel-page space-y-6">
@@ -54,7 +58,20 @@ export const LevelSelect = () => {
           return (
             <article
               key={puzzle.id}
-              className={`level-card ${isUnlocked ? 'level-card--unlocked' : 'level-card--locked'} ${isCompleted ? 'level-card--completed' : ''}`}
+              className={`level-card ${isUnlocked ? 'level-card--unlocked' : 'level-card--locked'} ${isCompleted ? 'level-card--completed' : ''} ${isUnlocked ? 'level-card--interactive' : ''}`}
+              role={isUnlocked ? 'button' : undefined}
+              tabIndex={isUnlocked ? 0 : -1}
+              onClick={isUnlocked ? () => openPuzzle(puzzle.id) : undefined}
+              onKeyDown={
+                isUnlocked
+                  ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        openPuzzle(puzzle.id);
+                      }
+                    }
+                  : undefined
+              }
             >
               <div className="level-card__header">
                 <div>
@@ -83,9 +100,9 @@ export const LevelSelect = () => {
                   className={isCompleted ? 'pixel-button pixel-button--ghost' : 'pixel-button'}
                   variant={isCompleted ? 'ghost' : 'primary'}
                   disabled={!isUnlocked}
-                  onClick={() => {
-                    loadPuzzle(puzzle.id);
-                    navigate('/gameplay');
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openPuzzle(puzzle.id);
                   }}
                 >
                   {isCompleted ? 'Replay Level' : isUnlocked ? 'Play Level' : 'Locked'}
