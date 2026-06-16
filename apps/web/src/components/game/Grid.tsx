@@ -14,11 +14,12 @@ export const Grid = ({ puzzle, catPosition, visited, status = 'ready' }: IGridPr
     <div className="game-stage__hud">
       <div>
         <p className="game-stage__eyebrow">Snowfield Map</p>
-        <h2 className="game-stage__title">{puzzle.title}</h2>
+        <p className="game-stage__caption">
+          {puzzle.rows} x {puzzle.cols} board
+        </p>
       </div>
       <div className="game-stage__chips">
         <span className="game-chip">Goal: Door</span>
-        <span className="game-chip">Lesson: {puzzle.lesson}</span>
         <span className={`game-chip ${status === 'success' ? 'game-chip--success' : ''}`}>
           Status: {status}
         </span>
@@ -27,7 +28,10 @@ export const Grid = ({ puzzle, catPosition, visited, status = 'ready' }: IGridPr
     <div
       className="game-board"
       style={{
-        gridTemplateColumns: `repeat(${puzzle.cols}, minmax(0, 1fr))`,
+        ['--board-cols' as '--board-cols']: String(puzzle.cols),
+        ['--board-rows' as '--board-rows']: String(puzzle.rows),
+        gridTemplateColumns: `repeat(${puzzle.cols}, var(--tile-size))`,
+        gridAutoRows: 'var(--tile-size)',
       }}
     >
       {Array.from({ length: puzzle.rows * puzzle.cols }).map((_, index) => {
@@ -42,10 +46,11 @@ export const Grid = ({ puzzle, catPosition, visited, status = 'ready' }: IGridPr
         return (
           <div
             key={`${row}-${col}`}
-            className={`board-tile ${isWall ? 'board-tile--wall' : ''} ${isDoor ? 'board-tile--door' : ''} ${wasVisited ? 'board-tile--visited' : ''}`}
+            className={`board-tile ${isWall ? 'board-tile--wall' : ''} ${isDoor ? 'board-tile--door' : ''} ${isCat ? 'board-tile--cat' : ''} ${wasVisited ? 'board-tile--visited' : ''}`}
             aria-label={`row ${row + 1} column ${col + 1}${isWall ? ' wall' : ''}${isDoor ? ' door' : ''}${isCat ? ' cat' : ''}`}
           >
             <div className="board-tile__snow" />
+            {isDoor ? <span className="board-tile__marker">Exit</span> : null}
             {wasVisited && !isWall && !isDoor ? (
               <div className="board-track" aria-hidden="true">
                 <span />

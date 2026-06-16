@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Cat, CodeBlock, Grid } from '@/components/game';
+import { Cat, Grid } from '@/components/game';
 import { Button } from '@/components/ui';
 import { gameAudio } from '@/features/game/audio/gameAudio';
 import type { IGameEngineSnapshot, IPosition, IPuzzleDefinition } from '@/features/game/engine';
@@ -200,6 +200,7 @@ export const Gameplay = () => {
         <div className="gameplay-focus__headerStats">
           <span className="game-chip">Lesson: {puzzle.lesson}</span>
           <span className="game-chip">Par: {puzzle.parMoves}</span>
+          <span className="game-chip">Difficulty: {puzzle.difficulty}</span>
           <span className={`game-chip ${displayStatus === 'success' ? 'game-chip--success' : ''}`}>
             {statusLabelMap[displayStatus]}
           </span>
@@ -216,28 +217,94 @@ export const Gameplay = () => {
 
       <div className="gameplay-focus__body">
         <section className="gameplay-focus__boardPane">
-          <div className="gameplay-focus__boardShell">
-            <Grid puzzle={puzzle} catPosition={animatedCatPosition} visited={animatedVisited} status={displayStatus} />
-          </div>
-          <div className="gameplay-focus__levelRail">
-            {puzzles.map((entry, index) => {
-              const isUnlocked = unlockedPuzzleIds.includes(entry.id);
-              const isCompleted = completedPuzzleIds.includes(entry.id);
-              const isCurrent = entry.id === puzzle.id;
+          <div className="gameplay-focus__workspace">
+            <div className="gameplay-focus__boardShell">
+              <Grid puzzle={puzzle} catPosition={animatedCatPosition} visited={animatedVisited} status={displayStatus} />
+            </div>
 
-              return (
-                <button
-                  key={entry.id}
-                  type="button"
-                  disabled={!isUnlocked || isPlaybackRunning}
-                  onClick={() => loadAndPlayPuzzle(entry)}
-                  className={`level-rail__node ${isCurrent ? 'level-rail__node--current' : ''} ${isCompleted ? 'level-rail__node--completed' : ''} ${!isUnlocked ? 'level-rail__node--locked' : ''}`}
+            <section className="arcade-panel p-5 gameplay-focus__terminalPanel">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">Code Terminal</p>
+                  <h2 className="mt-2 font-display text-2xl font-bold text-[var(--color-ink)]">Build the route</h2>
+                </div>
+                <span className="game-chip">{commandCount} lines</span>
+              </div>
+
+              <div className="gameplay-focus__terminalFunctions mt-4">
+                {puzzle.availableBlocks.map((block) => (
+                  <button
+                    key={block.key}
+                    type="button"
+                    disabled={isPlaybackRunning}
+                    onClick={() => addBlock(block)}
+                    className={`palette-block ${isPlaybackRunning ? 'palette-block--disabled' : ''}`}
+                  >
+                    <span className="palette-block__kind">{block.kind === 'MOVE' ? 'MOVE' : 'IF'}</span>
+                    <span className="palette-block__label">{block.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="gameplay-focus__terminalEditor mt-4">
+                <div className="gameplay-focus__terminalHeader">
+                  <span>route.cat</span>
+                  <span>{program.length ? `${program.length} commands` : 'empty'}</span>
+                </div>
+                <div className="gameplay-focus__terminalBody">
+                  {program.length ? (
+                    program.map((block, index) => (
+                      <div key={block.id} className="gameplay-focus__terminalLine">
+                        <span className="gameplay-focus__terminalLineNo">{index + 1}</span>
+                        <code className="gameplay-focus__terminalCode">{block.label}</code>
+                        {isPlaybackRunning ? null : (
+                          <button
+                            type="button"
+                            className="gameplay-focus__terminalRemove"
+                            onClick={() => removeBlock(block.id)}
+                          >
+                            remove
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="gameplay-focus__terminalEmpty">
+                      <p className="gameplay-focus__terminalEmptyTitle">No commands in route</p>
+                      <p className="gameplay-focus__terminalEmptyBody">
+                        Add movement functions or condition checks to guide the cat to the exit.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="gameplay-focus__actionRow mt-4">
+                <Button
+                  className="pixel-button arcade-button arcade-button--run"
+                  onClick={handleRunProgram}
+                  disabled={isPlaybackRunning}
                 >
-                  <span className="level-rail__count">{index + 1}</span>
-                  <span className="level-rail__name">{entry.title}</span>
-                </button>
-              );
-            })}
+                  Run
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
+                  onClick={resetPuzzle}
+                  disabled={isPlaybackRunning}
+                >
+                  Reset
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
+                  onClick={clearProgram}
+                  disabled={isPlaybackRunning}
+                >
+                  Clear
+                </Button>
+              </div>
+            </section>
           </div>
         </section>
 
@@ -265,11 +332,11 @@ export const Gameplay = () => {
             ) : null}
 
             <section className="arcade-panel p-5">
-              <div className="flex items-start justify-between gap-4">
+              <div className="gameplay-focus__statusHeader">
                 <Cat position={animatedCatPosition} status={statusLabelMap[displayStatus]} />
                 <span className={`status-pill status-pill--${displayStatus}`}>{statusLabelMap[displayStatus]}</span>
               </div>
-              <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-2 gap-3">
                 <div className="hud-tile">
                   <span className="hud-tile__label">Queue</span>
                   <span className="hud-tile__value">{commandCount}</span>
@@ -288,79 +355,6 @@ export const Gameplay = () => {
                     {clearedCount}/{puzzles.length}
                   </span>
                 </div>
-              </div>
-            </section>
-
-            <section className="arcade-panel p-5">
-              <div className="flex flex-col gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">Command Palette</p>
-                <h2 className="font-display text-2xl font-bold text-[var(--color-ink)]">Build the route</h2>
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {puzzle.availableBlocks.map((block) => (
-                  <button
-                    key={block.key}
-                    type="button"
-                    disabled={isPlaybackRunning}
-                    onClick={() => addBlock(block)}
-                    className={`palette-block ${isPlaybackRunning ? 'palette-block--disabled' : ''}`}
-                  >
-                    <span className="palette-block__kind">{block.kind === 'MOVE' ? 'MOVE' : 'IF'}</span>
-                    <span className="palette-block__label">{block.label}</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section className="arcade-panel p-5 gameplay-focus__queuePanel">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">Command Queue</p>
-                  <h2 className="mt-2 font-display text-2xl font-bold text-[var(--color-ink)]">Program</h2>
-                </div>
-                <span className="game-chip">{commandCount} blocks</span>
-              </div>
-              <div className="gameplay-focus__queueList mt-4 space-y-3">
-                {program.length ? (
-                  program.map((block, index) => (
-                    <CodeBlock
-                      key={block.id}
-                      block={block}
-                      index={index}
-                      onRemove={isPlaybackRunning ? undefined : removeBlock}
-                    />
-                  ))
-                ) : (
-                  <div className="empty-queue">
-                    <p className="empty-queue__title">No commands queued</p>
-                    <p className="empty-queue__body">Pick blocks from the palette to script a route toward the door.</p>
-                  </div>
-                )}
-              </div>
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                <Button
-                  className="pixel-button arcade-button arcade-button--run"
-                  onClick={handleRunProgram}
-                  disabled={isPlaybackRunning}
-                >
-                  Run
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
-                  onClick={resetPuzzle}
-                  disabled={isPlaybackRunning}
-                >
-                  Reset
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
-                  onClick={clearProgram}
-                  disabled={isPlaybackRunning}
-                >
-                  Clear
-                </Button>
               </div>
             </section>
 

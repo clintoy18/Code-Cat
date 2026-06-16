@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui';
 import { useGame } from '@/hooks/useGame';
+import codeCatLogo from '@/assets/codecat-logo.png';
 
 const cards = [
   { title: 'Sequencing Sprint', body: 'Arrange move blocks in the right order so the cat reaches the exit.' },
@@ -23,7 +24,7 @@ export const MainMenu = () => {
         className="pixel-hero"
       >
         <div>
-          <p className="pixel-kicker">Code Cat</p>
+          <img src={codeCatLogo} alt="Code Cat" className="hero-logo" />
           <h1 className="pixel-hero__title">A classroom puzzle game where code moves the cat tile by tile.</h1>
           <p className="pixel-hero__body">
             Students learn logic through short playable rooms, clear one level at a time, and stay focused in a

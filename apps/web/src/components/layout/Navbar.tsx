@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Code2, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { Role } from '@shared/types';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
+import codeCatLogo from '@/assets/codecat-logo.png';
 
 const roleLabelMap: Record<Role, string> = {
   [Role.STUDENT]: 'Student',
@@ -15,9 +16,8 @@ export const Navbar = () => {
 
   return (
     <header className="glass-panel flex items-center justify-between px-6 py-4">
-      <Link to="/" className="inline-flex items-center gap-3 text-lg font-bold">
-        <Code2 className="h-5 w-5 text-brand-600" />
-        Code Cat
+      <Link to="/" className="brand-mark">
+        <img src={codeCatLogo} alt="Code Cat" className="brand-mark__logo" />
       </Link>
       <div className="flex items-center gap-3">
         {role ? (
