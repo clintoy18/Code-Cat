@@ -439,6 +439,7 @@ body {
     min-height: 0;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
 
   .gameplay-focus__terminalFunctions {
@@ -487,6 +488,7 @@ body {
   }
 
   .gameplay-focus__terminalEditor {
+    flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -496,6 +498,20 @@ body {
       linear-gradient(180deg, rgba(26, 26, 30, 0.98), rgba(19, 19, 22, 0.98)),
       linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
     overflow: hidden;
+  }
+
+  .gameplay-focus__terminalStack {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .gameplay-focus__terminalStack--dropTarget {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
   }
 
   .gameplay-focus__terminalHeader {
@@ -513,12 +529,47 @@ body {
   }
 
   .gameplay-focus__terminalBody {
+    flex: none;
     min-height: 0;
-    max-height: 340px;
-    overflow: auto;
+    max-height: none;
+    overflow: visible;
     padding: 10px;
     display: grid;
     gap: 8px;
+  }
+
+  .gameplay-focus__terminalPreview {
+    display: grid;
+    gap: 6px;
+    padding: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .gameplay-focus__terminalPreviewLabel {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+
+  .gameplay-focus__terminalPreviewCode {
+    min-width: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-0);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .gameplay-focus__terminalPreviewHint {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-2);
   }
 
   .gameplay-focus__terminalLine {
@@ -535,6 +586,13 @@ body {
   .gameplay-focus__terminalLine--active {
     border-color: rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.06);
+  }
+
+  .gameplay-focus__terminalLine--new {
+    border-color: rgba(188, 188, 194, 0.34);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+      0 0 0 3px rgba(255, 255, 255, 0.03);
   }
 
   .gameplay-focus__terminalLine--ghost {
@@ -731,15 +789,18 @@ body {
   }
 
   .gameplay-focus__codeMode {
+    flex: 1 1 auto;
     min-height: 0;
     display: grid;
+    grid-template-rows: minmax(0, 1fr) auto auto;
     gap: 12px;
     padding: 12px;
   }
 
   .gameplay-focus__codeInput {
     width: 100%;
-    min-height: 260px;
+    min-height: 0;
+    height: 100%;
     resize: none;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
@@ -904,6 +965,7 @@ body {
   }
 
   .gameplay-focus__actionRow {
+    flex: none;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
@@ -1400,12 +1462,18 @@ body {
     text-align: left;
     transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
     min-width: 0;
+    cursor: grab;
   }
 
   .palette-block:hover {
     transform: translateY(-2px);
     border-color: rgba(191, 191, 197, 0.22);
     box-shadow: 0 14px 24px rgba(0, 0, 0, 0.24);
+  }
+
+  .palette-block--dragging {
+    opacity: 0.52;
+    transform: scale(0.98);
   }
 
   .palette-block--disabled,

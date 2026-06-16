@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Cat, Grid } from '@/components/game';
 import { Button } from '@/components/ui';
@@ -31,6 +31,19 @@ type TResultPopup = {
   title: string;
   body: string;
 };
+type TPaletteDragPayload =
+  | {
+      kind: 'ACTION';
+      key: string;
+    }
+  | {
+      kind: 'REPEAT';
+    }
+  | {
+      kind: 'WHILE';
+    };
+
+const PALETTE_DRAG_DATA_KEY = 'application/x-codecat-palette-block';
 
 const clonePosition = (position: IPosition | null) =>
   position
@@ -133,11 +146,16 @@ export const Gameplay = () => {
   const [codeDraft, setCodeDraft] = useState('');
   const [codeErrors, setCodeErrors] = useState<string[]>([]);
   const [insertPath, setInsertPath] = useState<TBlockPath>([]);
+  const [recentlyAddedPath, setRecentlyAddedPath] = useState<TBlockPath | null>(null);
+  const [draggedPaletteItem, setDraggedPaletteItem] = useState<TPaletteDragPayload | null>(null);
+  const [isRouteDropTargetActive, setIsRouteDropTargetActive] = useState(false);
   const [loopRepeatCount, setLoopRepeatCount] = useState(2);
   const [whileCondition, setWhileCondition] = useState<GameCondition | null>(null);
   const [resultPopup, setResultPopup] = useState<TResultPopup | null>(null);
   const playbackTimeoutsRef = useRef<number[]>([]);
   const gameplayShellRef = useRef<HTMLDivElement | null>(null);
+  const terminalBodyRef = useRef<HTMLDivElement | null>(null);
+  const routeDropDepthRef = useRef(0);
   const previousDisplayStatusRef = useRef(status);
 
   const currentPuzzleIndex = puzzles.findIndex((entry) => entry.id === activePuzzleId);
@@ -158,6 +176,7 @@ export const Gameplay = () => {
     ),
   );
   const selectedBodyBlock = insertPath.length ? getBlockAtPath(program, insertPath) : null;
+  const recentlyAddedBlock = recentlyAddedPath ? getBlockAtPath(program, recentlyAddedPath) : null;
   const repeatPaletteLabel = repeatEnabled ? `repeat(${loopRepeatCount}) { ... }` : 'repeat(...) locked';
   const whilePaletteLabel = whileEnabled && whileCondition ? `while (${formatConditionToken(whileCondition)}) { ... }` : 'while(...) locked';
   const statusLabelMap = {
@@ -197,6 +216,10 @@ export const Gameplay = () => {
     setCodeErrors([]);
     setLoopRepeatCount(2);
     setInsertPath([]);
+    setRecentlyAddedPath(null);
+    setDraggedPaletteItem(null);
+    setIsRouteDropTargetActive(false);
+    routeDropDepthRef.current = 0;
   }, [puzzle?.id]);
 
   useEffect(() => {
@@ -215,6 +238,29 @@ export const Gameplay = () => {
       setInsertPath([]);
     }
   }, [insertPath, program]);
+
+  useEffect(() => {
+    if (!recentlyAddedPath) {
+      return;
+    }
+
+    const terminalBody = terminalBodyRef.current;
+
+    if (!terminalBody) {
+      return;
+    }
+
+    const target = terminalBody.querySelector<HTMLElement>(`[data-block-path="${formatBlockPath(recentlyAddedPath)}"]`);
+
+    if (!target) {
+      return;
+    }
+
+    target.scrollIntoView({
+      block: 'nearest',
+      behavior: 'smooth',
+    });
+  }, [program, recentlyAddedPath]);
 
   useEffect(() => {
     if (puzzle?.id) {
@@ -355,6 +401,10 @@ export const Gameplay = () => {
     setCodeDraft('');
     setCodeErrors([]);
     setInsertPath([]);
+    setRecentlyAddedPath(null);
+    setDraggedPaletteItem(null);
+    setIsRouteDropTargetActive(false);
+    routeDropDepthRef.current = 0;
     setResultPopup(null);
   };
 
@@ -372,32 +422,35 @@ export const Gameplay = () => {
     navigate('/gameplay');
   };
 
-  const handleAddActionBlock = (block: IBlockTemplate) => {
+  const addBlockToInsertTarget = (buildBlock: () => IBlockTemplate, options?: { selectInsertedLoop?: boolean }) => {
     const nextProgram = stripProgramIds(program);
     const targetBody = getBodyAtPath(nextProgram, insertPath);
 
     if (!targetBody) {
       setInsertPath([]);
-      return;
-    }
-
-    targetBody.push(cloneBlockTemplate(block));
-    replaceProgram(nextProgram);
-  };
-
-  const handleAddRepeatBlock = () => {
-    const nextProgram = stripProgramIds(program);
-    const targetBody = getBodyAtPath(nextProgram, insertPath);
-
-    if (!targetBody) {
-      setInsertPath([]);
-      return;
+      return false;
     }
 
     const nextIndex = targetBody.length;
-    targetBody.push(createRepeatBlockTemplate(loopRepeatCount, []));
+    const nextPath = [...insertPath, nextIndex];
+
+    targetBody.push(buildBlock());
     replaceProgram(nextProgram);
-    setInsertPath([...insertPath, nextIndex]);
+    setRecentlyAddedPath(nextPath);
+
+    if (options?.selectInsertedLoop) {
+      setInsertPath(nextPath);
+    }
+
+    return true;
+  };
+
+  const handleAddActionBlock = (block: IBlockTemplate) => {
+    addBlockToInsertTarget(() => cloneBlockTemplate(block));
+  };
+
+  const handleAddRepeatBlock = () => {
+    addBlockToInsertTarget(() => createRepeatBlockTemplate(loopRepeatCount, []), { selectInsertedLoop: true });
   };
 
   const handleAddWhileBlock = () => {
@@ -405,18 +458,117 @@ export const Gameplay = () => {
       return;
     }
 
-    const nextProgram = stripProgramIds(program);
-    const targetBody = getBodyAtPath(nextProgram, insertPath);
+    addBlockToInsertTarget(() => createWhileBlockTemplate(whileCondition, []), { selectInsertedLoop: true });
+  };
 
-    if (!targetBody) {
-      setInsertPath([]);
+  const resolvePalettePayload = (payload: TPaletteDragPayload) => {
+    if (payload.kind === 'ACTION') {
+      return actionBlocks.find((block) => block.key === payload.key) ?? null;
+    }
+
+    if (payload.kind === 'REPEAT') {
+      return repeatEnabled ? createRepeatBlockTemplate(loopRepeatCount, []) : null;
+    }
+
+    if (payload.kind === 'WHILE') {
+      return whileEnabled && whileCondition ? createWhileBlockTemplate(whileCondition, []) : null;
+    }
+
+    return null;
+  };
+
+  const applyPalettePayload = (payload: TPaletteDragPayload) => {
+    if (payload.kind === 'ACTION') {
+      const actionBlock = actionBlocks.find((block) => block.key === payload.key);
+
+      if (!actionBlock) {
+        return false;
+      }
+
+      return addBlockToInsertTarget(() => cloneBlockTemplate(actionBlock));
+    }
+
+    const resolvedBlock = resolvePalettePayload(payload);
+
+    if (!resolvedBlock) {
+      return false;
+    }
+
+    return addBlockToInsertTarget(() => resolvedBlock, {
+      selectInsertedLoop: resolvedBlock.kind === 'REPEAT' || resolvedBlock.kind === 'WHILE',
+    });
+  };
+
+  const readPalettePayload = (event: Pick<DragEvent<HTMLElement>, 'dataTransfer'>) => {
+    const payloadJson = event.dataTransfer.getData(PALETTE_DRAG_DATA_KEY);
+
+    if (!payloadJson) {
+      return draggedPaletteItem;
+    }
+
+    try {
+      return JSON.parse(payloadJson) as TPaletteDragPayload;
+    } catch {
+      return draggedPaletteItem;
+    }
+  };
+
+  const handlePaletteDragStart =
+    (payload: TPaletteDragPayload) => (event: DragEvent<HTMLButtonElement>) => {
+      setDraggedPaletteItem(payload);
+      setIsRouteDropTargetActive(true);
+      routeDropDepthRef.current = 0;
+      event.dataTransfer.effectAllowed = 'copy';
+      event.dataTransfer.setData(PALETTE_DRAG_DATA_KEY, JSON.stringify(payload));
+      event.dataTransfer.setData('text/plain', payload.kind);
+    };
+
+  const handlePaletteDragEnd = () => {
+    setDraggedPaletteItem(null);
+    setIsRouteDropTargetActive(false);
+    routeDropDepthRef.current = 0;
+  };
+
+  const handleRouteDragEnter = (event: DragEvent<HTMLDivElement>) => {
+    if (!readPalettePayload(event) || isPlaybackRunning) {
       return;
     }
 
-    const nextIndex = targetBody.length;
-    targetBody.push(createWhileBlockTemplate(whileCondition, []));
-    replaceProgram(nextProgram);
-    setInsertPath([...insertPath, nextIndex]);
+    routeDropDepthRef.current += 1;
+    setIsRouteDropTargetActive(true);
+  };
+
+  const handleRouteDragOver = (event: DragEvent<HTMLDivElement>) => {
+    if (!readPalettePayload(event) || isPlaybackRunning) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    setIsRouteDropTargetActive(true);
+  };
+
+  const handleRouteDragLeave = () => {
+    routeDropDepthRef.current = Math.max(0, routeDropDepthRef.current - 1);
+
+    if (routeDropDepthRef.current === 0) {
+      setIsRouteDropTargetActive(false);
+    }
+  };
+
+  const handleRouteDrop = (event: DragEvent<HTMLDivElement>) => {
+    const payload = readPalettePayload(event);
+
+    routeDropDepthRef.current = 0;
+    setIsRouteDropTargetActive(false);
+    setDraggedPaletteItem(null);
+
+    if (!payload || isPlaybackRunning) {
+      return;
+    }
+
+    event.preventDefault();
+    applyPalettePayload(payload);
   };
 
   const handleRemoveProgramBlock = (path: TBlockPath) => {
@@ -439,16 +591,22 @@ export const Gameplay = () => {
     if (hasPathPrefix(insertPath, path)) {
       setInsertPath([]);
     }
+
+    if (recentlyAddedPath && hasPathPrefix(recentlyAddedPath, path)) {
+      setRecentlyAddedPath(null);
+    }
   };
 
   const renderProgramBlocks = (blocks: TRenderableBlock[], parentPath: TBlockPath = [], depth = 0): JSX.Element[] =>
     blocks.flatMap((block, index) => {
       const blockPath = [...parentPath, index];
       const isSelectedTarget = isSamePath(insertPath, blockPath);
+      const isRecentlyAdded = recentlyAddedPath ? isSamePath(recentlyAddedPath, blockPath) : false;
       const headerLine = (
         <div
           key={`${formatBlockPath(blockPath)}-header`}
-          className={`gameplay-focus__terminalLine ${isSelectedTarget ? 'gameplay-focus__terminalLine--active' : ''}`}
+          data-block-path={formatBlockPath(blockPath)}
+          className={`gameplay-focus__terminalLine ${isSelectedTarget || isRecentlyAdded ? 'gameplay-focus__terminalLine--active' : ''} ${isRecentlyAdded ? 'gameplay-focus__terminalLine--new' : ''}`}
           style={{ marginLeft: `${depth * 18}px` }}
         >
           <span className="gameplay-focus__terminalLineNo">{formatBlockPath(blockPath)}</span>
@@ -629,15 +787,24 @@ export const Gameplay = () => {
                 </div>
 
                 {editorMode === 'blocks' ? (
-                  <>
+                  <div
+                    className={`gameplay-focus__terminalStack ${isRouteDropTargetActive ? 'gameplay-focus__terminalStack--dropTarget' : ''}`}
+                    onDragEnter={handleRouteDragEnter}
+                    onDragOver={handleRouteDragOver}
+                    onDragLeave={handleRouteDragLeave}
+                    onDrop={handleRouteDrop}
+                  >
                     <div className="gameplay-focus__terminalFunctions">
                       {actionBlocks.map((block) => (
                         <button
                           key={block.key}
                           type="button"
+                          draggable={!isPlaybackRunning}
                           disabled={isPlaybackRunning}
+                          onDragStart={handlePaletteDragStart({ kind: 'ACTION', key: block.key })}
+                          onDragEnd={handlePaletteDragEnd}
                           onClick={() => handleAddActionBlock(block)}
-                          className={`palette-block ${isPlaybackRunning ? 'palette-block--disabled' : ''}`}
+                          className={`palette-block ${isPlaybackRunning ? 'palette-block--disabled' : ''} ${draggedPaletteItem?.kind === 'ACTION' && draggedPaletteItem.key === block.key ? 'palette-block--dragging' : ''}`}
                         >
                           <span className="palette-block__kind">{block.kind === 'MOVE' ? 'MOVE' : 'IF'}</span>
                           <span className="palette-block__label">{block.label}</span>
@@ -645,18 +812,24 @@ export const Gameplay = () => {
                       ))}
                       <button
                         type="button"
+                        draggable={!isPlaybackRunning && repeatEnabled}
                         disabled={isPlaybackRunning || !repeatEnabled}
+                        onDragStart={handlePaletteDragStart({ kind: 'REPEAT' })}
+                        onDragEnd={handlePaletteDragEnd}
                         onClick={handleAddRepeatBlock}
-                        className={`palette-block ${isPlaybackRunning || !repeatEnabled ? 'palette-block--disabled' : ''}`}
+                        className={`palette-block ${isPlaybackRunning || !repeatEnabled ? 'palette-block--disabled' : ''} ${draggedPaletteItem?.kind === 'REPEAT' ? 'palette-block--dragging' : ''}`}
                       >
                         <span className="palette-block__kind">LOOP</span>
                         <span className="palette-block__label">{repeatPaletteLabel}</span>
                       </button>
                       <button
                         type="button"
+                        draggable={!isPlaybackRunning && whileEnabled && !!whileCondition}
                         disabled={isPlaybackRunning || !whileEnabled || !whileCondition}
+                        onDragStart={handlePaletteDragStart({ kind: 'WHILE' })}
+                        onDragEnd={handlePaletteDragEnd}
                         onClick={handleAddWhileBlock}
-                        className={`palette-block ${isPlaybackRunning || !whileEnabled || !whileCondition ? 'palette-block--disabled' : ''}`}
+                        className={`palette-block ${isPlaybackRunning || !whileEnabled || !whileCondition ? 'palette-block--disabled' : ''} ${draggedPaletteItem?.kind === 'WHILE' ? 'palette-block--dragging' : ''}`}
                       >
                         <span className="palette-block__kind">WHILE</span>
                         <span className="palette-block__label">{whilePaletteLabel}</span>
@@ -767,7 +940,17 @@ export const Gameplay = () => {
                       </div>
                     ) : null}
 
-                    <div className="gameplay-focus__terminalBody">
+                    <div className="gameplay-focus__terminalPreview">
+                      <span className="gameplay-focus__terminalPreviewLabel">Latest added</span>
+                      <code className="gameplay-focus__terminalPreviewCode">
+                        {recentlyAddedBlock ? getBlockHeader(recentlyAddedBlock) : 'Click a function block to build the route.'}
+                      </code>
+                      <p className="gameplay-focus__terminalPreviewHint">
+                        Drag blocks into this route panel, or click to add them instantly.
+                      </p>
+                    </div>
+
+                    <div ref={terminalBodyRef} className="gameplay-focus__terminalBody">
                       {program.length ? (
                         renderProgramBlocks(program)
                       ) : (
@@ -777,9 +960,9 @@ export const Gameplay = () => {
                             Add movement, condition checks, and loop blocks to guide the cat to the exit.
                           </p>
                         </div>
-                      )}
-                    </div>
-                  </>
+                        )}
+                      </div>
+                  </div>
                 ) : (
                   <div className="gameplay-focus__codeMode">
                     <textarea

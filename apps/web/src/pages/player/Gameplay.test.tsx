@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -88,6 +88,9 @@ describe('Gameplay loop editor', () => {
   beforeEach(() => {
     mockReplaceProgram.mockReset();
     mockRunProgram.mockReset();
+    mockReplaceProgram.mockImplementation((nextProgram: IProgramBlock[]) => {
+      mockGameState.program = nextProgram;
+    });
     mockRunProgram.mockReturnValue({
       puzzle,
       program: [],
@@ -104,6 +107,67 @@ describe('Gameplay loop editor', () => {
         id: 'block-0',
       },
     ]);
+  });
+
+  it('shows the latest clicked block in the route preview', async () => {
+    const user = userEvent.setup();
+
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+
+    mockGameState = buildGameState([]);
+
+    render(
+      <MemoryRouter>
+        <Gameplay />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Click a function block to build the route.')).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole('button', { name: /moveUp\(\)/i })[0]);
+
+    expect(mockReplaceProgram).toHaveBeenCalledTimes(1);
+    const latestAddedLabel = screen.getByText('Latest added');
+
+    expect(latestAddedLabel.nextElementSibling).toHaveTextContent('moveUp()');
+  });
+
+  it('adds a block when a palette button is dropped into the route builder', () => {
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+
+    mockGameState = buildGameState([]);
+
+    const { container } = render(
+      <MemoryRouter>
+        <Gameplay />
+      </MemoryRouter>,
+    );
+
+    const dragSource = screen.getAllByRole('button', { name: /moveUp\(\)/i })[0];
+    const dropZone = container.querySelector('.gameplay-focus__terminalStack');
+
+    expect(dropZone).not.toBeNull();
+
+    const dataTransfer = {
+      data: new Map<string, string>(),
+      dropEffect: 'move',
+      effectAllowed: 'all',
+      setData(type: string, value: string) {
+        this.data.set(type, value);
+      },
+      getData(type: string) {
+        return this.data.get(type) ?? '';
+      },
+    };
+
+    fireEvent.dragStart(dragSource, { dataTransfer });
+    fireEvent.dragEnter(dropZone as HTMLElement, { dataTransfer });
+    fireEvent.dragOver(dropZone as HTMLElement, { dataTransfer });
+    fireEvent.drop(dropZone as HTMLElement, { dataTransfer });
+
+    expect(mockReplaceProgram).toHaveBeenCalledTimes(1);
+    expect(mockReplaceProgram.mock.calls[0][0][0].label).toBe('moveUp()');
+    expect(screen.getByText('Latest added').nextElementSibling).toHaveTextContent('moveUp()');
   });
 
   it('renders nested loop lines and loop controls in block mode', () => {
