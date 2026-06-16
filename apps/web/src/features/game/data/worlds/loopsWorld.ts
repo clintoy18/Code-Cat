@@ -1,9 +1,9 @@
 import type { IBlockTemplate, IPuzzleDefinition } from '@/features/game/engine';
+import { createRepeatBlockTemplate, createWhileBlockTemplate } from '@/features/game/engine';
 import type { ICurriculumWorld } from '../lessonRoadmap';
 
 const moveUpBlock: IBlockTemplate = { key: 'move-up', label: 'moveUp()', kind: 'MOVE', move: 'UP' };
 const moveRightBlock: IBlockTemplate = { key: 'move-right', label: 'moveRight()', kind: 'MOVE', move: 'RIGHT' };
-const moveLeftBlock: IBlockTemplate = { key: 'move-left', label: 'moveLeft()', kind: 'MOVE', move: 'LEFT' };
 
 const ifPathUpBlock: IBlockTemplate = {
   key: 'if-path-up',
@@ -13,17 +13,16 @@ const ifPathUpBlock: IBlockTemplate = {
   action: 'UP',
 };
 
-const repeatBlock: IBlockTemplate = {
-  key: 'repeat-loop',
-  label: 'repeat(n) command',
-  kind: 'LOOP',
-  repeatCount: 2,
-  loopBody: {
-    label: 'moveUp()',
-    kind: 'MOVE',
-    move: 'UP',
-  },
+const ifPathRightBlock: IBlockTemplate = {
+  key: 'if-path-right',
+  label: 'if (pathRightClear) moveRight()',
+  kind: 'CONDITIONAL',
+  condition: 'PATH_RIGHT_CLEAR',
+  action: 'RIGHT',
 };
+
+const repeatTemplate = createRepeatBlockTemplate(2, [moveUpBlock]);
+const whileTemplate = createWhileBlockTemplate('PATH_UP_CLEAR', [moveUpBlock]);
 
 export const loopsWorldPuzzles: IPuzzleDefinition[] = [
   {
@@ -31,52 +30,42 @@ export const loopsWorldPuzzles: IPuzzleDefinition[] = [
     title: 'Terrace Repeat',
     lesson: 'Loops',
     difficulty: 'Easy',
-    parMoves: 4,
-    objective: 'Use repeat blocks to climb four tiles, then sprint four tiles to the exit without copying each step by hand.',
+    parMoves: 2,
+    objective: 'Build two multi-line repeat blocks so the cat climbs the terrace and then slides across the top lane without eight separate commands.',
     rows: 5,
     cols: 5,
     start: { row: 4, col: 0 },
     door: { row: 0, col: 4 },
     walls: [],
-    availableBlocks: [moveUpBlock, moveRightBlock, repeatBlock],
+    availableBlocks: [moveUpBlock, moveRightBlock, repeatTemplate],
   },
   {
-    id: 'checkpoint-climb',
-    title: 'Checkpoint Climb',
+    id: 'switchback-scan',
+    title: 'Switchback Scan',
     lesson: 'Loops',
     difficulty: 'Medium',
-    parMoves: 6,
-    objective: 'Repeat a safe climb, then turn across the top lane. This is the first room built around looped movement.',
-    rows: 6,
-    cols: 5,
-    start: { row: 5, col: 0 },
-    door: { row: 0, col: 4 },
-    walls: [
-      { row: 5, col: 1 },
-      { row: 4, col: 1 },
-      { row: 3, col: 1 },
-      { row: 2, col: 1 },
-    ],
-    availableBlocks: [moveUpBlock, moveRightBlock, repeatBlock],
-  },
-  {
-    id: 'guarded-rhythm',
-    title: 'Guarded Rhythm',
-    lesson: 'Loops',
-    difficulty: 'Medium',
-    parMoves: 6,
-    objective: 'Repeat a conditional climb until the cat reaches the top lane, then finish the route with direct movement.',
+    parMoves: 1,
+    objective: 'Use a while loop with a multi-step body to keep advancing while the right lane stays open.',
     rows: 5,
     cols: 5,
-    start: { row: 4, col: 1 },
+    start: { row: 4, col: 0 },
     door: { row: 0, col: 4 },
-    walls: [
-      { row: 4, col: 2 },
-      { row: 3, col: 2 },
-      { row: 2, col: 2 },
-      { row: 1, col: 2 },
-    ],
-    availableBlocks: [moveRightBlock, moveLeftBlock, ifPathUpBlock, repeatBlock],
+    walls: [],
+    availableBlocks: [moveUpBlock, moveRightBlock, ifPathRightBlock, whileTemplate],
+  },
+  {
+    id: 'echo-ramp',
+    title: 'Echo Ramp',
+    lesson: 'Loops',
+    difficulty: 'Hard',
+    parMoves: 1,
+    objective: 'Nest repeat blocks so one outer plan reuses the same climb-and-cross pattern twice to reach the exit.',
+    rows: 5,
+    cols: 5,
+    start: { row: 4, col: 0 },
+    door: { row: 0, col: 4 },
+    walls: [],
+    availableBlocks: [moveUpBlock, moveRightBlock, ifPathUpBlock, repeatTemplate, whileTemplate],
   },
 ];
 
@@ -86,11 +75,11 @@ export const loopsWorld: ICurriculumWorld = {
   title: 'World 3: Loops',
   shortLabel: 'Loops',
   focus: ['Loops'],
-  description: 'Students stop copy-pasting moves and start expressing repetition as a single instruction.',
-  studentOutcome: 'Learners can use repeat blocks to compress repeated movement and understand why loops reduce route noise.',
+  description: 'Students graduate from flat repetition to structured loop bodies, condition-driven repetition, and nested control flow.',
+  studentOutcome: 'Learners can write multi-step repeat blocks, reason about while-loop exit conditions, and read nested loop structures without losing the route.',
   agentOwner: 'Agent Loops',
   status: 'playable',
-  currentMechanics: ['repeat(n) single-command loops', 'Loop-aware code mode', 'Repeated movement patterns'],
-  futureMechanics: ['Multi-line loop bodies', 'while(condition)', 'Nested loops'],
+  currentMechanics: ['Multi-line repeat bodies', 'while(condition) loops', 'Nested loops', 'Loop-aware code mode'],
+  futureMechanics: ['Loop optimization challenges', 'Helper extraction into functions', 'State-aware loop exits'],
   puzzles: loopsWorldPuzzles,
 };

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Cat Review Agent"
+  short_description: "Repo-aware reviewer for Code Cat gameplay changes"
+  default_prompt: "Use $codecat-review to review Code Cat changes and verify loop-world completion before promoting the next world."

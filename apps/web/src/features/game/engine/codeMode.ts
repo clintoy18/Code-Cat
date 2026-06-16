@@ -1,9 +1,28 @@
-import type { IBlockTemplate, IProgramBlock, IPuzzleDefinition } from './GameEngine';
+import {
+  createRepeatBlockTemplate,
+  createWhileBlockTemplate,
+  formatConditionToken,
+  parseConditionToken,
+  type IBlockTemplate,
+  type IConditionalBlockTemplate,
+  type IProgramBlock,
+  type IPuzzleDefinition,
+} from './GameEngine';
 
 export interface IProgramParseResult {
   success: boolean;
   blocks: IBlockTemplate[];
   errors: string[];
+}
+
+interface IParseState {
+  actionBlocks: Map<string, IBlockTemplate>;
+  canRepeat: boolean;
+  canWhile: boolean;
+  errors: string[];
+  lines: string[];
+  lineIndex: number;
+  whileConditions: Set<string>;
 }
 
 const normalizeCodeLine = (value: string) =>
@@ -13,81 +32,212 @@ const normalizeCodeLine = (value: string) =>
     .replace(/\s+/g, '')
     .toLowerCase();
 
-export const serializeProgramToCode = (program: IProgramBlock[]) => program.map((block) => block.label).join('\n');
+const getIndent = (depth: number) => '  '.repeat(depth);
 
-export const parseProgramCode = (source: string, puzzle: IPuzzleDefinition): IProgramParseResult => {
-  const availableBlocks = new Map(
-    puzzle.availableBlocks
-      .filter((block) => block.kind !== 'LOOP')
-      .map((block) => [normalizeCodeLine(block.label), block] as const),
-  );
-  const loopEnabled = puzzle.availableBlocks.some((block) => block.kind === 'LOOP');
-  const lines = source.split(/\r?\n/);
+const serializeBlock = (block: IBlockTemplate | IProgramBlock, depth: number): string[] => {
+  const indent = getIndent(depth);
+
+  if (block.kind === 'MOVE' || block.kind === 'CONDITIONAL') {
+    return [`${indent}${block.label}`];
+  }
+
+  if (block.kind === 'REPEAT') {
+    return [
+      `${indent}repeat(${block.repeatCount}) {`,
+      ...block.loopBody.flatMap((entry) => serializeBlock(entry, depth + 1)),
+      `${indent}}`,
+    ];
+  }
+
+  return [
+    `${indent}while (${formatConditionToken(block.condition)}) {`,
+    ...block.loopBody.flatMap((entry) => serializeBlock(entry, depth + 1)),
+    `${indent}}`,
+  ];
+};
+
+const parseInlineActionBlock = (value: string, parseState: IParseState, lineNumber: number) => {
+  const block = parseState.actionBlocks.get(normalizeCodeLine(value));
+
+  if (!block) {
+    parseState.errors.push(`Line ${lineNumber}: "${value}" is not available in this puzzle.`);
+    return null;
+  }
+
+  return block;
+};
+
+const parseStatements = (parseState: IParseState, insideBlock: boolean) => {
   const blocks: IBlockTemplate[] = [];
-  const errors: string[] = [];
 
-  lines.forEach((line, index) => {
-    const trimmed = line.trim();
+  while (parseState.lineIndex < parseState.lines.length) {
+    const lineNumber = parseState.lineIndex + 1;
+    const trimmed = parseState.lines[parseState.lineIndex].trim();
+    parseState.lineIndex += 1;
 
     if (!trimmed) {
-      return;
+      continue;
     }
 
-    const loopMatch = trimmed.match(/^repeat\((\d+)\)\s*(.+)$/i);
-
-    if (loopMatch) {
-      if (!loopEnabled) {
-        errors.push(`Line ${index + 1}: loops are not available in this puzzle.`);
-        return;
+    if (trimmed === '}') {
+      if (insideBlock) {
+        return blocks;
       }
 
-      const repeatCount = Number(loopMatch[1]);
-      const innerCode = loopMatch[2].trim().replace(/^\{\s*/, '').replace(/\s*\}$/, '');
-      const loopBody = availableBlocks.get(normalizeCodeLine(innerCode));
+      parseState.errors.push(`Line ${lineNumber}: unexpected closing brace.`);
+      continue;
+    }
+
+    const repeatOpenMatch = trimmed.match(/^repeat\((\d+)\)\s*\{$/i);
+
+    if (repeatOpenMatch) {
+      if (!parseState.canRepeat) {
+        parseState.errors.push(`Line ${lineNumber}: repeat loops are not available in this puzzle.`);
+        continue;
+      }
+
+      const repeatCount = Number(repeatOpenMatch[1]);
 
       if (!Number.isInteger(repeatCount) || repeatCount < 2 || repeatCount > 9) {
-        errors.push(`Line ${index + 1}: repeat count must be between 2 and 9.`);
-        return;
+        parseState.errors.push(`Line ${lineNumber}: repeat count must be between 2 and 9.`);
+        continue;
       }
 
-      if (!loopBody) {
-        errors.push(`Line ${index + 1}: "${innerCode}" is not available to repeat in this puzzle.`);
-        return;
+      const loopBody = parseStatements(parseState, true);
+
+      if (!loopBody.length) {
+        parseState.errors.push(`Line ${lineNumber}: repeat loop bodies must contain at least one command.`);
+        continue;
       }
 
-      blocks.push({
-        key: `repeat-${index + 1}-${loopBody.key}`,
-        label: `repeat(${repeatCount}) ${loopBody.label}`,
-        kind: 'LOOP',
-        repeatCount,
-        loopBody: {
-          label: loopBody.label,
-          kind: loopBody.kind === 'CONDITIONAL' ? 'CONDITIONAL' : 'MOVE',
-          move: loopBody.move,
-          condition: loopBody.condition,
-          action: loopBody.action,
-        },
-      });
-      return;
+      blocks.push(createRepeatBlockTemplate(repeatCount, loopBody));
+      continue;
     }
 
-    const block = availableBlocks.get(normalizeCodeLine(trimmed));
+    const whileOpenMatch = trimmed.match(/^while\s*\(\s*([^)]+?)\s*\)\s*\{$/i);
+
+    if (whileOpenMatch) {
+      if (!parseState.canWhile) {
+        parseState.errors.push(`Line ${lineNumber}: while loops are not available in this puzzle.`);
+        continue;
+      }
+
+      const condition = parseConditionToken(whileOpenMatch[1]);
+
+      if (!condition || !parseState.whileConditions.has(condition)) {
+        parseState.errors.push(`Line ${lineNumber}: "${whileOpenMatch[1]}" is not a valid loop condition in this puzzle.`);
+        continue;
+      }
+
+      const loopBody = parseStatements(parseState, true);
+
+      if (!loopBody.length) {
+        parseState.errors.push(`Line ${lineNumber}: while loop bodies must contain at least one command.`);
+        continue;
+      }
+
+      blocks.push(createWhileBlockTemplate(condition, loopBody));
+      continue;
+    }
+
+    const repeatInlineMatch = trimmed.match(/^repeat\((\d+)\)\s+(.+)$/i);
+
+    if (repeatInlineMatch) {
+      if (!parseState.canRepeat) {
+        parseState.errors.push(`Line ${lineNumber}: repeat loops are not available in this puzzle.`);
+        continue;
+      }
+
+      const repeatCount = Number(repeatInlineMatch[1]);
+
+      if (!Number.isInteger(repeatCount) || repeatCount < 2 || repeatCount > 9) {
+        parseState.errors.push(`Line ${lineNumber}: repeat count must be between 2 and 9.`);
+        continue;
+      }
+
+      const loopBodyBlock = parseInlineActionBlock(repeatInlineMatch[2].trim(), parseState, lineNumber);
+
+      if (!loopBodyBlock) {
+        continue;
+      }
+
+      blocks.push(createRepeatBlockTemplate(repeatCount, [loopBodyBlock]));
+      continue;
+    }
+
+    const whileInlineMatch = trimmed.match(/^while\s*\(\s*([^)]+?)\s*\)\s+(.+)$/i);
+
+    if (whileInlineMatch) {
+      if (!parseState.canWhile) {
+        parseState.errors.push(`Line ${lineNumber}: while loops are not available in this puzzle.`);
+        continue;
+      }
+
+      const condition = parseConditionToken(whileInlineMatch[1]);
+
+      if (!condition || !parseState.whileConditions.has(condition)) {
+        parseState.errors.push(`Line ${lineNumber}: "${whileInlineMatch[1]}" is not a valid loop condition in this puzzle.`);
+        continue;
+      }
+
+      const loopBodyBlock = parseInlineActionBlock(whileInlineMatch[2].trim(), parseState, lineNumber);
+
+      if (!loopBodyBlock) {
+        continue;
+      }
+
+      blocks.push(createWhileBlockTemplate(condition, [loopBodyBlock]));
+      continue;
+    }
+
+    const block = parseState.actionBlocks.get(normalizeCodeLine(trimmed));
 
     if (!block) {
-      errors.push(`Line ${index + 1}: "${trimmed}" is not available in this puzzle.`);
-      return;
+      parseState.errors.push(`Line ${lineNumber}: "${trimmed}" is not available in this puzzle.`);
+      continue;
     }
 
     blocks.push(block);
-  });
+  }
+
+  if (insideBlock) {
+    parseState.errors.push('Missing closing brace for loop body.');
+  }
+
+  return blocks;
+};
+
+export const serializeProgramToCode = (program: IProgramBlock[]) =>
+  program.flatMap((block) => serializeBlock(block, 0)).join('\n');
+
+export const parseProgramCode = (source: string, puzzle: IPuzzleDefinition): IProgramParseResult => {
+  const actionBlocks = puzzle.availableBlocks
+    .filter((block) => block.kind === 'MOVE' || block.kind === 'CONDITIONAL')
+    .map((block) => [normalizeCodeLine(block.label), block] as const);
+  const whileConditions = new Set(
+    puzzle.availableBlocks
+      .filter((block): block is IConditionalBlockTemplate => block.kind === 'CONDITIONAL')
+      .map((block) => block.condition),
+  );
+  const parseState: IParseState = {
+    actionBlocks: new Map(actionBlocks),
+    canRepeat: puzzle.availableBlocks.some((block) => block.kind === 'REPEAT'),
+    canWhile: puzzle.availableBlocks.some((block) => block.kind === 'WHILE'),
+    errors: [],
+    lines: source.split(/\r?\n/),
+    lineIndex: 0,
+    whileConditions,
+  };
+
+  const blocks = parseStatements(parseState, false);
 
   if (!blocks.length) {
-    errors.push('Add at least one command before applying code mode.');
+    parseState.errors.push('Add at least one command before applying code mode.');
   }
 
   return {
-    success: errors.length === 0,
+    success: parseState.errors.length === 0,
     blocks,
-    errors,
+    errors: parseState.errors,
   };
 };
