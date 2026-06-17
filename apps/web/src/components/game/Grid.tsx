@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import catSprite from '@/assets/cat-sprite.png';
 import type { IPosition, IPuzzleDefinition } from '@/features/game/engine';
 
@@ -9,6 +10,11 @@ interface IGridProps {
 }
 
 const isMatch = (left: IPosition, right: IPosition) => left.row === right.row && left.col === right.col;
+
+type GridBoardStyle = CSSProperties & {
+  '--board-cols': string;
+  '--board-rows': string;
+};
 
 export const Grid = ({ puzzle, catPosition, visited, status = 'ready' }: IGridProps) => (
   <div className="game-stage">
@@ -29,11 +35,11 @@ export const Grid = ({ puzzle, catPosition, visited, status = 'ready' }: IGridPr
     <div
       className="game-board"
       style={{
-        ['--board-cols' as '--board-cols']: String(puzzle.cols),
-        ['--board-rows' as '--board-rows']: String(puzzle.rows),
+        '--board-cols': String(puzzle.cols),
+        '--board-rows': String(puzzle.rows),
         gridTemplateColumns: `repeat(${puzzle.cols}, var(--tile-size))`,
         gridAutoRows: 'var(--tile-size)',
-      }}
+      } as GridBoardStyle}
     >
       {Array.from({ length: puzzle.rows * puzzle.cols }).map((_, index) => {
         const row = Math.floor(index / puzzle.cols);

@@ -39,7 +39,7 @@ export const LoginPage = () => {
     try {
       const response = await api.post('/auth/login', values);
       setSession(response.data.data);
-      navigate(destinationByRole[response.data.data.user.role], { replace: true });
+      navigate(destinationByRole[response.data.data.user.role as Role], { replace: true });
     } catch (error) {
       if (error instanceof AxiosError) {
         setSubmissionError(

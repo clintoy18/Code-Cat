@@ -36,7 +36,7 @@ export const RegisterPage = () => {
     try {
       const response = await api.post('/auth/register', values);
       setSession(response.data.data);
-      navigate(destinationByRole[response.data.data.user.role]);
+      navigate(destinationByRole[response.data.data.user.role as Role]);
     } catch (error) {
       if (error instanceof AxiosError) {
         setSubmissionError(
