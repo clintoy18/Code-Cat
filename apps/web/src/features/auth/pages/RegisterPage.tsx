@@ -8,6 +8,7 @@ import { Button } from '@/components/ui';
 import { api } from '@/lib/api';
 import { registerFormSchema, type RegisterFormValues } from '@/lib/validators/auth';
 import { useAuth } from '@/hooks/useAuth';
+import codeCatLogo from '@/assets/codecat-logo.png';
 
 const destinationByRole: Record<Role, string> = {
   [Role.STUDENT]: '/',
@@ -50,63 +51,65 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md items-center px-4">
-      <form className="glass-panel w-full space-y-5 p-8" onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-brand-700">New Player</p>
-          <h1 className="mt-2 font-display text-3xl font-bold">Create a Code Cat account.</h1>
-        </div>
-        {submissionError ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {submissionError}
+    <div className="auth-shell">
+      <div className="auth-shell__panel">
+        <section className="auth-shell__hero">
+          <img src={codeCatLogo} alt="Code Cat" className="auth-shell__logo" />
+          <p className="auth-shell__eyebrow">Code Cat Access</p>
+          <h1 className="auth-shell__title">Create a Code Cat account.</h1>
+          <p className="auth-shell__copy">
+            Pick a classroom role, enter your details, and step into the puzzle map with the same monochrome arcade
+            interface used across the rest of the game.
+          </p>
+        </section>
+
+        <form className="auth-card" onSubmit={handleSubmit(onSubmit)}>
+          <div className="auth-card__header">
+            <p className="auth-card__eyebrow">New Account</p>
+            <h2 className="auth-card__title">Register a player or teacher account.</h2>
+            <p className="auth-card__body">Admin accounts stay seeded separately and do not register from this page.</p>
           </div>
+        {submissionError ? (
+          <div className="auth-alert auth-alert--error">{submissionError}</div>
         ) : null}
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium">Account Type</span>
-          <select
-            {...register('role')}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 outline-none focus:border-brand-400"
-          >
+        <label className="auth-field">
+          <span className="auth-field__label">Account Type</span>
+          <select {...register('role')} className="auth-field__input">
             <option value={Role.STUDENT}>Student</option>
             <option value={Role.TEACHER}>Teacher</option>
           </select>
         </label>
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium">Username</span>
-          <input
-            {...register('username')}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 outline-none focus:border-brand-400"
-          />
-          {errors.username ? (
-            <span className="mt-1 block text-sm text-red-600">{errors.username.message}</span>
-          ) : null}
+        <label className="auth-field">
+          <span className="auth-field__label">Username</span>
+          <input {...register('username')} className="auth-field__input" autoComplete="username" />
+          {errors.username ? <span className="auth-field__error">{errors.username.message}</span> : null}
         </label>
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium">Email</span>
-          <input
-            {...register('email')}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 outline-none focus:border-brand-400"
-          />
-          {errors.email ? <span className="mt-1 block text-sm text-red-600">{errors.email.message}</span> : null}
+        <label className="auth-field">
+          <span className="auth-field__label">Email</span>
+          <input {...register('email')} className="auth-field__input" autoComplete="email" />
+          {errors.email ? <span className="auth-field__error">{errors.email.message}</span> : null}
         </label>
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium">Password</span>
+        <label className="auth-field">
+          <span className="auth-field__label">Password</span>
           <input
             type="password"
             {...register('password')}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 outline-none focus:border-brand-400"
+            className="auth-field__input"
+            autoComplete="new-password"
           />
-          {errors.password ? (
-            <span className="mt-1 block text-sm text-red-600">{errors.password.message}</span>
-          ) : null}
+          {errors.password ? <span className="auth-field__error">{errors.password.message}</span> : null}
         </label>
-        <Button type="submit" className="w-full" size="lg" isLoading={isSubmitting}>
+        <Button type="submit" className="pixel-button auth-card__submit w-full" size="lg" isLoading={isSubmitting}>
           Register
         </Button>
-        <p className="text-sm text-slate-600">
-          Have an account? <Link to="/login" className="font-semibold text-brand-700">Login</Link>
+        <p className="auth-card__footer">
+          Have an account?{' '}
+          <Link to="/login" className="auth-card__link">
+            Login
+          </Link>
         </p>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

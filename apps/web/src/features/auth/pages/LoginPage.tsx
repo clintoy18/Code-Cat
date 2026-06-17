@@ -8,6 +8,7 @@ import { Button } from '@/components/ui';
 import { api } from '@/lib/api';
 import { loginFormSchema, type LoginFormValues } from '@/lib/validators/auth';
 import { useAuth } from '@/hooks/useAuth';
+import codeCatLogo from '@/assets/codecat-logo.png';
 
 const destinationByRole: Record<Role, string> = {
   [Role.STUDENT]: '/',
@@ -53,44 +54,53 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md items-center px-4">
-      <form className="glass-panel w-full space-y-5 p-8" onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-brand-700">Player Login</p>
-          <h1 className="mt-2 font-display text-3xl font-bold">Start the next puzzle run.</h1>
-          <p className="mt-2 text-sm text-slate-600">Students play, teachers monitor progress, admins manage the platform.</p>
-        </div>
-        {submissionError ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {submissionError}
+    <div className="auth-shell">
+      <div className="auth-shell__panel">
+        <section className="auth-shell__hero">
+          <img src={codeCatLogo} alt="Code Cat" className="auth-shell__logo" />
+          <p className="auth-shell__eyebrow">Code Cat Access</p>
+          <h1 className="auth-shell__title">Start the next puzzle run.</h1>
+          <p className="auth-shell__copy">
+            Students solve rooms, teachers monitor progress, and admins manage the curriculum through the same
+            monochrome arcade system.
+          </p>
+        </section>
+
+        <form className="auth-card" onSubmit={handleSubmit(onSubmit)}>
+          <div className="auth-card__header">
+            <p className="auth-card__eyebrow">Player Login</p>
+            <h2 className="auth-card__title">Sign in to continue.</h2>
+            <p className="auth-card__body">Use your school account to resume the current mission.</p>
           </div>
+        {submissionError ? (
+          <div className="auth-alert auth-alert--error">{submissionError}</div>
         ) : null}
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium">Email</span>
-          <input
-            {...register('email')}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 outline-none focus:border-brand-400"
-          />
-          {errors.email ? <span className="mt-1 block text-sm text-red-600">{errors.email.message}</span> : null}
+        <label className="auth-field">
+          <span className="auth-field__label">Email</span>
+          <input {...register('email')} className="auth-field__input" autoComplete="email" />
+          {errors.email ? <span className="auth-field__error">{errors.email.message}</span> : null}
         </label>
-        <label className="block">
-          <span className="mb-2 block text-sm font-medium">Password</span>
+        <label className="auth-field">
+          <span className="auth-field__label">Password</span>
           <input
             type="password"
             {...register('password')}
-            className="w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 outline-none focus:border-brand-400"
+            className="auth-field__input"
+            autoComplete="current-password"
           />
-          {errors.password ? (
-            <span className="mt-1 block text-sm text-red-600">{errors.password.message}</span>
-          ) : null}
+          {errors.password ? <span className="auth-field__error">{errors.password.message}</span> : null}
         </label>
-        <Button type="submit" className="w-full" size="lg" isLoading={isSubmitting}>
+        <Button type="submit" className="pixel-button auth-card__submit w-full" size="lg" isLoading={isSubmitting}>
           Continue
         </Button>
-        <p className="text-sm text-slate-600">
-          Need an account? <Link to="/register" className="font-semibold text-brand-700">Register</Link>
+        <p className="auth-card__footer">
+          Need an account?{' '}
+          <Link to="/register" className="auth-card__link">
+            Register
+          </Link>
         </p>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };
