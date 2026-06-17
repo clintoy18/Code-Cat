@@ -4,7 +4,7 @@ import { Sidebar } from './Sidebar';
 
 export const AppLayout = () => {
   const location = useLocation();
-  const isGameplayRoute = location.pathname === '/gameplay';
+  const isGameplayRoute = location.pathname === '/gameplay' || location.pathname.startsWith('/gameplay/');
 
   if (isGameplayRoute) {
     return (

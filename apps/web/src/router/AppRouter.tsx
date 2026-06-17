@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { LoadingSpinner } from '@/components/shared';
 import { HomeRedirect } from './HomeRedirect';
 import { AdminRoutes } from './AdminRoutes';
+import { GameplayRedirect } from './GameplayRedirect';
 import { PlayerRoutes } from './PlayerRoutes';
 import { TeacherRoutes } from './TeacherRoutes';
 
@@ -44,7 +45,8 @@ export const AppRouter = () => (
         <Route element={<PlayerRoutes />}>
           <Route path="/" element={<MainMenu />} />
           <Route path="/levels" element={<LevelSelect />} />
-          <Route path="/gameplay" element={<Gameplay />} />
+          <Route path="/gameplay" element={<GameplayRedirect />} />
+          <Route path="/gameplay/:puzzleId" element={<Gameplay />} />
           <Route path="/achievements" element={<Achievements />} />
         </Route>
         <Route path="/admin" element={<AdminRoutes />}>

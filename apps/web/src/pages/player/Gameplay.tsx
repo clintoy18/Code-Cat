@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Cat, Grid } from '@/components/game';
 import { Button } from '@/components/ui';
 import { gameAudio } from '@/features/game/audio/gameAudio';
@@ -120,6 +120,7 @@ const getBlockHeader = (block: TRenderableBlock) => {
 
 export const Gameplay = () => {
   const navigate = useNavigate();
+  const { puzzleId: routePuzzleId } = useParams<{ puzzleId: string }>();
   const {
     puzzles,
     activePuzzleId,
@@ -157,6 +158,7 @@ export const Gameplay = () => {
   const terminalBodyRef = useRef<HTMLDivElement | null>(null);
   const routeDropDepthRef = useRef(0);
   const previousDisplayStatusRef = useRef(status);
+  const routePuzzle = routePuzzleId ? puzzles.find((entry) => entry.id === routePuzzleId) ?? null : null;
 
   const currentPuzzleIndex = puzzles.findIndex((entry) => entry.id === activePuzzleId);
   const currentLevelNumber = currentPuzzleIndex >= 0 ? currentPuzzleIndex + 1 : 1;
@@ -199,6 +201,40 @@ export const Gameplay = () => {
     },
     [],
   );
+
+  useEffect(() => {
+    if (!routePuzzleId || !puzzles.length) {
+      return;
+    }
+
+    if (!routePuzzle) {
+      navigate('/levels', { replace: true });
+      return;
+    }
+
+    if (!unlockedPuzzleIds.includes(routePuzzle.id)) {
+      const fallbackPuzzleId =
+        puzzles.find((entry) => unlockedPuzzleIds.includes(entry.id) && !completedPuzzleIds.includes(entry.id))?.id ??
+        puzzles.find((entry) => unlockedPuzzleIds.includes(entry.id))?.id ??
+        null;
+
+      navigate(fallbackPuzzleId ? `/gameplay/${fallbackPuzzleId}` : '/levels', { replace: true });
+      return;
+    }
+
+    if (activePuzzleId !== routePuzzle.id) {
+      loadPuzzle(routePuzzle.id);
+    }
+  }, [
+    activePuzzleId,
+    completedPuzzleIds,
+    loadPuzzle,
+    navigate,
+    puzzles,
+    routePuzzle,
+    routePuzzleId,
+    unlockedPuzzleIds,
+  ]);
 
   useEffect(() => {
     if (!isPlaybackRunning) {
@@ -419,7 +455,7 @@ export const Gameplay = () => {
 
   const loadAndPlayPuzzle = (nextTargetPuzzle: IPuzzleDefinition) => {
     loadPuzzle(nextTargetPuzzle.id);
-    navigate('/gameplay');
+    navigate(`/gameplay/${nextTargetPuzzle.id}`);
   };
 
   const addBlockToInsertTarget = (buildBlock: () => IBlockTemplate, options?: { selectInsertedLoop?: boolean }) => {
@@ -665,13 +701,19 @@ export const Gameplay = () => {
       return [headerLine, ...childLines, closingLine];
     });
 
-  if (!puzzle) {
+  if (!puzzle || (routePuzzleId && puzzle.id !== routePuzzleId)) {
+    const isRouteSyncPending = Boolean(routePuzzleId && routePuzzle && puzzle?.id !== routePuzzleId);
+
     return (
       <div className="glass-panel m-6 p-6">
-        <p className="text-sm text-slate-700">Select a puzzle first from the levels page.</p>
-        <Button className="mt-4" onClick={() => navigate('/levels')}>
-          Open Level Map
-        </Button>
+        <p className="text-sm text-slate-700">
+          {isRouteSyncPending ? 'Loading the selected level...' : 'Select a puzzle first from the levels page.'}
+        </p>
+        {isRouteSyncPending ? null : (
+          <Button className="mt-4" onClick={() => navigate('/levels')}>
+            Open Level Map
+          </Button>
+        )}
       </div>
     );
   }

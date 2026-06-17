@@ -15,7 +15,7 @@ export const LevelSelect = () => {
 
   const openPuzzle = (puzzleId: string) => {
     loadPuzzle(puzzleId);
-    navigate('/gameplay');
+    navigate(`/gameplay/${puzzleId}`);
   };
 
   return (

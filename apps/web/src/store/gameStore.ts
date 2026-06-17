@@ -47,6 +47,12 @@ const getUnlockedPuzzleIds = (completedPuzzleIds: string[]) => {
   return Array.from(unlocked);
 };
 
+const getNextOpenPuzzleId = (completedPuzzleIds: string[], unlockedPuzzleIds: string[]) =>
+  starterPuzzles.find((puzzle) => unlockedPuzzleIds.includes(puzzle.id) && !completedPuzzleIds.includes(puzzle.id))?.id ??
+  starterPuzzles.find((puzzle) => unlockedPuzzleIds.includes(puzzle.id))?.id ??
+  starterPuzzles[0]?.id ??
+  null;
+
 gameEngine.loadPuzzle(starterPuzzles[0]);
 
 const initialSnapshot = gameEngine.getSnapshot();
@@ -107,18 +113,25 @@ export const useGameStore = create<IGameState>()(
       name: 'codecat-game',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
+        activePuzzleId: state.activePuzzleId,
         completedPuzzleIds: state.completedPuzzleIds,
         latestCompletedPuzzleId: state.latestCompletedPuzzleId,
       }),
       merge: (persistedState, currentState) => {
         const typedPersistedState = persistedState as Partial<IGameState> | undefined;
         const completedPuzzleIds = typedPersistedState?.completedPuzzleIds ?? currentState.completedPuzzleIds;
+        const unlockedPuzzleIds = getUnlockedPuzzleIds(completedPuzzleIds);
+        const activePuzzleId =
+          typedPersistedState?.activePuzzleId && unlockedPuzzleIds.includes(typedPersistedState.activePuzzleId)
+            ? typedPersistedState.activePuzzleId
+            : getNextOpenPuzzleId(completedPuzzleIds, unlockedPuzzleIds);
 
         return {
           ...currentState,
           ...typedPersistedState,
+          activePuzzleId,
           completedPuzzleIds,
-          unlockedPuzzleIds: getUnlockedPuzzleIds(completedPuzzleIds),
+          unlockedPuzzleIds,
         };
       },
     },

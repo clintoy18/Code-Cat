@@ -39,7 +39,7 @@ export const MainMenu = () => {
                 Open Level Map
               </Button>
             </Link>
-            <Link to="/gameplay">
+            <Link to={nextPuzzle ? `/gameplay/${nextPuzzle.id}` : '/levels'}>
               <Button variant="secondary" size="lg" className="pixel-button pixel-button--secondary">
                 Continue Mission
               </Button>
