@@ -1,22 +1,34 @@
 import type { CSSProperties } from 'react';
 import catSprite from '@/assets/cat-sprite.png';
-import type { IPosition, IPuzzleDefinition } from '@/features/game/engine';
+import type {
+  IPosition,
+  IPuzzleDefinition,
+  IRoomState,
+} from '@/features/game/engine';
 
 interface IGridProps {
   puzzle: IPuzzleDefinition;
   catPosition: IPosition | null;
   visited: IPosition[];
+  roomState: IRoomState;
   status?: string;
 }
 
-const isMatch = (left: IPosition, right: IPosition) => left.row === right.row && left.col === right.col;
+const isMatch = (left: IPosition, right: IPosition) =>
+  left.row === right.row && left.col === right.col;
 
 type GridBoardStyle = CSSProperties & {
   '--board-cols': string;
   '--board-rows': string;
 };
 
-export const Grid = ({ puzzle, catPosition, visited, status = 'ready' }: IGridProps) => (
+export const Grid = ({
+  puzzle,
+  catPosition,
+  visited,
+  roomState,
+  status = 'ready',
+}: IGridProps) => (
   <div className="game-stage">
     <div className="game-stage__hud">
       <div>
@@ -27,19 +39,30 @@ export const Grid = ({ puzzle, catPosition, visited, status = 'ready' }: IGridPr
       </div>
       <div className="game-stage__chips">
         <span className="game-chip">Goal: Door</span>
-        <span className={`game-chip ${status === 'success' ? 'game-chip--success' : ''}`}>
+        {puzzle.key ? (
+          <span
+            className={`game-chip ${roomState.hasKey ? 'game-chip--success' : ''}`}
+          >
+            Key: {roomState.hasKey ? 'Collected' : 'Missing'}
+          </span>
+        ) : null}
+        <span
+          className={`game-chip ${status === 'success' ? 'game-chip--success' : ''}`}
+        >
           Status: {status}
         </span>
       </div>
     </div>
     <div
       className="game-board"
-      style={{
-        '--board-cols': String(puzzle.cols),
-        '--board-rows': String(puzzle.rows),
-        gridTemplateColumns: `repeat(${puzzle.cols}, var(--tile-size))`,
-        gridAutoRows: 'var(--tile-size)',
-      } as GridBoardStyle}
+      style={
+        {
+          '--board-cols': String(puzzle.cols),
+          '--board-rows': String(puzzle.rows),
+          gridTemplateColumns: `repeat(${puzzle.cols}, var(--tile-size))`,
+          gridAutoRows: 'var(--tile-size)',
+        } as GridBoardStyle
+      }
     >
       {Array.from({ length: puzzle.rows * puzzle.cols }).map((_, index) => {
         const row = Math.floor(index / puzzle.cols);
@@ -47,17 +70,31 @@ export const Grid = ({ puzzle, catPosition, visited, status = 'ready' }: IGridPr
         const cell = { row, col };
         const isWall = puzzle.walls.some((wall) => isMatch(wall, cell));
         const isDoor = isMatch(puzzle.door, cell);
+        const isKey = puzzle.key ? isMatch(puzzle.key, cell) : false;
+        const isDoorLocked = Boolean(
+          isDoor && puzzle.doorRequiresKey && !roomState.hasKey,
+        );
         const isCat = catPosition ? isMatch(catPosition, cell) : false;
         const wasVisited = visited.some((step) => isMatch(step, cell));
 
         return (
           <div
             key={`${row}-${col}`}
-            className={`board-tile ${isWall ? 'board-tile--wall' : ''} ${isDoor ? 'board-tile--door' : ''} ${isCat ? 'board-tile--cat' : ''} ${wasVisited ? 'board-tile--visited' : ''}`}
-            aria-label={`row ${row + 1} column ${col + 1}${isWall ? ' wall' : ''}${isDoor ? ' door' : ''}${isCat ? ' cat' : ''}`}
+            className={`board-tile ${isWall ? 'board-tile--wall' : ''} ${isDoor ? 'board-tile--door' : ''} ${isKey && !roomState.hasKey ? 'board-tile--key' : ''} ${isCat ? 'board-tile--cat' : ''} ${wasVisited ? 'board-tile--visited' : ''}`}
+            aria-label={`row ${row + 1} column ${col + 1}${isWall ? ' wall' : ''}${isDoor ? (isDoorLocked ? ' locked door' : ' door') : ''}${isKey && !roomState.hasKey ? ' key' : ''}${isCat ? ' cat' : ''}`}
           >
             <div className="board-tile__snow" />
-            {isDoor ? <span className="board-tile__marker">Exit</span> : null}
+            {isDoor ? (
+              <span className="board-tile__marker">
+                {isDoorLocked ? 'Locked' : 'Exit'}
+              </span>
+            ) : null}
+            {isKey && !roomState.hasKey ? (
+              <div className="board-key" aria-hidden="true">
+                <span className="board-key__head" />
+                <span className="board-key__stem" />
+              </div>
+            ) : null}
             {wasVisited && !isWall && !isDoor ? (
               <div className="board-track" aria-hidden="true">
                 <span />
@@ -70,23 +107,44 @@ export const Grid = ({ puzzle, catPosition, visited, status = 'ready' }: IGridPr
               </div>
             ) : null}
             {isDoor ? (
-              <div className="goal-door" aria-hidden="true">
+              <div
+                className={`goal-door ${isDoorLocked ? 'goal-door--locked' : ''}`}
+                aria-hidden="true"
+              >
                 <span className="goal-door__arch" />
                 <span className="goal-door__light" />
               </div>
             ) : null}
             {isCat ? (
-              <img className="board-cat" src={catSprite} alt="" aria-hidden="true" />
+              <img
+                className="board-cat"
+                src={catSprite}
+                alt=""
+                aria-hidden="true"
+              />
             ) : null}
           </div>
         );
       })}
     </div>
     <div className="game-stage__legend">
-      <span><i className="legend-dot legend-dot--cat" /> Scout cat</span>
-      <span><i className="legend-dot legend-dot--door" /> Exit door</span>
-      <span><i className="legend-dot legend-dot--wall" /> Ice wall</span>
-      <span><i className="legend-dot legend-dot--trail" /> Travel path</span>
+      <span>
+        <i className="legend-dot legend-dot--cat" /> Scout cat
+      </span>
+      <span>
+        <i className="legend-dot legend-dot--door" /> Exit door
+      </span>
+      {puzzle.key ? (
+        <span>
+          <i className="legend-dot legend-dot--key" /> Key tile
+        </span>
+      ) : null}
+      <span>
+        <i className="legend-dot legend-dot--wall" /> Ice wall
+      </span>
+      <span>
+        <i className="legend-dot legend-dot--trail" /> Travel path
+      </span>
     </div>
   </div>
 );

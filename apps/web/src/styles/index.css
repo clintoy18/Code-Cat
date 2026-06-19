@@ -35,10 +35,23 @@ body {
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.05), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.03), transparent 24%),
+    radial-gradient(
+      circle at top left,
+      rgba(255, 255, 255, 0.05),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(255, 255, 255, 0.03),
+      transparent 24%
+    ),
     linear-gradient(180deg, #0f0f12 0%, #1a1a1e 100%);
-  background-size: 24px 24px, 24px 24px, auto, auto, auto;
+  background-size:
+    24px 24px,
+    24px 24px,
+    auto,
+    auto,
+    auto;
   color: var(--text-0);
 }
 
@@ -99,8 +112,16 @@ body {
     display: grid;
     place-items: center;
     background:
-      radial-gradient(circle at top left, rgba(255, 255, 255, 0.05), transparent 26%),
-      radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.04), transparent 22%),
+      radial-gradient(
+        circle at top left,
+        rgba(255, 255, 255, 0.05),
+        transparent 26%
+      ),
+      radial-gradient(
+        circle at bottom right,
+        rgba(255, 255, 255, 0.04),
+        transparent 22%
+      ),
       linear-gradient(180deg, #101013 0%, #18181c 100%);
   }
 
@@ -215,7 +236,11 @@ body {
 
   .auth-alert--error {
     border-color: rgba(171, 157, 157, 0.28);
-    background: linear-gradient(180deg, rgba(68, 62, 62, 0.9), rgba(52, 47, 47, 0.92));
+    background: linear-gradient(
+      180deg,
+      rgba(68, 62, 62, 0.9),
+      rgba(52, 47, 47, 0.92)
+    );
   }
 
   .auth-field {
@@ -242,7 +267,10 @@ body {
     padding: 12px 14px;
     color: var(--text-0);
     outline: none;
-    transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    transition:
+      border-color 140ms ease,
+      box-shadow 140ms ease,
+      background 140ms ease;
     appearance: none;
   }
 
@@ -362,14 +390,13 @@ body {
 
   .pixel-progress__bar {
     height: 100%;
-    background:
-      repeating-linear-gradient(
-        90deg,
-        rgba(181, 181, 188, 0.95),
-        rgba(181, 181, 188, 0.95) 12px,
-        rgba(123, 123, 131, 0.95) 12px,
-        rgba(123, 123, 131, 0.95) 24px
-      );
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(181, 181, 188, 0.95),
+      rgba(181, 181, 188, 0.95) 12px,
+      rgba(123, 123, 131, 0.95) 12px,
+      rgba(123, 123, 131, 0.95) 24px
+    );
   }
 
   .pixel-card-grid {
@@ -381,8 +408,7 @@ body {
   .pixel-button {
     border-radius: 10px !important;
     border: 3px solid rgba(94, 94, 102, 0.82) !important;
-    background:
-      linear-gradient(180deg, #6e6e76 0%, #54545b 100%) !important;
+    background: linear-gradient(180deg, #6e6e76 0%, #54545b 100%) !important;
     box-shadow:
       0 0 0 2px rgba(255, 255, 255, 0.06) inset,
       4px 4px 0 rgba(0, 0, 0, 0.24) !important;
@@ -415,9 +441,21 @@ body {
     border-radius: 12px;
     padding: 24px;
     background:
-      radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 28%),
-      radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 26%),
-      linear-gradient(180deg, rgba(33, 33, 38, 0.98) 0%, rgba(23, 23, 27, 0.96) 100%);
+      radial-gradient(
+        circle at top right,
+        rgba(255, 255, 255, 0.05),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at top left,
+        rgba(255, 255, 255, 0.04),
+        transparent 26%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(33, 33, 38, 0.98) 0%,
+        rgba(23, 23, 27, 0.96) 100%
+      );
     border: 4px solid rgba(94, 94, 102, 0.88);
     box-shadow:
       0 0 0 4px rgba(255, 255, 255, 0.03) inset,
@@ -494,8 +532,16 @@ body {
     gap: 8px;
     overflow: hidden;
     background:
-      radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 24%),
-      radial-gradient(circle at top right, rgba(255, 255, 255, 0.03), transparent 20%),
+      radial-gradient(
+        circle at top left,
+        rgba(255, 255, 255, 0.04),
+        transparent 24%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(255, 255, 255, 0.03),
+        transparent 20%
+      ),
       linear-gradient(180deg, #111114 0%, #1a1a1e 100%);
   }
 
@@ -650,11 +696,18 @@ body {
     font-weight: 800;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+    transition:
+      background 140ms ease,
+      color 140ms ease,
+      border-color 140ms ease;
   }
 
   .terminal-mode__toggle--active {
-    background: linear-gradient(180deg, rgba(104, 104, 112, 0.9), rgba(72, 72, 80, 0.92));
+    background: linear-gradient(
+      180deg,
+      rgba(104, 104, 112, 0.9),
+      rgba(72, 72, 80, 0.92)
+    );
     color: var(--text-0);
     border-color: rgba(255, 255, 255, 0.16);
   }
@@ -682,7 +735,11 @@ body {
 
   .gameplay-focus__terminalStack--dropTarget {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.025),
+        rgba(255, 255, 255, 0)
+      ),
       linear-gradient(90deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
   }
 
@@ -809,7 +866,11 @@ body {
   }
 
   .gameplay-focus__terminalTarget--active {
-    background: linear-gradient(180deg, rgba(104, 104, 112, 0.9), rgba(72, 72, 80, 0.92));
+    background: linear-gradient(
+      180deg,
+      rgba(104, 104, 112, 0.9),
+      rgba(72, 72, 80, 0.92)
+    );
     border-color: rgba(255, 255, 255, 0.16);
     color: var(--text-0);
   }
@@ -906,7 +967,10 @@ body {
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.03);
     color: var(--text-2);
-    transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+    transition:
+      background 140ms ease,
+      color 140ms ease,
+      border-color 140ms ease;
   }
 
   .loop-count {
@@ -927,7 +991,11 @@ body {
 
   .loop-count--active,
   .loop-action--active {
-    background: linear-gradient(180deg, rgba(104, 104, 112, 0.9), rgba(72, 72, 80, 0.92));
+    background: linear-gradient(
+      180deg,
+      rgba(104, 104, 112, 0.9),
+      rgba(72, 72, 80, 0.92)
+    );
     border-color: rgba(255, 255, 255, 0.16);
     color: var(--text-0);
   }
@@ -1167,8 +1235,16 @@ body {
     padding: 24px;
     align-content: start;
     background:
-      radial-gradient(circle at top left, rgba(255, 255, 255, 0.04), transparent 24%),
-      radial-gradient(circle at top right, rgba(255, 255, 255, 0.03), transparent 20%),
+      radial-gradient(
+        circle at top left,
+        rgba(255, 255, 255, 0.04),
+        transparent 24%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(255, 255, 255, 0.03),
+        transparent 20%
+      ),
       linear-gradient(180deg, #111114 0%, #1a1a1e 100%);
   }
 
@@ -1234,7 +1310,10 @@ body {
     padding: 8px 10px;
     text-align: left;
     background: rgba(40, 40, 45, 0.9);
-    transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+    transition:
+      transform 140ms ease,
+      border-color 140ms ease,
+      box-shadow 140ms ease;
   }
 
   .level-rail__node:hover:not(:disabled) {
@@ -1250,11 +1329,19 @@ body {
 
   .level-rail__node--current {
     border-color: rgba(180, 180, 186, 0.34);
-    background: linear-gradient(180deg, rgba(56, 56, 62, 0.98), rgba(44, 44, 49, 0.94));
+    background: linear-gradient(
+      180deg,
+      rgba(56, 56, 62, 0.98),
+      rgba(44, 44, 49, 0.94)
+    );
   }
 
   .level-rail__node--completed {
-    background: linear-gradient(180deg, rgba(49, 53, 51, 0.98), rgba(40, 44, 42, 0.96));
+    background: linear-gradient(
+      180deg,
+      rgba(49, 53, 51, 0.98),
+      rgba(40, 44, 42, 0.96)
+    );
   }
 
   .level-rail__node--locked {
@@ -1293,7 +1380,11 @@ body {
     gap: 20px;
     border-radius: 12px;
     padding: 20px 24px;
-    background: linear-gradient(180deg, rgba(42, 42, 47, 0.98), rgba(31, 31, 35, 0.96));
+    background: linear-gradient(
+      180deg,
+      rgba(42, 42, 47, 0.98),
+      rgba(31, 31, 35, 0.96)
+    );
     border: 4px solid rgba(102, 102, 109, 0.5);
     box-shadow:
       0 0 0 4px rgba(255, 255, 255, 0.03) inset,
@@ -1335,7 +1426,11 @@ body {
     border-radius: 12px;
     padding: 10px;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0) 18%),
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.04),
+        rgba(255, 255, 255, 0) 18%
+      ),
       linear-gradient(180deg, #26262b 0%, #1d1d21 100%);
     border: 4px solid rgba(94, 94, 102, 0.72);
     box-shadow:
@@ -1422,8 +1517,16 @@ body {
     overflow: hidden;
     border-radius: 6px;
     background:
-      radial-gradient(circle at 32% 25%, rgba(255, 255, 255, 0.14), transparent 30%),
-      radial-gradient(circle at 68% 74%, rgba(255, 255, 255, 0.08), transparent 24%),
+      radial-gradient(
+        circle at 32% 25%,
+        rgba(255, 255, 255, 0.14),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 68% 74%,
+        rgba(255, 255, 255, 0.08),
+        transparent 24%
+      ),
       linear-gradient(180deg, #4a4a53 0%, #303038 100%);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow:
@@ -1437,15 +1540,31 @@ body {
     inset: auto 0 0 0;
     height: 36%;
     background:
-      radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.72), transparent 30%),
-      radial-gradient(circle at 62% 0%, rgba(255, 255, 255, 0.56), transparent 28%),
+      radial-gradient(
+        circle at 18% 0%,
+        rgba(255, 255, 255, 0.72),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 62% 0%,
+        rgba(255, 255, 255, 0.56),
+        transparent 28%
+      ),
       linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(116, 116, 124, 0.28));
   }
 
   .board-tile--visited:not(.board-tile--wall):not(.board-tile--door) {
     background:
-      radial-gradient(circle at 32% 25%, rgba(255, 255, 255, 0.2), transparent 30%),
-      radial-gradient(circle at 68% 74%, rgba(255, 255, 255, 0.12), transparent 24%),
+      radial-gradient(
+        circle at 32% 25%,
+        rgba(255, 255, 255, 0.2),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 68% 74%,
+        rgba(255, 255, 255, 0.12),
+        transparent 24%
+      ),
       linear-gradient(180deg, #63636b 0%, #484850 100%);
   }
 
@@ -1460,9 +1579,33 @@ body {
   .board-tile--door {
     border-color: rgba(255, 255, 255, 0.18);
     background:
-      radial-gradient(circle at 32% 25%, rgba(255, 255, 255, 0.16), transparent 30%),
-      radial-gradient(circle at 68% 74%, rgba(255, 255, 255, 0.1), transparent 24%),
+      radial-gradient(
+        circle at 32% 25%,
+        rgba(255, 255, 255, 0.16),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 68% 74%,
+        rgba(255, 255, 255, 0.1),
+        transparent 24%
+      ),
       linear-gradient(180deg, #50505a 0%, #34343b 100%);
+  }
+
+  .board-tile--key {
+    border-color: rgba(235, 235, 239, 0.26);
+    background:
+      radial-gradient(
+        circle at 32% 25%,
+        rgba(255, 255, 255, 0.18),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 68% 74%,
+        rgba(255, 255, 255, 0.12),
+        transparent 24%
+      ),
+      linear-gradient(180deg, #5c5c66 0%, #414149 100%);
   }
 
   .board-tile__marker {
@@ -1505,7 +1648,11 @@ body {
     inset: 12%;
     border-radius: 14px;
     background:
-      linear-gradient(180deg, rgba(154, 154, 162, 0.98), rgba(93, 93, 101, 0.96)),
+      linear-gradient(
+        180deg,
+        rgba(154, 154, 162, 0.98),
+        rgba(93, 93, 101, 0.96)
+      ),
       repeating-linear-gradient(
         45deg,
         rgba(255, 255, 255, 0.18),
@@ -1530,6 +1677,61 @@ body {
     transform: rotate(-22deg);
   }
 
+  .board-key {
+    position: absolute;
+    inset: 24% auto auto 28%;
+    width: 44%;
+    height: 44%;
+    z-index: 2;
+    transform: rotate(-20deg);
+  }
+
+  .board-key__head {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 40%;
+    height: 40%;
+    border-radius: 999px;
+    border: 3px solid rgba(244, 244, 247, 0.88);
+    box-shadow:
+      0 0 0 2px rgba(40, 40, 45, 0.42) inset,
+      0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .board-key__stem {
+    position: absolute;
+    left: 32%;
+    top: 34%;
+    width: 54%;
+    height: 14%;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #e3e3e7 0%, #8f8f97 100%);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.16),
+      0 4px 10px rgba(0, 0, 0, 0.18);
+  }
+
+  .board-key__stem::before,
+  .board-key__stem::after {
+    content: '';
+    position: absolute;
+    right: 8%;
+    width: 14%;
+    height: 70%;
+    border-radius: 999px;
+    background: inherit;
+  }
+
+  .board-key__stem::before {
+    top: 100%;
+  }
+
+  .board-key__stem::after {
+    top: 54%;
+    right: 28%;
+  }
+
   .goal-door {
     position: absolute;
     inset: auto 20% 10% 20%;
@@ -1540,6 +1742,13 @@ body {
     box-shadow:
       0 10px 16px rgba(0, 0, 0, 0.28),
       inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+  }
+
+  .goal-door--locked {
+    background: linear-gradient(180deg, #8c8c94 0%, #52525b 100%);
+    box-shadow:
+      0 10px 16px rgba(0, 0, 0, 0.28),
+      inset 0 0 0 2px rgba(255, 255, 255, 0.08);
   }
 
   .goal-door__arch {
@@ -1612,6 +1821,10 @@ body {
     background: linear-gradient(180deg, #8f8f96, #5b5b61);
   }
 
+  .legend-dot--key {
+    background: linear-gradient(180deg, #d6d6dc, #8a8a93);
+  }
+
   .legend-dot--wall {
     background: linear-gradient(180deg, #8f9098, #676871);
   }
@@ -1632,7 +1845,10 @@ body {
       linear-gradient(180deg, rgba(47, 47, 53, 0.95), rgba(35, 35, 40, 0.92)),
       linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
     text-align: left;
-    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    transition:
+      transform 140ms ease,
+      box-shadow 140ms ease,
+      border-color 140ms ease;
     min-width: 0;
     cursor: grab;
   }
@@ -2007,7 +2223,10 @@ body {
 
   .level-card--interactive {
     cursor: pointer;
-    transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+    transition:
+      transform 140ms ease,
+      border-color 140ms ease,
+      box-shadow 140ms ease;
   }
 
   .level-card--interactive:hover,

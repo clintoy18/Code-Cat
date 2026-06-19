@@ -2,14 +2,29 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createRepeatBlockTemplate, createWhileBlockTemplate, type IBlockTemplate, type IProgramBlock } from '@/features/game/engine';
+import {
+  createRepeatBlockTemplate,
+  createWhileBlockTemplate,
+  type IBlockTemplate,
+  type IProgramBlock,
+} from '@/features/game/engine';
 import { Gameplay } from './Gameplay';
 
 const mockReplaceProgram = vi.fn();
 const mockRunProgram = vi.fn();
 
-const moveUpBlock: IBlockTemplate = { key: 'move-up', label: 'moveUp()', kind: 'MOVE', move: 'UP' };
-const moveRightBlock: IBlockTemplate = { key: 'move-right', label: 'moveRight()', kind: 'MOVE', move: 'RIGHT' };
+const moveUpBlock: IBlockTemplate = {
+  key: 'move-up',
+  label: 'moveUp()',
+  kind: 'MOVE',
+  move: 'UP',
+};
+const moveRightBlock: IBlockTemplate = {
+  key: 'move-right',
+  label: 'moveRight()',
+  kind: 'MOVE',
+  move: 'RIGHT',
+};
 const ifPathUpBlock: IBlockTemplate = {
   key: 'if-path-up',
   label: 'if (pathUpClear) moveUp()',
@@ -24,7 +39,8 @@ const puzzle = {
   lesson: 'Loops' as const,
   difficulty: 'Hard' as const,
   parMoves: 1,
-  objective: 'Nest repeat blocks so one outer plan reuses the same climb-and-cross pattern twice to reach the exit.',
+  objective:
+    'Nest repeat blocks so one outer plan reuses the same climb-and-cross pattern twice to reach the exit.',
   rows: 5,
   cols: 5,
   start: { row: 4, col: 0 },
@@ -52,6 +68,7 @@ function buildGameState(program: IProgramBlock[]) {
     program,
     catPosition: puzzle.start,
     visited: [puzzle.start],
+    roomState: { hasKey: false },
     status: 'ready' as const,
     log: ['Puzzle loaded'],
     loadPuzzle: vi.fn(),
@@ -67,7 +84,8 @@ vi.mock('@/hooks/useGame', () => ({
 }));
 
 vi.mock('@/store/settingsStore', () => ({
-  useSettingsStore: (selector: (state: { volume: number }) => number) => selector({ volume: 0.6 }),
+  useSettingsStore: (selector: (state: { volume: number }) => number) =>
+    selector({ volume: 0.6 }),
 }));
 
 vi.mock('@/features/game/audio/gameAudio', () => ({
@@ -96,6 +114,7 @@ describe('Gameplay loop editor', () => {
       program: [],
       catPosition: puzzle.start,
       visited: [puzzle.start],
+      roomState: { hasKey: false },
       status: 'ready',
       log: ['Puzzle loaded'],
       stepIndex: 0,
@@ -103,7 +122,10 @@ describe('Gameplay loop editor', () => {
     });
     mockGameState = buildGameState([
       {
-        ...createRepeatBlockTemplate(2, [moveUpBlock, createWhileBlockTemplate('PATH_UP_CLEAR', [moveRightBlock])]),
+        ...createRepeatBlockTemplate(2, [
+          moveUpBlock,
+          createWhileBlockTemplate('PATH_UP_CLEAR', [moveRightBlock]),
+        ]),
         id: 'block-0',
       },
     ]);
@@ -122,7 +144,9 @@ describe('Gameplay loop editor', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Click a function block to build the route.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Click a block to build the route.'),
+    ).toBeInTheDocument();
 
     await user.click(screen.getAllByRole('button', { name: /moveUp\(\)/i })[0]);
 
@@ -143,7 +167,9 @@ describe('Gameplay loop editor', () => {
       </MemoryRouter>,
     );
 
-    const dragSource = screen.getAllByRole('button', { name: /moveUp\(\)/i })[0];
+    const dragSource = screen.getAllByRole('button', {
+      name: /moveUp\(\)/i,
+    })[0];
     const dropZone = container.querySelector('.gameplay-focus__terminalStack');
 
     expect(dropZone).not.toBeNull();
@@ -167,7 +193,9 @@ describe('Gameplay loop editor', () => {
 
     expect(mockReplaceProgram).toHaveBeenCalledTimes(1);
     expect(mockReplaceProgram.mock.calls[0][0][0].label).toBe('moveUp()');
-    expect(screen.getByText('Latest added').nextElementSibling).toHaveTextContent('moveUp()');
+    expect(
+      screen.getByText('Latest added').nextElementSibling,
+    ).toHaveTextContent('moveUp()');
   });
 
   it('renders nested loop lines and loop controls in block mode', () => {
@@ -179,8 +207,12 @@ describe('Gameplay loop editor', () => {
 
     expect(screen.getAllByText('repeat(2) {').length).toBeGreaterThan(0);
     expect(screen.getByText('while (pathUpClear) {')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add Repeat' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add While' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add Repeat' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add While' }),
+    ).toBeInTheDocument();
   });
 
   it('adds a nested repeat block to the selected loop body', async () => {
@@ -197,6 +229,8 @@ describe('Gameplay loop editor', () => {
 
     expect(mockReplaceProgram).toHaveBeenCalledTimes(1);
     expect(mockReplaceProgram.mock.calls[0][0][0].kind).toBe('REPEAT');
-    expect(mockReplaceProgram.mock.calls[0][0][0].loopBody[2].kind).toBe('REPEAT');
+    expect(mockReplaceProgram.mock.calls[0][0][0].loopBody[2].kind).toBe(
+      'REPEAT',
+    );
   });
 });

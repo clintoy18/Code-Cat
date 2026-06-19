@@ -11,6 +11,7 @@ export const useGame = () =>
     program: state.program,
     catPosition: state.catPosition,
     visited: state.visited,
+    roomState: state.roomState,
     status: state.status,
     log: state.log,
     stepIndex: state.stepIndex,

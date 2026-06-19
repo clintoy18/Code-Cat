@@ -18,6 +18,7 @@ import {
   type IPosition,
   type IPuzzleDefinition,
   type IProgramBlock,
+  type IRoomState,
 } from '@/features/game/engine';
 import { useGame } from '@/hooks/useGame';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -61,6 +62,10 @@ const clonePosition = (position: IPosition | null) =>
         col: position.col,
       }
     : null;
+
+const cloneRoomState = (roomState: IRoomState): IRoomState => ({
+  hasKey: roomState.hasKey,
+});
 
 const getPuzzleByOffset = (
   puzzles: IPuzzleDefinition[],
@@ -165,6 +170,7 @@ export const Gameplay = () => {
     program,
     catPosition,
     visited,
+    roomState,
     status,
     log,
     replaceProgram,
@@ -177,6 +183,9 @@ export const Gameplay = () => {
   const [animatedCatPosition, setAnimatedCatPosition] =
     useState<IPosition | null>(clonePosition(catPosition));
   const [animatedVisited, setAnimatedVisited] = useState<IPosition[]>(visited);
+  const [animatedRoomState, setAnimatedRoomState] = useState<IRoomState>(
+    cloneRoomState(roomState),
+  );
   const [isPlaybackRunning, setIsPlaybackRunning] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editorMode, setEditorMode] = useState<'blocks' | 'code'>('blocks');
@@ -325,8 +334,9 @@ export const Gameplay = () => {
     if (!isPlaybackRunning) {
       setAnimatedCatPosition(clonePosition(catPosition));
       setAnimatedVisited(visited);
+      setAnimatedRoomState(cloneRoomState(roomState));
     }
-  }, [catPosition, visited, isPlaybackRunning, puzzle?.id]);
+  }, [catPosition, visited, roomState, isPlaybackRunning, puzzle?.id]);
 
   useEffect(() => {
     setCodeDraft(serializeProgramToCode(program));
@@ -441,6 +451,7 @@ export const Gameplay = () => {
     if (!snapshot.program.length || snapshot.visited.length <= 1) {
       setAnimatedCatPosition(clonePosition(snapshot.catPosition));
       setAnimatedVisited(snapshot.visited);
+      setAnimatedRoomState(cloneRoomState(snapshot.roomState));
 
       if (snapshot.status === 'success') {
         gameAudio.playSuccess(volume);
@@ -455,12 +466,28 @@ export const Gameplay = () => {
     setIsPlaybackRunning(true);
     setAnimatedCatPosition(clonePosition(snapshot.visited[0]));
     setAnimatedVisited([snapshot.visited[0]]);
+    setAnimatedRoomState({
+      hasKey: Boolean(
+        puzzle?.key &&
+        snapshot.visited[0].row === puzzle.key.row &&
+        snapshot.visited[0].col === puzzle.key.col,
+      ),
+    });
 
     snapshot.visited.slice(1).forEach((position, index) => {
       const timeoutId = window.setTimeout(
         () => {
           setAnimatedCatPosition(clonePosition(position));
           setAnimatedVisited(snapshot.visited.slice(0, index + 2));
+
+          if (
+            puzzle?.key &&
+            position.row === puzzle.key.row &&
+            position.col === puzzle.key.col
+          ) {
+            setAnimatedRoomState({ hasKey: true });
+          }
+
           gameAudio.playStep(volume);
         },
         MOVE_INTERVAL_MS * (index + 1),
@@ -473,6 +500,7 @@ export const Gameplay = () => {
       () => {
         setAnimatedCatPosition(clonePosition(snapshot.catPosition));
         setAnimatedVisited(snapshot.visited);
+        setAnimatedRoomState(cloneRoomState(snapshot.roomState));
         setIsPlaybackRunning(false);
 
         if (snapshot.status === 'success') {
@@ -944,6 +972,7 @@ export const Gameplay = () => {
                 puzzle={puzzle}
                 catPosition={animatedCatPosition}
                 visited={animatedVisited}
+                roomState={animatedRoomState}
                 status={displayStatus}
               />
               {resultPopup ? (
@@ -1435,6 +1464,14 @@ export const Gameplay = () => {
                     {clearedCount}/{puzzles.length}
                   </span>
                 </div>
+                {puzzle.key ? (
+                  <div className="hud-tile">
+                    <span className="hud-tile__label">Key</span>
+                    <span className="hud-tile__value">
+                      {animatedRoomState.hasKey ? 'Collected' : 'Missing'}
+                    </span>
+                  </div>
+                ) : null}
               </div>
             </section>
 

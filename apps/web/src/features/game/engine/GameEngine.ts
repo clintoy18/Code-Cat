@@ -22,12 +22,14 @@ export type ProgramRequirement =
   | 'WHILE_LOOP'
   | 'NESTED_LOOP'
   | 'FUNCTION_DEFINITION'
-  | 'FUNCTION_CALL';
+  | 'FUNCTION_CALL'
+  | 'STATE_CONDITION';
 export type GameCondition =
   | 'PATH_UP_CLEAR'
   | 'PATH_RIGHT_CLEAR'
   | 'PATH_DOWN_CLEAR'
   | 'PATH_LEFT_CLEAR'
+  | 'HAS_KEY'
   | 'DOOR_UP'
   | 'DOOR_RIGHT'
   | 'DOOR_DOWN'
@@ -36,6 +38,10 @@ export type GameCondition =
 export interface IPosition {
   row: number;
   col: number;
+}
+
+export interface IRoomState {
+  hasKey: boolean;
 }
 
 interface IBlockBase {
@@ -99,6 +105,8 @@ export interface IPuzzleDefinition {
   cols: number;
   start: IPosition;
   door: IPosition;
+  key?: IPosition;
+  doorRequiresKey?: boolean;
   walls: IPosition[];
   availableBlocks: IBlockTemplate[];
   requiredConcepts?: ProgramRequirement[];
@@ -109,6 +117,7 @@ export interface IGameEngineSnapshot {
   program: IProgramBlock[];
   catPosition: IPosition | null;
   visited: IPosition[];
+  roomState: IRoomState;
   status: GameStatus;
   log: string[];
   stepIndex: number;
@@ -124,7 +133,9 @@ interface IBlockExecutionResult {
 interface IExecutionState {
   log: string[];
   visited: IPosition[];
+  roomState: IRoomState;
   stepsExecuted: number;
+  usedStateCondition: boolean;
 }
 
 interface IRuntimeContext {
@@ -145,7 +156,10 @@ const directionVectors: Record<MoveDirection, IPosition> = {
   LEFT: { row: 0, col: -1 },
 };
 
-const conditionDirectionMap: Record<GameCondition, MoveDirection> = {
+const directionalConditionMap: Record<
+  Exclude<GameCondition, 'HAS_KEY'>,
+  MoveDirection
+> = {
   PATH_UP_CLEAR: 'UP',
   PATH_RIGHT_CLEAR: 'RIGHT',
   PATH_DOWN_CLEAR: 'DOWN',
@@ -161,6 +175,7 @@ const conditionTokenMap: Record<GameCondition, string> = {
   PATH_RIGHT_CLEAR: 'pathRightClear',
   PATH_DOWN_CLEAR: 'pathDownClear',
   PATH_LEFT_CLEAR: 'pathLeftClear',
+  HAS_KEY: 'hasKey',
   DOOR_UP: 'doorUp',
   DOOR_RIGHT: 'doorRight',
   DOOR_DOWN: 'doorDown',
@@ -173,11 +188,24 @@ const requirementCopyMap: Record<ProgramRequirement, string> = {
   NESTED_LOOP: 'a loop nested inside another loop',
   FUNCTION_DEFINITION: 'a named helper function',
   FUNCTION_CALL: 'at least one helper function call',
+  STATE_CONDITION: 'at least one hasKey condition',
 };
 
 const clonePosition = (position: IPosition): IPosition => ({
   row: position.row,
   col: position.col,
+});
+
+const cloneRoomState = (roomState: IRoomState): IRoomState => ({
+  hasKey: roomState.hasKey,
+});
+
+const buildInitialRoomState = (puzzle: IPuzzleDefinition): IRoomState => ({
+  hasKey: Boolean(
+    puzzle.key &&
+    puzzle.start.row === puzzle.key.row &&
+    puzzle.start.col === puzzle.key.col,
+  ),
 });
 
 export const cloneBlockTemplate = (block: IBlockTemplate): IBlockTemplate => {
@@ -317,6 +345,13 @@ export const analyzeProgramRequirements = (
         state.hasFunctionCall = true;
       }
 
+      if (
+        (block.kind === 'CONDITIONAL' || block.kind === 'WHILE') &&
+        block.condition === 'HAS_KEY'
+      ) {
+        state.hasStateCondition = true;
+      }
+
       if (isBodyBlock(block)) {
         const childBody =
           block.kind === 'FUNCTION_DEF' ? block.functionBody : block.loopBody;
@@ -338,6 +373,8 @@ export const analyzeProgramRequirements = (
           state.hasFunctionDefinition || childState.hasFunctionDefinition;
         state.hasFunctionCall =
           state.hasFunctionCall || childState.hasFunctionCall;
+        state.hasStateCondition =
+          state.hasStateCondition || childState.hasStateCondition;
       }
 
       return state;
@@ -348,6 +385,7 @@ export const analyzeProgramRequirements = (
       hasNestedLoop: false,
       hasFunctionDefinition: false,
       hasFunctionCall: false,
+      hasStateCondition: false,
     },
   );
 
@@ -374,6 +412,10 @@ export const getMissingProgramRequirements = (
       return !analysis.hasFunctionCall;
     }
 
+    if (requirement === 'STATE_CONDITION') {
+      return !analysis.hasStateCondition;
+    }
+
     return !analysis.hasNestedLoop;
   });
 };
@@ -391,6 +433,7 @@ export class GameEngine {
     program: [],
     catPosition: null,
     visited: [],
+    roomState: { hasKey: false },
     status: 'idle',
     log: ['Select a puzzle to begin.'],
     stepIndex: 0,
@@ -411,11 +454,14 @@ export class GameEngine {
   }
 
   loadPuzzle(puzzle: IPuzzleDefinition) {
+    const roomState = buildInitialRoomState(puzzle);
+
     this.snapshot = {
       puzzle,
       program: [],
       catPosition: clonePosition(puzzle.start),
       visited: [clonePosition(puzzle.start)],
+      roomState,
       status: 'ready',
       log: [`Puzzle loaded: ${puzzle.title}. Reach the door.`],
       stepIndex: 0,
@@ -482,6 +528,9 @@ export class GameEngine {
       visited: this.snapshot.puzzle
         ? [clonePosition(this.snapshot.puzzle.start)]
         : [],
+      roomState: this.snapshot.puzzle
+        ? buildInitialRoomState(this.snapshot.puzzle)
+        : { hasKey: false },
       stepIndex: 0,
       didReachDoor: false,
     };
@@ -497,6 +546,7 @@ export class GameEngine {
       ...this.snapshot,
       catPosition: clonePosition(this.snapshot.puzzle.start),
       visited: [clonePosition(this.snapshot.puzzle.start)],
+      roomState: buildInitialRoomState(this.snapshot.puzzle),
       status: 'ready',
       log: [`Reset ${this.snapshot.puzzle.title}. Ready to run again.`],
       stepIndex: 0,
@@ -510,9 +560,17 @@ export class GameEngine {
       return this.snapshot;
     }
 
+    const puzzle = this.snapshot.puzzle;
+    const initialRoomState = buildInitialRoomState(puzzle);
+    const initialPosition = clonePosition(puzzle.start);
+    const initialVisited = [clonePosition(puzzle.start)];
+
     if (!this.snapshot.program.length) {
       this.snapshot = {
         ...this.snapshot,
+        catPosition: initialPosition,
+        visited: initialVisited,
+        roomState: initialRoomState,
         status: 'error',
         log: ['Add at least one block before running the puzzle.'],
       };
@@ -528,6 +586,9 @@ export class GameEngine {
     if (missingRequirements.length) {
       this.snapshot = {
         ...this.snapshot,
+        catPosition: initialPosition,
+        visited: initialVisited,
+        roomState: initialRoomState,
         status: 'error',
         log: [
           `This room expects ${missingRequirements.map((requirement) => requirementCopyMap[requirement]).join(', ')}.`,
@@ -538,7 +599,6 @@ export class GameEngine {
       return this.snapshot;
     }
 
-    const puzzle = this.snapshot.puzzle;
     const functionDefinitions = this.collectFunctionDefinitions(
       this.snapshot.program,
     );
@@ -546,6 +606,9 @@ export class GameEngine {
     if ('error' in functionDefinitions) {
       this.snapshot = {
         ...this.snapshot,
+        catPosition: initialPosition,
+        visited: initialVisited,
+        roomState: initialRoomState,
         status: 'error',
         log: [functionDefinitions.error],
       };
@@ -554,15 +617,17 @@ export class GameEngine {
     }
 
     const executionState: IExecutionState = {
-      visited: [clonePosition(puzzle.start)],
+      visited: initialVisited,
       log: [`Running ${puzzle.title}...`],
+      roomState: initialRoomState,
       stepsExecuted: 0,
+      usedStateCondition: false,
     };
     const runtimeContext: IRuntimeContext = {
       functionDefinitions,
       callStack: [],
     };
-    let catPosition = clonePosition(puzzle.start);
+    let catPosition = initialPosition;
     let status: GameStatus = 'running';
     let didReachDoor = false;
 
@@ -598,11 +663,24 @@ export class GameEngine {
       executionState.log.push('Program ended before the cat reached the door.');
     }
 
+    if (
+      didReachDoor &&
+      puzzle.requiredConcepts?.includes('STATE_CONDITION') &&
+      !executionState.usedStateCondition
+    ) {
+      status = 'error';
+      didReachDoor = false;
+      executionState.log.push(
+        'This room expects a hasKey check to control a real move after the key is collected.',
+      );
+    }
+
     this.snapshot = {
       puzzle,
       program: this.snapshot.program,
       catPosition,
       visited: executionState.visited,
+      roomState: cloneRoomState(executionState.roomState),
       status,
       log: executionState.log,
       stepIndex: executionState.stepsExecuted,
@@ -717,7 +795,18 @@ export class GameEngine {
     let nextPosition = catPosition;
 
     for (let iteration = 0; iteration < MAX_WHILE_ITERATIONS; iteration += 1) {
-      if (!this.evaluateCondition(puzzle, nextPosition, block.condition)) {
+      if (block.condition === 'HAS_KEY' && executionState.roomState.hasKey) {
+        executionState.usedStateCondition = true;
+      }
+
+      if (
+        !this.evaluateCondition(
+          puzzle,
+          nextPosition,
+          block.condition,
+          executionState.roomState,
+        )
+      ) {
         if (iteration === 0) {
           executionState.log.push(
             `${label}: condition was false, loop skipped.`,
@@ -756,7 +845,12 @@ export class GameEngine {
 
       if (
         positionsMatch(iterationStart, nextPosition) &&
-        this.evaluateCondition(puzzle, nextPosition, block.condition)
+        this.evaluateCondition(
+          puzzle,
+          nextPosition,
+          block.condition,
+          executionState.roomState,
+        )
       ) {
         executionState.log.push(
           `${label}: loop made no progress while the condition remained true.`,
@@ -862,7 +956,12 @@ export class GameEngine {
     }
 
     if (block.kind === 'MOVE') {
-      const moveResult = this.tryMove(puzzle, catPosition, block.move);
+      const moveResult = this.tryMove(
+        puzzle,
+        catPosition,
+        block.move,
+        executionState.roomState,
+      );
 
       if (!moveResult.success) {
         executionState.log.push(`${label}: ${moveResult.message}`);
@@ -877,6 +976,7 @@ export class GameEngine {
       executionState.log.push(
         `${label}: cat moved ${block.move.toLowerCase()}.`,
       );
+      this.applyRoomEffects(puzzle, moveResult.position, executionState);
 
       if (positionsMatch(moveResult.position, puzzle.door)) {
         executionState.log.push('Success: the cat reached the door.');
@@ -889,7 +989,12 @@ export class GameEngine {
       };
     }
 
-    const passed = this.evaluateCondition(puzzle, catPosition, block.condition);
+    const passed = this.evaluateCondition(
+      puzzle,
+      catPosition,
+      block.condition,
+      executionState.roomState,
+    );
 
     if (!passed) {
       executionState.log.push(`${label}: condition was false, action skipped.`);
@@ -900,7 +1005,16 @@ export class GameEngine {
       };
     }
 
-    const moveResult = this.tryMove(puzzle, catPosition, block.action);
+    if (block.condition === 'HAS_KEY') {
+      executionState.usedStateCondition = true;
+    }
+
+    const moveResult = this.tryMove(
+      puzzle,
+      catPosition,
+      block.action,
+      executionState.roomState,
+    );
 
     if (!moveResult.success) {
       executionState.log.push(`${label}: ${moveResult.message}`);
@@ -913,6 +1027,7 @@ export class GameEngine {
 
     executionState.visited.push(clonePosition(moveResult.position));
     executionState.log.push(`${label}: condition passed, action executed.`);
+    this.applyRoomEffects(puzzle, moveResult.position, executionState);
 
     if (positionsMatch(moveResult.position, puzzle.door)) {
       executionState.log.push('Success: the cat reached the door.');
@@ -955,8 +1070,13 @@ export class GameEngine {
     puzzle: IPuzzleDefinition,
     catPosition: IPosition,
     condition: GameCondition,
+    roomState: IRoomState,
   ) {
-    const direction = conditionDirectionMap[condition];
+    if (condition === 'HAS_KEY') {
+      return roomState.hasKey;
+    }
+
+    const direction = directionalConditionMap[condition];
     const nextPosition = this.getNextPosition(catPosition, direction);
 
     if (condition.startsWith('PATH_')) {
@@ -966,13 +1086,17 @@ export class GameEngine {
       );
     }
 
-    return positionsMatch(nextPosition, puzzle.door);
+    return (
+      positionsMatch(nextPosition, puzzle.door) &&
+      !this.isDoorLocked(puzzle, roomState)
+    );
   }
 
   private tryMove(
     puzzle: IPuzzleDefinition,
     catPosition: IPosition,
     direction: MoveDirection,
+    roomState: IRoomState,
   ) {
     const nextPosition = this.getNextPosition(catPosition, direction);
 
@@ -987,6 +1111,16 @@ export class GameEngine {
       return {
         success: false as const,
         message: `move${direction[0]}${direction.slice(1).toLowerCase()}() hit a wall.`,
+      };
+    }
+
+    if (
+      positionsMatch(nextPosition, puzzle.door) &&
+      this.isDoorLocked(puzzle, roomState)
+    ) {
+      return {
+        success: false as const,
+        message: 'the exit door is locked until the key is collected.',
       };
     }
 
@@ -1016,6 +1150,25 @@ export class GameEngine {
 
   private isWall(puzzle: IPuzzleDefinition, position: IPosition) {
     return puzzle.walls.some((wall) => positionsMatch(wall, position));
+  }
+
+  private isDoorLocked(puzzle: IPuzzleDefinition, roomState: IRoomState) {
+    return Boolean(puzzle.doorRequiresKey && !roomState.hasKey);
+  }
+
+  private applyRoomEffects(
+    puzzle: IPuzzleDefinition,
+    position: IPosition,
+    executionState: IExecutionState,
+  ) {
+    if (
+      puzzle.key &&
+      !executionState.roomState.hasKey &&
+      positionsMatch(position, puzzle.key)
+    ) {
+      executionState.roomState.hasKey = true;
+      executionState.log.push('Key collected.');
+    }
   }
 
   private emit() {

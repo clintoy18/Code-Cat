@@ -30,6 +30,13 @@ const ifPathRightBlock: IBlockTemplate = {
   condition: 'PATH_RIGHT_CLEAR',
   action: 'RIGHT',
 };
+const ifHasKeyRightBlock: IBlockTemplate = {
+  key: 'if-has-key-right',
+  label: 'if (hasKey) moveRight()',
+  kind: 'CONDITIONAL',
+  condition: 'HAS_KEY',
+  action: 'RIGHT',
+};
 
 const puzzle: IPuzzleDefinition = {
   id: 'loops-parser',
@@ -47,6 +54,7 @@ const puzzle: IPuzzleDefinition = {
     moveUpBlock,
     moveRightBlock,
     ifPathRightBlock,
+    ifHasKeyRightBlock,
     createRepeatBlockTemplate(2, [moveUpBlock]),
     createWhileBlockTemplate('PATH_RIGHT_CLEAR', [moveRightBlock]),
     createFunctionDefinitionBlockTemplate('climbStep'),
@@ -117,6 +125,17 @@ describe('code mode loops', () => {
     expect(parseResult.blocks).toEqual(
       program.map(({ id: _id, ...block }) => block),
     );
+  });
+
+  it('parses state condition actions from code mode', () => {
+    const parseResult = parseProgramCode(
+      `moveRight()
+if (hasKey) moveRight()`,
+      puzzle,
+    );
+
+    expect(parseResult.success).toBe(true);
+    expect(parseResult.blocks[1]).toEqual(ifHasKeyRightBlock);
   });
 
   it('rejects malformed loop bodies', () => {
