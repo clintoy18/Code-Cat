@@ -8,7 +8,8 @@ import {
   createRepeatBlockTemplate,
   createWhileBlockTemplate,
   formatConditionToken,
-  isLoopBlock,
+  isBodyBlock,
+  isFunctionDefinitionBlock,
   parseProgramCode,
   serializeProgramToCode,
   type GameCondition,
@@ -41,6 +42,14 @@ type TPaletteDragPayload =
     }
   | {
       kind: 'WHILE';
+    }
+  | {
+      kind: 'FUNCTION_DEF';
+      key: string;
+    }
+  | {
+      kind: 'FUNCTION_CALL';
+      key: string;
     };
 
 const PALETTE_DRAG_DATA_KEY = 'application/x-codecat-palette-block';
@@ -53,8 +62,14 @@ const clonePosition = (position: IPosition | null) =>
       }
     : null;
 
-const getPuzzleByOffset = (puzzles: IPuzzleDefinition[], activePuzzleId: string | null, offset: number) => {
-  const currentIndex = puzzles.findIndex((entry) => entry.id === activePuzzleId);
+const getPuzzleByOffset = (
+  puzzles: IPuzzleDefinition[],
+  activePuzzleId: string | null,
+  offset: number,
+) => {
+  const currentIndex = puzzles.findIndex(
+    (entry) => entry.id === activePuzzleId,
+  );
 
   if (currentIndex < 0) {
     return null;
@@ -63,19 +78,29 @@ const getPuzzleByOffset = (puzzles: IPuzzleDefinition[], activePuzzleId: string 
   return puzzles[currentIndex + offset] ?? null;
 };
 
-const stripProgramIds = (blocks: IProgramBlock[]) => blocks.map((block) => cloneBlockTemplate(block));
+const stripProgramIds = (blocks: IProgramBlock[]) =>
+  blocks.map((block) => cloneBlockTemplate(block));
+
+const getBlockBody = (block: TRenderableBlock) => {
+  if (!isBodyBlock(block)) {
+    return null;
+  }
+
+  return isFunctionDefinitionBlock(block) ? block.functionBody : block.loopBody;
+};
 
 const getBodyAtPath = (blocks: TRenderableBlock[], path: TBlockPath) => {
   let currentBody: TRenderableBlock[] = blocks;
 
   for (const index of path) {
     const nextBlock = currentBody[index];
+    const nextBody = nextBlock ? getBlockBody(nextBlock) : null;
 
-    if (!nextBlock || !isLoopBlock(nextBlock)) {
+    if (!nextBlock || !nextBody) {
       return null;
     }
 
-    currentBody = nextBlock.loopBody;
+    currentBody = nextBody;
   }
 
   return currentBody;
@@ -96,15 +121,21 @@ const getBlockAtPath = (blocks: TRenderableBlock[], path: TBlockPath) => {
 };
 
 const countProgramBlocks = (blocks: TRenderableBlock[]): number =>
-  blocks.reduce((total, block) => total + 1 + (isLoopBlock(block) ? countProgramBlocks(block.loopBody) : 0), 0);
+  blocks.reduce(
+    (total, block) => total + 1 + countProgramBlocks(getBlockBody(block) ?? []),
+    0,
+  );
 
-const formatBlockPath = (path: TBlockPath) => (path.length ? path.map((segment) => segment + 1).join('.') : 'root');
+const formatBlockPath = (path: TBlockPath) =>
+  path.length ? path.map((segment) => segment + 1).join('.') : 'root';
 
 const isSamePath = (left: TBlockPath, right: TBlockPath) =>
-  left.length === right.length && left.every((segment, index) => segment === right[index]);
+  left.length === right.length &&
+  left.every((segment, index) => segment === right[index]);
 
 const hasPathPrefix = (path: TBlockPath, prefix: TBlockPath) =>
-  prefix.length <= path.length && prefix.every((segment, index) => segment === path[index]);
+  prefix.length <= path.length &&
+  prefix.every((segment, index) => segment === path[index]);
 
 const getBlockHeader = (block: TRenderableBlock) => {
   if (block.kind === 'REPEAT') {
@@ -113,6 +144,10 @@ const getBlockHeader = (block: TRenderableBlock) => {
 
   if (block.kind === 'WHILE') {
     return `while (${formatConditionToken(block.condition)}) {`;
+  }
+
+  if (block.kind === 'FUNCTION_DEF') {
+    return `function ${block.functionName}() {`;
   }
 
   return block.label;
@@ -139,7 +174,8 @@ export const Gameplay = () => {
     loadPuzzle,
   } = useGame();
   const volume = useSettingsStore((state) => state.volume);
-  const [animatedCatPosition, setAnimatedCatPosition] = useState<IPosition | null>(clonePosition(catPosition));
+  const [animatedCatPosition, setAnimatedCatPosition] =
+    useState<IPosition | null>(clonePosition(catPosition));
   const [animatedVisited, setAnimatedVisited] = useState<IPosition[]>(visited);
   const [isPlaybackRunning, setIsPlaybackRunning] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -147,40 +183,81 @@ export const Gameplay = () => {
   const [codeDraft, setCodeDraft] = useState('');
   const [codeErrors, setCodeErrors] = useState<string[]>([]);
   const [insertPath, setInsertPath] = useState<TBlockPath>([]);
-  const [recentlyAddedPath, setRecentlyAddedPath] = useState<TBlockPath | null>(null);
-  const [draggedPaletteItem, setDraggedPaletteItem] = useState<TPaletteDragPayload | null>(null);
+  const [recentlyAddedPath, setRecentlyAddedPath] = useState<TBlockPath | null>(
+    null,
+  );
+  const [draggedPaletteItem, setDraggedPaletteItem] =
+    useState<TPaletteDragPayload | null>(null);
   const [isRouteDropTargetActive, setIsRouteDropTargetActive] = useState(false);
   const [loopRepeatCount, setLoopRepeatCount] = useState(2);
-  const [whileCondition, setWhileCondition] = useState<GameCondition | null>(null);
+  const [whileCondition, setWhileCondition] = useState<GameCondition | null>(
+    null,
+  );
   const [resultPopup, setResultPopup] = useState<TResultPopup | null>(null);
   const playbackTimeoutsRef = useRef<number[]>([]);
   const gameplayShellRef = useRef<HTMLDivElement | null>(null);
   const terminalBodyRef = useRef<HTMLDivElement | null>(null);
   const routeDropDepthRef = useRef(0);
   const previousDisplayStatusRef = useRef(status);
-  const routePuzzle = routePuzzleId ? puzzles.find((entry) => entry.id === routePuzzleId) ?? null : null;
+  const routePuzzle = routePuzzleId
+    ? (puzzles.find((entry) => entry.id === routePuzzleId) ?? null)
+    : null;
 
-  const currentPuzzleIndex = puzzles.findIndex((entry) => entry.id === activePuzzleId);
-  const currentLevelNumber = currentPuzzleIndex >= 0 ? currentPuzzleIndex + 1 : 1;
+  const currentPuzzleIndex = puzzles.findIndex(
+    (entry) => entry.id === activePuzzleId,
+  );
+  const currentLevelNumber =
+    currentPuzzleIndex >= 0 ? currentPuzzleIndex + 1 : 1;
   const nextPuzzle = getPuzzleByOffset(puzzles, activePuzzleId, 1);
   const clearedCount = completedPuzzleIds.length;
   const commandCount = countProgramBlocks(program);
   const visitedCount = Math.max(0, animatedVisited.length - 1);
-  const nextPuzzleUnlocked = nextPuzzle ? unlockedPuzzleIds.includes(nextPuzzle.id) : false;
-  const actionBlocks = puzzle?.availableBlocks.filter((block) => block.kind === 'MOVE' || block.kind === 'CONDITIONAL') ?? [];
-  const repeatEnabled = puzzle?.availableBlocks.some((block) => block.kind === 'REPEAT') ?? false;
-  const whileEnabled = puzzle?.availableBlocks.some((block) => block.kind === 'WHILE') ?? false;
+  const nextPuzzleUnlocked = nextPuzzle
+    ? unlockedPuzzleIds.includes(nextPuzzle.id)
+    : false;
+  const actionBlocks =
+    puzzle?.availableBlocks.filter(
+      (block) => block.kind === 'MOVE' || block.kind === 'CONDITIONAL',
+    ) ?? [];
+  const helperDefinitionBlocks =
+    puzzle?.availableBlocks.filter(isFunctionDefinitionBlock) ?? [];
+  const helperCallBlocks =
+    puzzle?.availableBlocks.filter(
+      (block): block is Extract<IBlockTemplate, { kind: 'FUNCTION_CALL' }> =>
+        block.kind === 'FUNCTION_CALL',
+    ) ?? [];
+  const repeatEnabled =
+    puzzle?.availableBlocks.some((block) => block.kind === 'REPEAT') ?? false;
+  const whileEnabled =
+    puzzle?.availableBlocks.some((block) => block.kind === 'WHILE') ?? false;
+  const structureBlocksEnabled =
+    repeatEnabled || whileEnabled || helperDefinitionBlocks.length > 0;
   const whileConditions = Array.from(
     new Set(
       actionBlocks
-        .filter((block): block is Extract<IBlockTemplate, { kind: 'CONDITIONAL' }> => block.kind === 'CONDITIONAL')
+        .filter(
+          (block): block is Extract<IBlockTemplate, { kind: 'CONDITIONAL' }> =>
+            block.kind === 'CONDITIONAL',
+        )
         .map((block) => block.condition),
     ),
   );
-  const selectedBodyBlock = insertPath.length ? getBlockAtPath(program, insertPath) : null;
-  const recentlyAddedBlock = recentlyAddedPath ? getBlockAtPath(program, recentlyAddedPath) : null;
-  const repeatPaletteLabel = repeatEnabled ? `repeat(${loopRepeatCount}) { ... }` : 'repeat(...) locked';
-  const whilePaletteLabel = whileEnabled && whileCondition ? `while (${formatConditionToken(whileCondition)}) { ... }` : 'while(...) locked';
+  const selectedBodyBlock = insertPath.length
+    ? getBlockAtPath(program, insertPath)
+    : null;
+  const recentlyAddedBlock = recentlyAddedPath
+    ? getBlockAtPath(program, recentlyAddedPath)
+    : null;
+  const repeatPaletteLabel = repeatEnabled
+    ? `repeat(${loopRepeatCount}) { ... }`
+    : 'repeat(...) locked';
+  const whilePaletteLabel =
+    whileEnabled && whileCondition
+      ? `while (${formatConditionToken(whileCondition)}) { ... }`
+      : 'while(...) locked';
+  const codeModePlaceholder = helperDefinitionBlocks.length
+    ? `function ${helperDefinitionBlocks[0].functionName}() {\n  moveUp()\n  moveRight()\n}\n\n${helperDefinitionBlocks[0].functionName}()`
+    : `repeat(2) {\n  moveUp()\n  moveRight()\n}\nwhile (pathUpClear) {\n  moveUp()\n}`;
   const statusLabelMap = {
     ready: 'Awaiting run',
     running: 'Executing route',
@@ -191,7 +268,9 @@ export const Gameplay = () => {
   const displayStatus = isPlaybackRunning ? 'running' : status;
 
   const clearPlaybackTimers = () => {
-    playbackTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    playbackTimeoutsRef.current.forEach((timeoutId) =>
+      window.clearTimeout(timeoutId),
+    );
     playbackTimeoutsRef.current = [];
   };
 
@@ -214,11 +293,17 @@ export const Gameplay = () => {
 
     if (!unlockedPuzzleIds.includes(routePuzzle.id)) {
       const fallbackPuzzleId =
-        puzzles.find((entry) => unlockedPuzzleIds.includes(entry.id) && !completedPuzzleIds.includes(entry.id))?.id ??
+        puzzles.find(
+          (entry) =>
+            unlockedPuzzleIds.includes(entry.id) &&
+            !completedPuzzleIds.includes(entry.id),
+        )?.id ??
         puzzles.find((entry) => unlockedPuzzleIds.includes(entry.id))?.id ??
         null;
 
-      navigate(fallbackPuzzleId ? `/gameplay/${fallbackPuzzleId}` : '/levels', { replace: true });
+      navigate(fallbackPuzzleId ? `/gameplay/${fallbackPuzzleId}` : '/levels', {
+        replace: true,
+      });
       return;
     }
 
@@ -286,7 +371,9 @@ export const Gameplay = () => {
       return;
     }
 
-    const target = terminalBody.querySelector<HTMLElement>(`[data-block-path="${formatBlockPath(recentlyAddedPath)}"]`);
+    const target = terminalBody.querySelector<HTMLElement>(
+      `[data-block-path="${formatBlockPath(recentlyAddedPath)}"]`,
+    );
 
     if (!target) {
       return;
@@ -323,7 +410,9 @@ export const Gameplay = () => {
           tone: 'error',
           title: 'Route Failed',
           body:
-            log[log.length - 1] && log[log.length - 1] !== 'Program ended before the cat reached the door.'
+            log[log.length - 1] &&
+            log[log.length - 1] !==
+              'Program ended before the cat reached the door.'
               ? log[log.length - 1]
               : 'The route did not solve the room. Adjust the program and try again.',
         });
@@ -368,26 +457,33 @@ export const Gameplay = () => {
     setAnimatedVisited([snapshot.visited[0]]);
 
     snapshot.visited.slice(1).forEach((position, index) => {
-      const timeoutId = window.setTimeout(() => {
-        setAnimatedCatPosition(clonePosition(position));
-        setAnimatedVisited(snapshot.visited.slice(0, index + 2));
-        gameAudio.playStep(volume);
-      }, MOVE_INTERVAL_MS * (index + 1));
+      const timeoutId = window.setTimeout(
+        () => {
+          setAnimatedCatPosition(clonePosition(position));
+          setAnimatedVisited(snapshot.visited.slice(0, index + 2));
+          gameAudio.playStep(volume);
+        },
+        MOVE_INTERVAL_MS * (index + 1),
+      );
 
       playbackTimeoutsRef.current.push(timeoutId);
     });
 
-    const resultTimeoutId = window.setTimeout(() => {
-      setAnimatedCatPosition(clonePosition(snapshot.catPosition));
-      setAnimatedVisited(snapshot.visited);
-      setIsPlaybackRunning(false);
+    const resultTimeoutId = window.setTimeout(
+      () => {
+        setAnimatedCatPosition(clonePosition(snapshot.catPosition));
+        setAnimatedVisited(snapshot.visited);
+        setIsPlaybackRunning(false);
 
-      if (snapshot.status === 'success') {
-        gameAudio.playSuccess(volume);
-      } else if (snapshot.status === 'error') {
-        gameAudio.playError(volume);
-      }
-    }, MOVE_INTERVAL_MS * Math.max(1, snapshot.visited.length - 1) + RESULT_DELAY_MS);
+        if (snapshot.status === 'success') {
+          gameAudio.playSuccess(volume);
+        } else if (snapshot.status === 'error') {
+          gameAudio.playError(volume);
+        }
+      },
+      MOVE_INTERVAL_MS * Math.max(1, snapshot.visited.length - 1) +
+        RESULT_DELAY_MS,
+    );
 
     playbackTimeoutsRef.current.push(resultTimeoutId);
   };
@@ -458,7 +554,10 @@ export const Gameplay = () => {
     navigate(`/gameplay/${nextTargetPuzzle.id}`);
   };
 
-  const addBlockToInsertTarget = (buildBlock: () => IBlockTemplate, options?: { selectInsertedLoop?: boolean }) => {
+  const addBlockToInsertTarget = (
+    buildBlock: () => IBlockTemplate,
+    options?: { selectInsertedBody?: boolean },
+  ) => {
     const nextProgram = stripProgramIds(program);
     const targetBody = getBodyAtPath(nextProgram, insertPath);
 
@@ -474,7 +573,7 @@ export const Gameplay = () => {
     replaceProgram(nextProgram);
     setRecentlyAddedPath(nextPath);
 
-    if (options?.selectInsertedLoop) {
+    if (options?.selectInsertedBody) {
       setInsertPath(nextPath);
     }
 
@@ -486,7 +585,10 @@ export const Gameplay = () => {
   };
 
   const handleAddRepeatBlock = () => {
-    addBlockToInsertTarget(() => createRepeatBlockTemplate(loopRepeatCount, []), { selectInsertedLoop: true });
+    addBlockToInsertTarget(
+      () => createRepeatBlockTemplate(loopRepeatCount, []),
+      { selectInsertedBody: true },
+    );
   };
 
   const handleAddWhileBlock = () => {
@@ -494,7 +596,23 @@ export const Gameplay = () => {
       return;
     }
 
-    addBlockToInsertTarget(() => createWhileBlockTemplate(whileCondition, []), { selectInsertedLoop: true });
+    addBlockToInsertTarget(() => createWhileBlockTemplate(whileCondition, []), {
+      selectInsertedBody: true,
+    });
+  };
+
+  const handleAddFunctionDefinitionBlock = (
+    block: Extract<IBlockTemplate, { kind: 'FUNCTION_DEF' }>,
+  ) => {
+    addBlockToInsertTarget(() => cloneBlockTemplate(block), {
+      selectInsertedBody: true,
+    });
+  };
+
+  const handleAddFunctionCallBlock = (
+    block: Extract<IBlockTemplate, { kind: 'FUNCTION_CALL' }>,
+  ) => {
+    addBlockToInsertTarget(() => cloneBlockTemplate(block));
   };
 
   const resolvePalettePayload = (payload: TPaletteDragPayload) => {
@@ -503,11 +621,15 @@ export const Gameplay = () => {
     }
 
     if (payload.kind === 'REPEAT') {
-      return repeatEnabled ? createRepeatBlockTemplate(loopRepeatCount, []) : null;
+      return repeatEnabled
+        ? createRepeatBlockTemplate(loopRepeatCount, [])
+        : null;
     }
 
     if (payload.kind === 'WHILE') {
-      return whileEnabled && whileCondition ? createWhileBlockTemplate(whileCondition, []) : null;
+      return whileEnabled && whileCondition
+        ? createWhileBlockTemplate(whileCondition, [])
+        : null;
     }
 
     return null;
@@ -515,13 +637,42 @@ export const Gameplay = () => {
 
   const applyPalettePayload = (payload: TPaletteDragPayload) => {
     if (payload.kind === 'ACTION') {
-      const actionBlock = actionBlocks.find((block) => block.key === payload.key);
+      const actionBlock = actionBlocks.find(
+        (block) => block.key === payload.key,
+      );
 
       if (!actionBlock) {
         return false;
       }
 
       return addBlockToInsertTarget(() => cloneBlockTemplate(actionBlock));
+    }
+
+    if (payload.kind === 'FUNCTION_DEF') {
+      const helperDefinitionBlock = helperDefinitionBlocks.find(
+        (block) => block.key === payload.key,
+      );
+
+      if (!helperDefinitionBlock) {
+        return false;
+      }
+
+      return addBlockToInsertTarget(
+        () => cloneBlockTemplate(helperDefinitionBlock),
+        { selectInsertedBody: true },
+      );
+    }
+
+    if (payload.kind === 'FUNCTION_CALL') {
+      const helperCallBlock = helperCallBlocks.find(
+        (block) => block.key === payload.key,
+      );
+
+      if (!helperCallBlock) {
+        return false;
+      }
+
+      return addBlockToInsertTarget(() => cloneBlockTemplate(helperCallBlock));
     }
 
     const resolvedBlock = resolvePalettePayload(payload);
@@ -531,11 +682,14 @@ export const Gameplay = () => {
     }
 
     return addBlockToInsertTarget(() => resolvedBlock, {
-      selectInsertedLoop: resolvedBlock.kind === 'REPEAT' || resolvedBlock.kind === 'WHILE',
+      selectInsertedBody:
+        resolvedBlock.kind === 'REPEAT' || resolvedBlock.kind === 'WHILE',
     });
   };
 
-  const readPalettePayload = (event: Pick<DragEvent<HTMLElement>, 'dataTransfer'>) => {
+  const readPalettePayload = (
+    event: Pick<DragEvent<HTMLElement>, 'dataTransfer'>,
+  ) => {
     const payloadJson = event.dataTransfer.getData(PALETTE_DRAG_DATA_KEY);
 
     if (!payloadJson) {
@@ -555,7 +709,10 @@ export const Gameplay = () => {
       setIsRouteDropTargetActive(true);
       routeDropDepthRef.current = 0;
       event.dataTransfer.effectAllowed = 'copy';
-      event.dataTransfer.setData(PALETTE_DRAG_DATA_KEY, JSON.stringify(payload));
+      event.dataTransfer.setData(
+        PALETTE_DRAG_DATA_KEY,
+        JSON.stringify(payload),
+      );
       event.dataTransfer.setData('text/plain', payload.kind);
     };
 
@@ -633,11 +790,17 @@ export const Gameplay = () => {
     }
   };
 
-  const renderProgramBlocks = (blocks: TRenderableBlock[], parentPath: TBlockPath = [], depth = 0): JSX.Element[] =>
+  const renderProgramBlocks = (
+    blocks: TRenderableBlock[],
+    parentPath: TBlockPath = [],
+    depth = 0,
+  ): JSX.Element[] =>
     blocks.flatMap((block, index) => {
       const blockPath = [...parentPath, index];
       const isSelectedTarget = isSamePath(insertPath, blockPath);
-      const isRecentlyAdded = recentlyAddedPath ? isSamePath(recentlyAddedPath, blockPath) : false;
+      const isRecentlyAdded = recentlyAddedPath
+        ? isSamePath(recentlyAddedPath, blockPath)
+        : false;
       const headerLine = (
         <div
           key={`${formatBlockPath(blockPath)}-header`}
@@ -645,10 +808,14 @@ export const Gameplay = () => {
           className={`gameplay-focus__terminalLine ${isSelectedTarget || isRecentlyAdded ? 'gameplay-focus__terminalLine--active' : ''} ${isRecentlyAdded ? 'gameplay-focus__terminalLine--new' : ''}`}
           style={{ marginLeft: `${depth * 18}px` }}
         >
-          <span className="gameplay-focus__terminalLineNo">{formatBlockPath(blockPath)}</span>
-          <code className="gameplay-focus__terminalCode">{getBlockHeader(block)}</code>
+          <span className="gameplay-focus__terminalLineNo">
+            {formatBlockPath(blockPath)}
+          </span>
+          <code className="gameplay-focus__terminalCode">
+            {getBlockHeader(block)}
+          </code>
           <div className="gameplay-focus__terminalActions">
-            {isLoopBlock(block) && !isPlaybackRunning ? (
+            {isBodyBlock(block) && !isPlaybackRunning ? (
               <button
                 type="button"
                 className={`gameplay-focus__terminalTarget ${isSelectedTarget ? 'gameplay-focus__terminalTarget--active' : ''}`}
@@ -670,19 +837,23 @@ export const Gameplay = () => {
         </div>
       );
 
-      if (!isLoopBlock(block)) {
+      const childBody = getBlockBody(block);
+
+      if (!childBody) {
         return [headerLine];
       }
 
-      const childLines = block.loopBody.length
-        ? renderProgramBlocks(block.loopBody, blockPath, depth + 1)
+      const childLines = childBody.length
+        ? renderProgramBlocks(childBody, blockPath, depth + 1)
         : [
             <div
               key={`${formatBlockPath(blockPath)}-empty`}
               className="gameplay-focus__terminalBranchEmpty"
               style={{ marginLeft: `${(depth + 1) * 18}px` }}
             >
-              Loop body is empty. Add commands inside this block.
+              {isFunctionDefinitionBlock(block)
+                ? 'Helper body is empty. Add commands inside this helper.'
+                : 'Loop body is empty. Add commands inside this block.'}
             </div>,
           ];
 
@@ -692,7 +863,9 @@ export const Gameplay = () => {
           className="gameplay-focus__terminalLine gameplay-focus__terminalLine--ghost"
           style={{ marginLeft: `${depth * 18}px` }}
         >
-          <span className="gameplay-focus__terminalLineNo">{formatBlockPath(blockPath)}</span>
+          <span className="gameplay-focus__terminalLineNo">
+            {formatBlockPath(blockPath)}
+          </span>
           <code className="gameplay-focus__terminalCode">{'}'}</code>
           <span />
         </div>
@@ -702,12 +875,16 @@ export const Gameplay = () => {
     });
 
   if (!puzzle || (routePuzzleId && puzzle.id !== routePuzzleId)) {
-    const isRouteSyncPending = Boolean(routePuzzleId && routePuzzle && puzzle?.id !== routePuzzleId);
+    const isRouteSyncPending = Boolean(
+      routePuzzleId && routePuzzle && puzzle?.id !== routePuzzleId,
+    );
 
     return (
       <div className="glass-panel m-6 p-6">
         <p className="text-sm text-slate-700">
-          {isRouteSyncPending ? 'Loading the selected level...' : 'Select a puzzle first from the levels page.'}
+          {isRouteSyncPending
+            ? 'Loading the selected level...'
+            : 'Select a puzzle first from the levels page.'}
         </p>
         {isRouteSyncPending ? null : (
           <Button className="mt-4" onClick={() => navigate('/levels')}>
@@ -735,15 +912,25 @@ export const Gameplay = () => {
           <span className="game-chip">Lesson: {puzzle.lesson}</span>
           <span className="game-chip">Par: {puzzle.parMoves}</span>
           <span className="game-chip">Difficulty: {puzzle.difficulty}</span>
-          <span className={`game-chip ${displayStatus === 'success' ? 'game-chip--success' : ''}`}>
+          <span
+            className={`game-chip ${displayStatus === 'success' ? 'game-chip--success' : ''}`}
+          >
             {statusLabelMap[displayStatus]}
           </span>
         </div>
         <div className="gameplay-focus__headerActions">
-          <Button variant="ghost" className="pixel-button pixel-button--ghost" onClick={() => navigate('/levels')}>
+          <Button
+            variant="ghost"
+            className="pixel-button pixel-button--ghost"
+            onClick={() => navigate('/levels')}
+          >
             Level Map
           </Button>
-          <Button variant="secondary" className="pixel-button pixel-button--secondary" onClick={handleToggleFullscreen}>
+          <Button
+            variant="secondary"
+            className="pixel-button pixel-button--secondary"
+            onClick={handleToggleFullscreen}
+          >
             {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           </Button>
         </div>
@@ -753,7 +940,12 @@ export const Gameplay = () => {
         <section className="gameplay-focus__boardPane">
           <div className="gameplay-focus__workspace">
             <div className="gameplay-focus__boardShell">
-              <Grid puzzle={puzzle} catPosition={animatedCatPosition} visited={animatedVisited} status={displayStatus} />
+              <Grid
+                puzzle={puzzle}
+                catPosition={animatedCatPosition}
+                visited={animatedVisited}
+                status={displayStatus}
+              />
               {resultPopup ? (
                 <div
                   className="gameplay-result-popup"
@@ -761,15 +953,30 @@ export const Gameplay = () => {
                   aria-live="assertive"
                   aria-label={resultPopup.title}
                 >
-                  <div className={`gameplay-result-popup__card gameplay-result-popup__card--${resultPopup.tone}`}>
+                  <div
+                    className={`gameplay-result-popup__card gameplay-result-popup__card--${resultPopup.tone}`}
+                  >
                     <div className="gameplay-result-popup__copy">
-                      <p className="gameplay-result-popup__eyebrow">{resultPopup.tone === 'success' ? 'Success' : 'Try Again'}</p>
-                      <h2 className="gameplay-result-popup__title">{resultPopup.title}</h2>
-                      <p className="gameplay-result-popup__body">{resultPopup.body}</p>
+                      <p className="gameplay-result-popup__eyebrow">
+                        {resultPopup.tone === 'success'
+                          ? 'Success'
+                          : 'Try Again'}
+                      </p>
+                      <h2 className="gameplay-result-popup__title">
+                        {resultPopup.title}
+                      </h2>
+                      <p className="gameplay-result-popup__body">
+                        {resultPopup.body}
+                      </p>
                     </div>
                     <div className="gameplay-result-popup__actions">
-                      {resultPopup.tone === 'success' && nextPuzzle && nextPuzzleUnlocked ? (
-                        <Button className="pixel-button" onClick={() => loadAndPlayPuzzle(nextPuzzle)}>
+                      {resultPopup.tone === 'success' &&
+                      nextPuzzle &&
+                      nextPuzzleUnlocked ? (
+                        <Button
+                          className="pixel-button"
+                          onClick={() => loadAndPlayPuzzle(nextPuzzle)}
+                        >
                           Play Next
                         </Button>
                       ) : null}
@@ -799,8 +1006,12 @@ export const Gameplay = () => {
             <section className="arcade-panel p-5 gameplay-focus__terminalPanel">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">Code Terminal</p>
-                  <h2 className="mt-2 font-display text-2xl font-bold text-[var(--color-ink)]">Build the route</h2>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">
+                    Code Terminal
+                  </p>
+                  <h2 className="mt-2 font-display text-2xl font-bold text-[var(--color-ink)]">
+                    Build the route
+                  </h2>
                 </div>
                 <span className="game-chip">{commandCount} blocks</span>
               </div>
@@ -824,8 +1035,12 @@ export const Gameplay = () => {
 
               <div className="gameplay-focus__terminalEditor mt-4">
                 <div className="gameplay-focus__terminalHeader">
-                  <span>{editorMode === 'blocks' ? 'route.cat' : 'route.cat.ts'}</span>
-                  <span>{commandCount ? `${commandCount} blocks` : 'empty'}</span>
+                  <span>
+                    {editorMode === 'blocks' ? 'route.cat' : 'route.cat.ts'}
+                  </span>
+                  <span>
+                    {commandCount ? `${commandCount} blocks` : 'empty'}
+                  </span>
                 </div>
 
                 {editorMode === 'blocks' ? (
@@ -843,13 +1058,60 @@ export const Gameplay = () => {
                           type="button"
                           draggable={!isPlaybackRunning}
                           disabled={isPlaybackRunning}
-                          onDragStart={handlePaletteDragStart({ kind: 'ACTION', key: block.key })}
+                          onDragStart={handlePaletteDragStart({
+                            kind: 'ACTION',
+                            key: block.key,
+                          })}
                           onDragEnd={handlePaletteDragEnd}
                           onClick={() => handleAddActionBlock(block)}
                           className={`palette-block ${isPlaybackRunning ? 'palette-block--disabled' : ''} ${draggedPaletteItem?.kind === 'ACTION' && draggedPaletteItem.key === block.key ? 'palette-block--dragging' : ''}`}
                         >
-                          <span className="palette-block__kind">{block.kind === 'MOVE' ? 'MOVE' : 'IF'}</span>
-                          <span className="palette-block__label">{block.label}</span>
+                          <span className="palette-block__kind">
+                            {block.kind === 'MOVE' ? 'MOVE' : 'IF'}
+                          </span>
+                          <span className="palette-block__label">
+                            {block.label}
+                          </span>
+                        </button>
+                      ))}
+                      {helperCallBlocks.map((block) => (
+                        <button
+                          key={block.key}
+                          type="button"
+                          draggable={!isPlaybackRunning}
+                          disabled={isPlaybackRunning}
+                          onDragStart={handlePaletteDragStart({
+                            kind: 'FUNCTION_CALL',
+                            key: block.key,
+                          })}
+                          onDragEnd={handlePaletteDragEnd}
+                          onClick={() => handleAddFunctionCallBlock(block)}
+                          className={`palette-block ${isPlaybackRunning ? 'palette-block--disabled' : ''} ${draggedPaletteItem?.kind === 'FUNCTION_CALL' && draggedPaletteItem.key === block.key ? 'palette-block--dragging' : ''}`}
+                        >
+                          <span className="palette-block__kind">CALL</span>
+                          <span className="palette-block__label">
+                            {block.label}
+                          </span>
+                        </button>
+                      ))}
+                      {helperDefinitionBlocks.map((block) => (
+                        <button
+                          key={block.key}
+                          type="button"
+                          draggable={!isPlaybackRunning}
+                          disabled={isPlaybackRunning}
+                          onDragStart={handlePaletteDragStart({
+                            kind: 'FUNCTION_DEF',
+                            key: block.key,
+                          })}
+                          onDragEnd={handlePaletteDragEnd}
+                          onClick={() =>
+                            handleAddFunctionDefinitionBlock(block)
+                          }
+                          className={`palette-block ${isPlaybackRunning ? 'palette-block--disabled' : ''} ${draggedPaletteItem?.kind === 'FUNCTION_DEF' && draggedPaletteItem.key === block.key ? 'palette-block--dragging' : ''}`}
+                        >
+                          <span className="palette-block__kind">DEF</span>
+                          <span className="palette-block__label">{`function ${block.functionName}() { ... }`}</span>
                         </button>
                       ))}
                       <button
@@ -862,47 +1124,77 @@ export const Gameplay = () => {
                         className={`palette-block ${isPlaybackRunning || !repeatEnabled ? 'palette-block--disabled' : ''} ${draggedPaletteItem?.kind === 'REPEAT' ? 'palette-block--dragging' : ''}`}
                       >
                         <span className="palette-block__kind">LOOP</span>
-                        <span className="palette-block__label">{repeatPaletteLabel}</span>
+                        <span className="palette-block__label">
+                          {repeatPaletteLabel}
+                        </span>
                       </button>
                       <button
                         type="button"
-                        draggable={!isPlaybackRunning && whileEnabled && !!whileCondition}
-                        disabled={isPlaybackRunning || !whileEnabled || !whileCondition}
+                        draggable={
+                          !isPlaybackRunning && whileEnabled && !!whileCondition
+                        }
+                        disabled={
+                          isPlaybackRunning || !whileEnabled || !whileCondition
+                        }
                         onDragStart={handlePaletteDragStart({ kind: 'WHILE' })}
                         onDragEnd={handlePaletteDragEnd}
                         onClick={handleAddWhileBlock}
                         className={`palette-block ${isPlaybackRunning || !whileEnabled || !whileCondition ? 'palette-block--disabled' : ''} ${draggedPaletteItem?.kind === 'WHILE' ? 'palette-block--dragging' : ''}`}
                       >
                         <span className="palette-block__kind">WHILE</span>
-                        <span className="palette-block__label">{whilePaletteLabel}</span>
+                        <span className="palette-block__label">
+                          {whilePaletteLabel}
+                        </span>
                       </button>
                     </div>
 
-                    {!repeatEnabled || !whileEnabled ? (
+                    {(!repeatEnabled ||
+                      !whileEnabled ||
+                      helperDefinitionBlocks.length > 0) &&
+                    structureBlocksEnabled ? (
                       <p className="gameplay-focus__loopAvailability">
-                        {repeatEnabled && !whileEnabled
-                          ? 'This room teaches repeat loops only. While loops unlock in later loop lessons.'
-                          : !repeatEnabled && whileEnabled
-                            ? 'This room teaches while loops only. Repeat loops are not part of this puzzle.'
-                            : 'This room does not support loop blocks yet. Open a World 3 puzzle to use repeat and while loops.'}
+                        {helperDefinitionBlocks.length &&
+                        !repeatEnabled &&
+                        !whileEnabled
+                          ? 'This room focuses on helper functions. Add a helper definition, click add inside, then call it from the main route.'
+                          : repeatEnabled && !whileEnabled
+                            ? 'This room teaches repeat loops only. While loops unlock in later loop lessons.'
+                            : !repeatEnabled && whileEnabled
+                              ? 'This room teaches while loops only. Repeat loops are not part of this puzzle.'
+                              : helperDefinitionBlocks.length
+                                ? 'Helper functions can be mixed with loops here. Select a loop or helper line to keep building inside it.'
+                                : 'This room does not support loop blocks yet. Open a World 3 puzzle to use repeat and while loops.'}
                       </p>
                     ) : null}
 
-                    {repeatEnabled || whileEnabled ? (
+                    {structureBlocksEnabled ? (
                       <div className="gameplay-focus__loopBuilder">
                         <div className="gameplay-focus__loopHeader">
                           <div>
-                            <p className="pixel-kicker">Loop Tools</p>
+                            <p className="pixel-kicker">
+                              {helperDefinitionBlocks.length
+                                ? 'Structure Tools'
+                                : 'Loop Tools'}
+                            </p>
                             <p className="gameplay-focus__loopCopy">
-                              Build loop bodies directly in the program tree. Select any loop line to insert nested steps inside it.
+                              {helperDefinitionBlocks.length
+                                ? 'Build helper bodies and loop bodies directly in the program tree. Select any helper or loop line to insert nested steps inside it.'
+                                : 'Build loop bodies directly in the program tree. Select any loop line to insert nested steps inside it.'}
                             </p>
                           </div>
-                          <span className="game-chip">World 3 live</span>
+                          <span className="game-chip">
+                            {helperDefinitionBlocks.length
+                              ? 'World 4 live'
+                              : 'World 3 live'}
+                          </span>
                         </div>
 
                         <div className="gameplay-focus__loopTargetRow">
                           <span className="game-chip">
-                            Insert into {insertPath.length ? `${formatBlockPath(insertPath)} body` : 'route.cat'}
+                            Insert into{' '}
+                            {insertPath.length
+                              ? `${formatBlockPath(insertPath)} body`
+                              : 'route.cat'}
                           </span>
                           {insertPath.length ? (
                             <button
@@ -961,7 +1253,11 @@ export const Gameplay = () => {
                               ))}
                             </div>
                             <div className="gameplay-focus__loopFooter">
-                              <code>{whileCondition ? `while (${formatConditionToken(whileCondition)}) { ... }` : 'No loop condition available.'}</code>
+                              <code>
+                                {whileCondition
+                                  ? `while (${formatConditionToken(whileCondition)}) { ... }`
+                                  : 'No loop condition available.'}
+                              </code>
                               <Button
                                 variant="ghost"
                                 className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
@@ -975,7 +1271,7 @@ export const Gameplay = () => {
                         ) : null}
 
                         <div className="gameplay-focus__loopHint">
-                          {selectedBodyBlock && isLoopBlock(selectedBodyBlock)
+                          {selectedBodyBlock && isBodyBlock(selectedBodyBlock)
                             ? `Selected body: ${getBlockHeader(selectedBodyBlock)}`
                             : 'Selected body: route.cat'}
                         </div>
@@ -983,27 +1279,38 @@ export const Gameplay = () => {
                     ) : null}
 
                     <div className="gameplay-focus__terminalPreview">
-                      <span className="gameplay-focus__terminalPreviewLabel">Latest added</span>
+                      <span className="gameplay-focus__terminalPreviewLabel">
+                        Latest added
+                      </span>
                       <code className="gameplay-focus__terminalPreviewCode">
-                        {recentlyAddedBlock ? getBlockHeader(recentlyAddedBlock) : 'Click a function block to build the route.'}
+                        {recentlyAddedBlock
+                          ? getBlockHeader(recentlyAddedBlock)
+                          : 'Click a block to build the route.'}
                       </code>
                       <p className="gameplay-focus__terminalPreviewHint">
-                        Drag blocks into this route panel, or click to add them instantly.
+                        Drag blocks into this route panel, or click to add them
+                        instantly.
                       </p>
                     </div>
 
-                    <div ref={terminalBodyRef} className="gameplay-focus__terminalBody">
+                    <div
+                      ref={terminalBodyRef}
+                      className="gameplay-focus__terminalBody"
+                    >
                       {program.length ? (
                         renderProgramBlocks(program)
                       ) : (
                         <div className="gameplay-focus__terminalEmpty">
-                          <p className="gameplay-focus__terminalEmptyTitle">No commands in route</p>
+                          <p className="gameplay-focus__terminalEmptyTitle">
+                            No commands in route
+                          </p>
                           <p className="gameplay-focus__terminalEmptyBody">
-                            Add movement, condition checks, and loop blocks to guide the cat to the exit.
+                            Add movement, condition checks, helper functions,
+                            and loop blocks to guide the cat to the exit.
                           </p>
                         </div>
-                        )}
-                      </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="gameplay-focus__codeMode">
@@ -1013,10 +1320,15 @@ export const Gameplay = () => {
                       onChange={(event) => setCodeDraft(event.target.value)}
                       className="gameplay-focus__codeInput"
                       spellCheck={false}
-                      placeholder={`repeat(2) {\n  moveUp()\n  moveRight()\n}\nwhile (pathUpClear) {\n  moveUp()\n}`}
+                      placeholder={codeModePlaceholder}
                     />
                     <div className="gameplay-focus__codeHelp">
-                      <p>Use braces for multi-line loop bodies. Repeat and while loops can nest inside each other when the puzzle unlocks them.</p>
+                      <p>
+                        Use braces for multi-line loop or helper bodies. When
+                        available, helper definitions use
+                        <code>{'function name() { ... }'}</code> and can be
+                        called like any other command.
+                      </p>
                       <Button
                         variant="ghost"
                         className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
@@ -1072,7 +1384,9 @@ export const Gameplay = () => {
               <section className="success-banner">
                 <div>
                   <p className="success-banner__eyebrow">Room Cleared</p>
-                  <h2 className="success-banner__title">The cat reached the door.</h2>
+                  <h2 className="success-banner__title">
+                    The cat reached the door.
+                  </h2>
                   <p className="success-banner__body">
                     {nextPuzzle
                       ? `Next up: ${nextPuzzle.title}.`
@@ -1081,7 +1395,10 @@ export const Gameplay = () => {
                 </div>
                 <div className="success-banner__actions">
                   {nextPuzzle && nextPuzzleUnlocked ? (
-                    <Button className="pixel-button" onClick={() => loadAndPlayPuzzle(nextPuzzle)}>
+                    <Button
+                      className="pixel-button"
+                      onClick={() => loadAndPlayPuzzle(nextPuzzle)}
+                    >
                       Play Next
                     </Button>
                   ) : null}
@@ -1091,8 +1408,13 @@ export const Gameplay = () => {
 
             <section className="arcade-panel p-5">
               <div className="gameplay-focus__statusHeader">
-                <Cat position={animatedCatPosition} status={statusLabelMap[displayStatus]} />
-                <span className={`status-pill status-pill--${displayStatus}`}>{statusLabelMap[displayStatus]}</span>
+                <Cat
+                  position={animatedCatPosition}
+                  status={statusLabelMap[displayStatus]}
+                />
+                <span className={`status-pill status-pill--${displayStatus}`}>
+                  {statusLabelMap[displayStatus]}
+                </span>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div className="hud-tile">
@@ -1119,10 +1441,16 @@ export const Gameplay = () => {
             <section className="arcade-panel p-5 gameplay-focus__logPanel">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">Run Feed</p>
-                  <h2 className="mt-2 font-display text-2xl font-bold text-[var(--color-ink)]">Execution Log</h2>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">
+                    Run Feed
+                  </p>
+                  <h2 className="mt-2 font-display text-2xl font-bold text-[var(--color-ink)]">
+                    Execution Log
+                  </h2>
                 </div>
-                <span className="game-chip">{Math.max(0, log.length - 1)} events</span>
+                <span className="game-chip">
+                  {Math.max(0, log.length - 1)} events
+                </span>
               </div>
               <div className="gameplay-focus__logList mt-4 space-y-2">
                 {log.map((entry, index) => (

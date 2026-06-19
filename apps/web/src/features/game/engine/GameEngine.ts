@@ -1,6 +1,12 @@
 export type GameStatus = 'idle' | 'ready' | 'running' | 'success' | 'error';
 export type MoveDirection = 'UP' | 'RIGHT' | 'DOWN' | 'LEFT';
-export type BlockKind = 'MOVE' | 'CONDITIONAL' | 'REPEAT' | 'WHILE';
+export type BlockKind =
+  | 'MOVE'
+  | 'CONDITIONAL'
+  | 'REPEAT'
+  | 'WHILE'
+  | 'FUNCTION_DEF'
+  | 'FUNCTION_CALL';
 export type LessonTopic =
   | 'Sequencing'
   | 'Debugging'
@@ -11,7 +17,12 @@ export type LessonTopic =
   | 'Functions'
   | 'Variables'
   | 'Strategy';
-export type ProgramRequirement = 'MULTI_LINE_LOOP_BODY' | 'WHILE_LOOP' | 'NESTED_LOOP';
+export type ProgramRequirement =
+  | 'MULTI_LINE_LOOP_BODY'
+  | 'WHILE_LOOP'
+  | 'NESTED_LOOP'
+  | 'FUNCTION_DEFINITION'
+  | 'FUNCTION_CALL';
 export type GameCondition =
   | 'PATH_UP_CLEAR'
   | 'PATH_RIGHT_CLEAR'
@@ -56,11 +67,24 @@ export interface IWhileBlockTemplate extends IBlockBase {
   loopBody: IBlockTemplate[];
 }
 
+export interface IFunctionDefinitionBlockTemplate extends IBlockBase {
+  kind: 'FUNCTION_DEF';
+  functionName: string;
+  functionBody: IBlockTemplate[];
+}
+
+export interface IFunctionCallBlockTemplate extends IBlockBase {
+  kind: 'FUNCTION_CALL';
+  functionName: string;
+}
+
 export type IBlockTemplate =
   | IMoveBlockTemplate
   | IConditionalBlockTemplate
   | IRepeatBlockTemplate
-  | IWhileBlockTemplate;
+  | IWhileBlockTemplate
+  | IFunctionDefinitionBlockTemplate
+  | IFunctionCallBlockTemplate;
 
 export type IProgramBlock = IBlockTemplate & { id: string };
 
@@ -103,10 +127,16 @@ interface IExecutionState {
   stepsExecuted: number;
 }
 
+interface IRuntimeContext {
+  functionDefinitions: Map<string, IFunctionDefinitionBlockTemplate>;
+  callStack: string[];
+}
+
 type EngineListener = (snapshot: IGameEngineSnapshot) => void;
 
 const MAX_EXECUTION_STEPS = 128;
 const MAX_WHILE_ITERATIONS = 32;
+const MAX_FUNCTION_CALL_DEPTH = 8;
 
 const directionVectors: Record<MoveDirection, IPosition> = {
   UP: { row: -1, col: 0 },
@@ -141,6 +171,8 @@ const requirementCopyMap: Record<ProgramRequirement, string> = {
   MULTI_LINE_LOOP_BODY: 'a loop body with two or more commands',
   WHILE_LOOP: 'at least one while loop',
   NESTED_LOOP: 'a loop nested inside another loop',
+  FUNCTION_DEFINITION: 'a named helper function',
+  FUNCTION_CALL: 'at least one helper function call',
 };
 
 const clonePosition = (position: IPosition): IPosition => ({
@@ -163,33 +195,73 @@ export const cloneBlockTemplate = (block: IBlockTemplate): IBlockTemplate => {
     };
   }
 
+  if (block.kind === 'FUNCTION_DEF') {
+    return {
+      ...block,
+      functionBody: block.functionBody.map((entry) =>
+        cloneBlockTemplate(entry),
+      ),
+    };
+  }
+
   return { ...block };
 };
 
 const positionsMatch = (first: IPosition, second: IPosition) =>
   first.row === second.row && first.col === second.col;
 
-export const isRepeatBlock = (block: IBlockTemplate | IProgramBlock): block is IRepeatBlockTemplate => block.kind === 'REPEAT';
-export const isWhileBlock = (block: IBlockTemplate | IProgramBlock): block is IWhileBlockTemplate => block.kind === 'WHILE';
-export const isLoopBlock = (block: IBlockTemplate | IProgramBlock): block is IRepeatBlockTemplate | IWhileBlockTemplate =>
+export const isRepeatBlock = (
+  block: IBlockTemplate | IProgramBlock,
+): block is IRepeatBlockTemplate => block.kind === 'REPEAT';
+export const isWhileBlock = (
+  block: IBlockTemplate | IProgramBlock,
+): block is IWhileBlockTemplate => block.kind === 'WHILE';
+export const isLoopBlock = (
+  block: IBlockTemplate | IProgramBlock,
+): block is IRepeatBlockTemplate | IWhileBlockTemplate =>
   block.kind === 'REPEAT' || block.kind === 'WHILE';
+export const isFunctionDefinitionBlock = (
+  block: IBlockTemplate | IProgramBlock,
+): block is IFunctionDefinitionBlockTemplate => block.kind === 'FUNCTION_DEF';
+export const isFunctionCallBlock = (
+  block: IBlockTemplate | IProgramBlock,
+): block is IFunctionCallBlockTemplate => block.kind === 'FUNCTION_CALL';
+export const isBodyBlock = (
+  block: IBlockTemplate | IProgramBlock,
+): block is
+  | IRepeatBlockTemplate
+  | IWhileBlockTemplate
+  | IFunctionDefinitionBlockTemplate =>
+  block.kind === 'REPEAT' ||
+  block.kind === 'WHILE' ||
+  block.kind === 'FUNCTION_DEF';
 export const isActionBlock = (
   block: IBlockTemplate | IProgramBlock,
-): block is IMoveBlockTemplate | IConditionalBlockTemplate => block.kind === 'MOVE' || block.kind === 'CONDITIONAL';
+): block is
+  | IMoveBlockTemplate
+  | IConditionalBlockTemplate
+  | IFunctionCallBlockTemplate =>
+  block.kind === 'MOVE' ||
+  block.kind === 'CONDITIONAL' ||
+  block.kind === 'FUNCTION_CALL';
 
-export const formatConditionToken = (condition: GameCondition) => conditionTokenMap[condition];
+export const formatConditionToken = (condition: GameCondition) =>
+  conditionTokenMap[condition];
 
 export const parseConditionToken = (value: string) => {
   const normalizedValue = value.trim().replace(/\s+/g, '');
 
   return (
-    (Object.entries(conditionTokenMap).find(([, token]) => token.toLowerCase() === normalizedValue.toLowerCase())?.[0] as
-      | GameCondition
-      | undefined) ?? null
+    (Object.entries(conditionTokenMap).find(
+      ([, token]) => token.toLowerCase() === normalizedValue.toLowerCase(),
+    )?.[0] as GameCondition | undefined) ?? null
   );
 };
 
-export const createRepeatBlockTemplate = (repeatCount: number, loopBody: IBlockTemplate[] = []): IRepeatBlockTemplate => ({
+export const createRepeatBlockTemplate = (
+  repeatCount: number,
+  loopBody: IBlockTemplate[] = [],
+): IRepeatBlockTemplate => ({
   key: `repeat-${repeatCount}`,
   label: `repeat(${repeatCount})`,
   kind: 'REPEAT',
@@ -197,7 +269,10 @@ export const createRepeatBlockTemplate = (repeatCount: number, loopBody: IBlockT
   loopBody,
 });
 
-export const createWhileBlockTemplate = (condition: GameCondition, loopBody: IBlockTemplate[] = []): IWhileBlockTemplate => ({
+export const createWhileBlockTemplate = (
+  condition: GameCondition,
+  loopBody: IBlockTemplate[] = [],
+): IWhileBlockTemplate => ({
   key: `while-${formatConditionToken(condition)}`,
   label: `while (${formatConditionToken(condition)})`,
   kind: 'WHILE',
@@ -205,26 +280,64 @@ export const createWhileBlockTemplate = (condition: GameCondition, loopBody: IBl
   loopBody,
 });
 
-export const analyzeProgramRequirements = (blocks: Array<IBlockTemplate | IProgramBlock>) =>
+export const createFunctionDefinitionBlockTemplate = (
+  functionName: string,
+  functionBody: IBlockTemplate[] = [],
+): IFunctionDefinitionBlockTemplate => ({
+  key: `function-def-${functionName}`,
+  label: `function ${functionName}()`,
+  kind: 'FUNCTION_DEF',
+  functionName,
+  functionBody,
+});
+
+export const createFunctionCallBlockTemplate = (
+  functionName: string,
+): IFunctionCallBlockTemplate => ({
+  key: `function-call-${functionName}`,
+  label: `${functionName}()`,
+  kind: 'FUNCTION_CALL',
+  functionName,
+});
+
+export const analyzeProgramRequirements = (
+  blocks: Array<IBlockTemplate | IProgramBlock>,
+) =>
   blocks.reduce(
     (state, block) => {
       if (block.kind === 'WHILE') {
         state.hasWhileLoop = true;
       }
 
-      if (isLoopBlock(block)) {
-        if (block.loopBody.length > 1) {
+      if (block.kind === 'FUNCTION_DEF') {
+        state.hasFunctionDefinition = true;
+      }
+
+      if (block.kind === 'FUNCTION_CALL') {
+        state.hasFunctionCall = true;
+      }
+
+      if (isBodyBlock(block)) {
+        const childBody =
+          block.kind === 'FUNCTION_DEF' ? block.functionBody : block.loopBody;
+
+        if (block.kind !== 'FUNCTION_DEF' && childBody.length > 1) {
           state.hasMultiLineLoopBody = true;
         }
 
-        if (block.loopBody.some((entry) => isLoopBlock(entry))) {
+        if (childBody.some((entry) => isLoopBlock(entry))) {
           state.hasNestedLoop = true;
         }
 
-        const childState = analyzeProgramRequirements(block.loopBody);
+        const childState = analyzeProgramRequirements(childBody);
         state.hasWhileLoop = state.hasWhileLoop || childState.hasWhileLoop;
-        state.hasMultiLineLoopBody = state.hasMultiLineLoopBody || childState.hasMultiLineLoopBody;
+        state.hasMultiLineLoopBody =
+          state.hasMultiLineLoopBody || childState.hasMultiLineLoopBody;
         state.hasNestedLoop = state.hasNestedLoop || childState.hasNestedLoop;
+        state.hasFunctionDefinition =
+          state.hasFunctionDefinition || childState.hasFunctionDefinition;
+        state.hasFunctionCall =
+          state.hasFunctionCall || childState.hasFunctionCall;
       }
 
       return state;
@@ -233,6 +346,8 @@ export const analyzeProgramRequirements = (blocks: Array<IBlockTemplate | IProgr
       hasWhileLoop: false,
       hasMultiLineLoopBody: false,
       hasNestedLoop: false,
+      hasFunctionDefinition: false,
+      hasFunctionCall: false,
     },
   );
 
@@ -251,11 +366,20 @@ export const getMissingProgramRequirements = (
       return !analysis.hasWhileLoop;
     }
 
+    if (requirement === 'FUNCTION_DEFINITION') {
+      return !analysis.hasFunctionDefinition;
+    }
+
+    if (requirement === 'FUNCTION_CALL') {
+      return !analysis.hasFunctionCall;
+    }
+
     return !analysis.hasNestedLoop;
   });
 };
 
-const withChildLabel = (prefix: string, child: IBlockTemplate) => `${prefix} -> ${child.label}`;
+const withChildLabel = (prefix: string, child: IBlockTemplate) =>
+  `${prefix} -> ${child.label}`;
 
 export class GameEngine {
   private listeners = new Set<EngineListener>();
@@ -349,9 +473,15 @@ export class GameEngine {
       ...this.snapshot,
       program: [],
       status: this.snapshot.puzzle ? 'ready' : 'idle',
-      log: this.snapshot.puzzle ? ['Program cleared. Build a new solution.'] : ['Select a puzzle to begin.'],
-      catPosition: this.snapshot.puzzle ? clonePosition(this.snapshot.puzzle.start) : null,
-      visited: this.snapshot.puzzle ? [clonePosition(this.snapshot.puzzle.start)] : [],
+      log: this.snapshot.puzzle
+        ? ['Program cleared. Build a new solution.']
+        : ['Select a puzzle to begin.'],
+      catPosition: this.snapshot.puzzle
+        ? clonePosition(this.snapshot.puzzle.start)
+        : null,
+      visited: this.snapshot.puzzle
+        ? [clonePosition(this.snapshot.puzzle.start)]
+        : [],
       stepIndex: 0,
       didReachDoor: false,
     };
@@ -409,10 +539,28 @@ export class GameEngine {
     }
 
     const puzzle = this.snapshot.puzzle;
+    const functionDefinitions = this.collectFunctionDefinitions(
+      this.snapshot.program,
+    );
+
+    if ('error' in functionDefinitions) {
+      this.snapshot = {
+        ...this.snapshot,
+        status: 'error',
+        log: [functionDefinitions.error],
+      };
+      this.emit();
+      return this.snapshot;
+    }
+
     const executionState: IExecutionState = {
       visited: [clonePosition(puzzle.start)],
       log: [`Running ${puzzle.title}...`],
       stepsExecuted: 0,
+    };
+    const runtimeContext: IRuntimeContext = {
+      functionDefinitions,
+      callStack: [],
     };
     let catPosition = clonePosition(puzzle.start);
     let status: GameStatus = 'running';
@@ -423,7 +571,14 @@ export class GameEngine {
         break;
       }
 
-      const execution = this.executeBlock(puzzle, catPosition, block, block.label, executionState);
+      const execution = this.executeBlock(
+        puzzle,
+        catPosition,
+        block,
+        block.label,
+        executionState,
+        runtimeContext,
+      );
       catPosition = execution.position;
 
       if (!execution.success) {
@@ -464,15 +619,41 @@ export class GameEngine {
     block: IBlockTemplate | IProgramBlock,
     label: string,
     executionState: IExecutionState,
+    runtimeContext: IRuntimeContext,
   ): IBlockExecutionResult {
-    const guardResult = this.bumpExecutionCount(label, executionState, catPosition);
+    const guardResult = this.bumpExecutionCount(
+      label,
+      executionState,
+      catPosition,
+    );
 
     if (!guardResult.success) {
       return guardResult;
     }
 
-    if (block.kind === 'MOVE' || block.kind === 'CONDITIONAL') {
-      return this.executeActionBlock(puzzle, catPosition, block, label, executionState);
+    if (
+      block.kind === 'MOVE' ||
+      block.kind === 'CONDITIONAL' ||
+      block.kind === 'FUNCTION_CALL'
+    ) {
+      return this.executeActionBlock(
+        puzzle,
+        catPosition,
+        block,
+        label,
+        executionState,
+        runtimeContext,
+      );
+    }
+
+    if (block.kind === 'FUNCTION_DEF') {
+      executionState.log.push(`${label}: helper ready.`);
+
+      return {
+        success: true,
+        position: catPosition,
+        didReachDoor: positionsMatch(catPosition, puzzle.door),
+      };
     }
 
     if (!block.loopBody.length) {
@@ -494,7 +675,9 @@ export class GameEngine {
         };
       }
 
-      executionState.log.push(`${label}: repeating ${block.repeatCount} times.`);
+      executionState.log.push(
+        `${label}: repeating ${block.repeatCount} times.`,
+      );
 
       let nextPosition = catPosition;
 
@@ -504,8 +687,12 @@ export class GameEngine {
             puzzle,
             nextPosition,
             child,
-            withChildLabel(`${label} [${iteration + 1}/${block.repeatCount}]`, child),
+            withChildLabel(
+              `${label} [${iteration + 1}/${block.repeatCount}]`,
+              child,
+            ),
             executionState,
+            runtimeContext,
           );
 
           nextPosition = execution.position;
@@ -523,16 +710,22 @@ export class GameEngine {
       };
     }
 
-    executionState.log.push(`${label}: looping while ${formatConditionToken(block.condition)}.`);
+    executionState.log.push(
+      `${label}: looping while ${formatConditionToken(block.condition)}.`,
+    );
 
     let nextPosition = catPosition;
 
     for (let iteration = 0; iteration < MAX_WHILE_ITERATIONS; iteration += 1) {
       if (!this.evaluateCondition(puzzle, nextPosition, block.condition)) {
         if (iteration === 0) {
-          executionState.log.push(`${label}: condition was false, loop skipped.`);
+          executionState.log.push(
+            `${label}: condition was false, loop skipped.`,
+          );
         } else {
-          executionState.log.push(`${label}: condition turned false after ${iteration} iterations.`);
+          executionState.log.push(
+            `${label}: condition turned false after ${iteration} iterations.`,
+          );
         }
 
         return {
@@ -551,6 +744,7 @@ export class GameEngine {
           child,
           withChildLabel(`${label} [${iteration + 1}]`, child),
           executionState,
+          runtimeContext,
         );
 
         nextPosition = execution.position;
@@ -560,8 +754,13 @@ export class GameEngine {
         }
       }
 
-      if (positionsMatch(iterationStart, nextPosition) && this.evaluateCondition(puzzle, nextPosition, block.condition)) {
-        executionState.log.push(`${label}: loop made no progress while the condition remained true.`);
+      if (
+        positionsMatch(iterationStart, nextPosition) &&
+        this.evaluateCondition(puzzle, nextPosition, block.condition)
+      ) {
+        executionState.log.push(
+          `${label}: loop made no progress while the condition remained true.`,
+        );
         return {
           success: false,
           position: nextPosition,
@@ -570,7 +769,9 @@ export class GameEngine {
       }
     }
 
-    executionState.log.push(`${label}: exceeded the safe loop limit of ${MAX_WHILE_ITERATIONS} iterations.`);
+    executionState.log.push(
+      `${label}: exceeded the safe loop limit of ${MAX_WHILE_ITERATIONS} iterations.`,
+    );
     return {
       success: false,
       position: nextPosition,
@@ -581,10 +782,85 @@ export class GameEngine {
   private executeActionBlock(
     puzzle: IPuzzleDefinition,
     catPosition: IPosition,
-    block: IMoveBlockTemplate | IConditionalBlockTemplate,
+    block:
+      | IMoveBlockTemplate
+      | IConditionalBlockTemplate
+      | IFunctionCallBlockTemplate,
     label: string,
     executionState: IExecutionState,
+    runtimeContext: IRuntimeContext,
   ): IBlockExecutionResult {
+    if (block.kind === 'FUNCTION_CALL') {
+      const definition = runtimeContext.functionDefinitions.get(
+        block.functionName,
+      );
+
+      if (!definition) {
+        executionState.log.push(
+          `${label}: helper "${block.functionName}()" is not defined.`,
+        );
+        return {
+          success: false,
+          position: catPosition,
+          didReachDoor: false,
+        };
+      }
+
+      if (runtimeContext.callStack.includes(block.functionName)) {
+        executionState.log.push(
+          `${label}: recursive helper calls are not allowed.`,
+        );
+        return {
+          success: false,
+          position: catPosition,
+          didReachDoor: false,
+        };
+      }
+
+      if (runtimeContext.callStack.length >= MAX_FUNCTION_CALL_DEPTH) {
+        executionState.log.push(
+          `${label}: helper call depth exceeded the safe limit of ${MAX_FUNCTION_CALL_DEPTH}.`,
+        );
+        return {
+          success: false,
+          position: catPosition,
+          didReachDoor: false,
+        };
+      }
+
+      executionState.log.push(
+        `${label}: calling helper ${block.functionName}().`,
+      );
+      runtimeContext.callStack.push(block.functionName);
+      let nextPosition = catPosition;
+
+      for (const child of definition.functionBody) {
+        const execution = this.executeBlock(
+          puzzle,
+          nextPosition,
+          child,
+          withChildLabel(`${label}`, child),
+          executionState,
+          runtimeContext,
+        );
+
+        nextPosition = execution.position;
+
+        if (!execution.success || execution.didReachDoor) {
+          runtimeContext.callStack.pop();
+          return execution;
+        }
+      }
+
+      runtimeContext.callStack.pop();
+
+      return {
+        success: true,
+        position: nextPosition,
+        didReachDoor: positionsMatch(nextPosition, puzzle.door),
+      };
+    }
+
     if (block.kind === 'MOVE') {
       const moveResult = this.tryMove(puzzle, catPosition, block.move);
 
@@ -598,7 +874,9 @@ export class GameEngine {
       }
 
       executionState.visited.push(clonePosition(moveResult.position));
-      executionState.log.push(`${label}: cat moved ${block.move.toLowerCase()}.`);
+      executionState.log.push(
+        `${label}: cat moved ${block.move.toLowerCase()}.`,
+      );
 
       if (positionsMatch(moveResult.position, puzzle.door)) {
         executionState.log.push('Success: the cat reached the door.');
@@ -647,7 +925,11 @@ export class GameEngine {
     };
   }
 
-  private bumpExecutionCount(label: string, executionState: IExecutionState, catPosition: IPosition): IBlockExecutionResult {
+  private bumpExecutionCount(
+    label: string,
+    executionState: IExecutionState,
+    catPosition: IPosition,
+  ): IBlockExecutionResult {
     executionState.stepsExecuted += 1;
 
     if (executionState.stepsExecuted <= MAX_EXECUTION_STEPS) {
@@ -658,7 +940,9 @@ export class GameEngine {
       };
     }
 
-    executionState.log.push(`${label}: execution exceeded the safe step limit of ${MAX_EXECUTION_STEPS}.`);
+    executionState.log.push(
+      `${label}: execution exceeded the safe step limit of ${MAX_EXECUTION_STEPS}.`,
+    );
 
     return {
       success: false,
@@ -667,18 +951,29 @@ export class GameEngine {
     };
   }
 
-  private evaluateCondition(puzzle: IPuzzleDefinition, catPosition: IPosition, condition: GameCondition) {
+  private evaluateCondition(
+    puzzle: IPuzzleDefinition,
+    catPosition: IPosition,
+    condition: GameCondition,
+  ) {
     const direction = conditionDirectionMap[condition];
     const nextPosition = this.getNextPosition(catPosition, direction);
 
     if (condition.startsWith('PATH_')) {
-      return this.isInsideGrid(puzzle, nextPosition) && !this.isWall(puzzle, nextPosition);
+      return (
+        this.isInsideGrid(puzzle, nextPosition) &&
+        !this.isWall(puzzle, nextPosition)
+      );
     }
 
     return positionsMatch(nextPosition, puzzle.door);
   }
 
-  private tryMove(puzzle: IPuzzleDefinition, catPosition: IPosition, direction: MoveDirection) {
+  private tryMove(
+    puzzle: IPuzzleDefinition,
+    catPosition: IPosition,
+    direction: MoveDirection,
+  ) {
     const nextPosition = this.getNextPosition(catPosition, direction);
 
     if (!this.isInsideGrid(puzzle, nextPosition)) {
@@ -711,7 +1006,12 @@ export class GameEngine {
   }
 
   private isInsideGrid(puzzle: IPuzzleDefinition, position: IPosition) {
-    return position.row >= 0 && position.row < puzzle.rows && position.col >= 0 && position.col < puzzle.cols;
+    return (
+      position.row >= 0 &&
+      position.row < puzzle.rows &&
+      position.col >= 0 &&
+      position.col < puzzle.cols
+    );
   }
 
   private isWall(puzzle: IPuzzleDefinition, position: IPosition) {
@@ -720,5 +1020,52 @@ export class GameEngine {
 
   private emit() {
     this.listeners.forEach((listener) => listener(this.snapshot));
+  }
+
+  private collectFunctionDefinitions(
+    blocks: Array<IBlockTemplate | IProgramBlock>,
+  ) {
+    const definitions = new Map<string, IFunctionDefinitionBlockTemplate>();
+
+    const visit = (
+      entries: Array<IBlockTemplate | IProgramBlock>,
+    ): string | null => {
+      for (const block of entries) {
+        if (block.kind === 'FUNCTION_DEF') {
+          if (!block.functionBody.length) {
+            return `Helper "${block.functionName}()" must contain at least one command.`;
+          }
+
+          if (definitions.has(block.functionName)) {
+            return `Helper "${block.functionName}()" is defined more than once.`;
+          }
+
+          definitions.set(block.functionName, block);
+          const nestedError = visit(block.functionBody);
+
+          if (nestedError) {
+            return nestedError;
+          }
+        }
+
+        if (block.kind === 'REPEAT' || block.kind === 'WHILE') {
+          const nestedError = visit(block.loopBody);
+
+          if (nestedError) {
+            return nestedError;
+          }
+        }
+      }
+
+      return null;
+    };
+
+    const error = visit(blocks);
+
+    if (error) {
+      return { error } as const;
+    }
+
+    return definitions;
   }
 }

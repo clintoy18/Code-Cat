@@ -1,10 +1,13 @@
 import {
+  createFunctionDefinitionBlockTemplate,
   createRepeatBlockTemplate,
   createWhileBlockTemplate,
   formatConditionToken,
+  isFunctionDefinitionBlock,
   parseConditionToken,
   type IBlockTemplate,
   type IConditionalBlockTemplate,
+  type IFunctionCallBlockTemplate,
   type IProgramBlock,
   type IPuzzleDefinition,
 } from './GameEngine';
@@ -17,6 +20,8 @@ export interface IProgramParseResult {
 
 interface IParseState {
   actionBlocks: Map<string, IBlockTemplate>;
+  functionCallBlocks: Map<string, IFunctionCallBlockTemplate>;
+  functionDefinitions: Set<string>;
   canRepeat: boolean;
   canWhile: boolean;
   errors: string[];
@@ -26,15 +31,14 @@ interface IParseState {
 }
 
 const normalizeCodeLine = (value: string) =>
-  value
-    .trim()
-    .replace(/;+$/g, '')
-    .replace(/\s+/g, '')
-    .toLowerCase();
+  value.trim().replace(/;+$/g, '').replace(/\s+/g, '').toLowerCase();
 
 const getIndent = (depth: number) => '  '.repeat(depth);
 
-const serializeBlock = (block: IBlockTemplate | IProgramBlock, depth: number): string[] => {
+const serializeBlock = (
+  block: IBlockTemplate | IProgramBlock,
+  depth: number,
+): string[] => {
   const indent = getIndent(depth);
 
   if (block.kind === 'MOVE' || block.kind === 'CONDITIONAL') {
@@ -49,6 +53,20 @@ const serializeBlock = (block: IBlockTemplate | IProgramBlock, depth: number): s
     ];
   }
 
+  if (block.kind === 'FUNCTION_DEF') {
+    return [
+      `${indent}function ${block.functionName}() {`,
+      ...block.functionBody.flatMap((entry) =>
+        serializeBlock(entry, depth + 1),
+      ),
+      `${indent}}`,
+    ];
+  }
+
+  if (block.kind === 'FUNCTION_CALL') {
+    return [`${indent}${block.label}`];
+  }
+
   return [
     `${indent}while (${formatConditionToken(block.condition)}) {`,
     ...block.loopBody.flatMap((entry) => serializeBlock(entry, depth + 1)),
@@ -56,11 +74,25 @@ const serializeBlock = (block: IBlockTemplate | IProgramBlock, depth: number): s
   ];
 };
 
-const parseInlineActionBlock = (value: string, parseState: IParseState, lineNumber: number) => {
+const parseInlineActionBlock = (
+  value: string,
+  parseState: IParseState,
+  lineNumber: number,
+) => {
+  const functionCallBlock = parseState.functionCallBlocks.get(
+    normalizeCodeLine(value),
+  );
+
+  if (functionCallBlock) {
+    return functionCallBlock;
+  }
+
   const block = parseState.actionBlocks.get(normalizeCodeLine(value));
 
   if (!block) {
-    parseState.errors.push(`Line ${lineNumber}: "${value}" is not available in this puzzle.`);
+    parseState.errors.push(
+      `Line ${lineNumber}: "${value}" is not available in this puzzle.`,
+    );
     return null;
   }
 
@@ -92,21 +124,31 @@ const parseStatements = (parseState: IParseState, insideBlock: boolean) => {
 
     if (repeatOpenMatch) {
       if (!parseState.canRepeat) {
-        parseState.errors.push(`Line ${lineNumber}: repeat loops are not available in this puzzle.`);
+        parseState.errors.push(
+          `Line ${lineNumber}: repeat loops are not available in this puzzle.`,
+        );
         continue;
       }
 
       const repeatCount = Number(repeatOpenMatch[1]);
 
-      if (!Number.isInteger(repeatCount) || repeatCount < 2 || repeatCount > 9) {
-        parseState.errors.push(`Line ${lineNumber}: repeat count must be between 2 and 9.`);
+      if (
+        !Number.isInteger(repeatCount) ||
+        repeatCount < 2 ||
+        repeatCount > 9
+      ) {
+        parseState.errors.push(
+          `Line ${lineNumber}: repeat count must be between 2 and 9.`,
+        );
         continue;
       }
 
       const loopBody = parseStatements(parseState, true);
 
       if (!loopBody.length) {
-        parseState.errors.push(`Line ${lineNumber}: repeat loop bodies must contain at least one command.`);
+        parseState.errors.push(
+          `Line ${lineNumber}: repeat loop bodies must contain at least one command.`,
+        );
         continue;
       }
 
@@ -118,21 +160,27 @@ const parseStatements = (parseState: IParseState, insideBlock: boolean) => {
 
     if (whileOpenMatch) {
       if (!parseState.canWhile) {
-        parseState.errors.push(`Line ${lineNumber}: while loops are not available in this puzzle.`);
+        parseState.errors.push(
+          `Line ${lineNumber}: while loops are not available in this puzzle.`,
+        );
         continue;
       }
 
       const condition = parseConditionToken(whileOpenMatch[1]);
 
       if (!condition || !parseState.whileConditions.has(condition)) {
-        parseState.errors.push(`Line ${lineNumber}: "${whileOpenMatch[1]}" is not a valid loop condition in this puzzle.`);
+        parseState.errors.push(
+          `Line ${lineNumber}: "${whileOpenMatch[1]}" is not a valid loop condition in this puzzle.`,
+        );
         continue;
       }
 
       const loopBody = parseStatements(parseState, true);
 
       if (!loopBody.length) {
-        parseState.errors.push(`Line ${lineNumber}: while loop bodies must contain at least one command.`);
+        parseState.errors.push(
+          `Line ${lineNumber}: while loop bodies must contain at least one command.`,
+        );
         continue;
       }
 
@@ -140,22 +188,63 @@ const parseStatements = (parseState: IParseState, insideBlock: boolean) => {
       continue;
     }
 
+    const functionOpenMatch = trimmed.match(
+      /^function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(\s*\)\s*\{$/i,
+    );
+
+    if (functionOpenMatch) {
+      const functionName = functionOpenMatch[1];
+
+      if (!parseState.functionDefinitions.has(functionName)) {
+        parseState.errors.push(
+          `Line ${lineNumber}: "${functionName}()" is not an available helper in this puzzle.`,
+        );
+        continue;
+      }
+
+      const functionBody = parseStatements(parseState, true);
+
+      if (!functionBody.length) {
+        parseState.errors.push(
+          `Line ${lineNumber}: helper functions must contain at least one command.`,
+        );
+        continue;
+      }
+
+      blocks.push(
+        createFunctionDefinitionBlockTemplate(functionName, functionBody),
+      );
+      continue;
+    }
+
     const repeatInlineMatch = trimmed.match(/^repeat\((\d+)\)\s+(.+)$/i);
 
     if (repeatInlineMatch) {
       if (!parseState.canRepeat) {
-        parseState.errors.push(`Line ${lineNumber}: repeat loops are not available in this puzzle.`);
+        parseState.errors.push(
+          `Line ${lineNumber}: repeat loops are not available in this puzzle.`,
+        );
         continue;
       }
 
       const repeatCount = Number(repeatInlineMatch[1]);
 
-      if (!Number.isInteger(repeatCount) || repeatCount < 2 || repeatCount > 9) {
-        parseState.errors.push(`Line ${lineNumber}: repeat count must be between 2 and 9.`);
+      if (
+        !Number.isInteger(repeatCount) ||
+        repeatCount < 2 ||
+        repeatCount > 9
+      ) {
+        parseState.errors.push(
+          `Line ${lineNumber}: repeat count must be between 2 and 9.`,
+        );
         continue;
       }
 
-      const loopBodyBlock = parseInlineActionBlock(repeatInlineMatch[2].trim(), parseState, lineNumber);
+      const loopBodyBlock = parseInlineActionBlock(
+        repeatInlineMatch[2].trim(),
+        parseState,
+        lineNumber,
+      );
 
       if (!loopBodyBlock) {
         continue;
@@ -165,22 +254,32 @@ const parseStatements = (parseState: IParseState, insideBlock: boolean) => {
       continue;
     }
 
-    const whileInlineMatch = trimmed.match(/^while\s*\(\s*([^)]+?)\s*\)\s+(.+)$/i);
+    const whileInlineMatch = trimmed.match(
+      /^while\s*\(\s*([^)]+?)\s*\)\s+(.+)$/i,
+    );
 
     if (whileInlineMatch) {
       if (!parseState.canWhile) {
-        parseState.errors.push(`Line ${lineNumber}: while loops are not available in this puzzle.`);
+        parseState.errors.push(
+          `Line ${lineNumber}: while loops are not available in this puzzle.`,
+        );
         continue;
       }
 
       const condition = parseConditionToken(whileInlineMatch[1]);
 
       if (!condition || !parseState.whileConditions.has(condition)) {
-        parseState.errors.push(`Line ${lineNumber}: "${whileInlineMatch[1]}" is not a valid loop condition in this puzzle.`);
+        parseState.errors.push(
+          `Line ${lineNumber}: "${whileInlineMatch[1]}" is not a valid loop condition in this puzzle.`,
+        );
         continue;
       }
 
-      const loopBodyBlock = parseInlineActionBlock(whileInlineMatch[2].trim(), parseState, lineNumber);
+      const loopBodyBlock = parseInlineActionBlock(
+        whileInlineMatch[2].trim(),
+        parseState,
+        lineNumber,
+      );
 
       if (!loopBodyBlock) {
         continue;
@@ -190,10 +289,21 @@ const parseStatements = (parseState: IParseState, insideBlock: boolean) => {
       continue;
     }
 
+    const functionCallBlock = parseState.functionCallBlocks.get(
+      normalizeCodeLine(trimmed),
+    );
+
+    if (functionCallBlock) {
+      blocks.push(functionCallBlock);
+      continue;
+    }
+
     const block = parseState.actionBlocks.get(normalizeCodeLine(trimmed));
 
     if (!block) {
-      parseState.errors.push(`Line ${lineNumber}: "${trimmed}" is not available in this puzzle.`);
+      parseState.errors.push(
+        `Line ${lineNumber}: "${trimmed}" is not available in this puzzle.`,
+      );
       continue;
     }
 
@@ -210,17 +320,36 @@ const parseStatements = (parseState: IParseState, insideBlock: boolean) => {
 export const serializeProgramToCode = (program: IProgramBlock[]) =>
   program.flatMap((block) => serializeBlock(block, 0)).join('\n');
 
-export const parseProgramCode = (source: string, puzzle: IPuzzleDefinition): IProgramParseResult => {
+export const parseProgramCode = (
+  source: string,
+  puzzle: IPuzzleDefinition,
+): IProgramParseResult => {
   const actionBlocks = puzzle.availableBlocks
     .filter((block) => block.kind === 'MOVE' || block.kind === 'CONDITIONAL')
     .map((block) => [normalizeCodeLine(block.label), block] as const);
+  const functionCallBlocks = puzzle.availableBlocks
+    .filter(
+      (block): block is IFunctionCallBlockTemplate =>
+        block.kind === 'FUNCTION_CALL',
+    )
+    .map((block) => [normalizeCodeLine(block.label), block] as const);
+  const functionDefinitions = new Set(
+    puzzle.availableBlocks
+      .filter(isFunctionDefinitionBlock)
+      .map((block) => block.functionName),
+  );
   const whileConditions = new Set(
     puzzle.availableBlocks
-      .filter((block): block is IConditionalBlockTemplate => block.kind === 'CONDITIONAL')
+      .filter(
+        (block): block is IConditionalBlockTemplate =>
+          block.kind === 'CONDITIONAL',
+      )
       .map((block) => block.condition),
   );
   const parseState: IParseState = {
     actionBlocks: new Map(actionBlocks),
+    functionCallBlocks: new Map(functionCallBlocks),
+    functionDefinitions,
     canRepeat: puzzle.availableBlocks.some((block) => block.kind === 'REPEAT'),
     canWhile: puzzle.availableBlocks.some((block) => block.kind === 'WHILE'),
     errors: [],
@@ -232,7 +361,9 @@ export const parseProgramCode = (source: string, puzzle: IPuzzleDefinition): IPr
   const blocks = parseStatements(parseState, false);
 
   if (!blocks.length) {
-    parseState.errors.push('Add at least one command before applying code mode.');
+    parseState.errors.push(
+      'Add at least one command before applying code mode.',
+    );
   }
 
   return {
