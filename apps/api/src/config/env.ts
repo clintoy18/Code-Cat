@@ -9,7 +9,7 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().min(1),
   BCRYPT_ROUNDS: z.coerce.number().int().min(8).max(15).default(12),
   WEB_ORIGIN: z.string().url().optional(),
-  VITE_API_BASE_URL: z.string().url().optional(),
+  WEB_ORIGINS: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

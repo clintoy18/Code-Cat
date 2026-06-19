@@ -2,13 +2,21 @@
   "name": "codecat",
   "private": true,
   "version": "0.1.0",
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=20 <21",
+    "pnpm": ">=10 <11"
+  },
   "scripts": {
     "dev": "pnpm --parallel -r dev",
     "build": "pnpm -r build",
+    "build:web": "pnpm --filter web build",
+    "build:api": "pnpm --filter api build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
+    "typecheck:web": "pnpm --filter web typecheck",
+    "typecheck:api": "pnpm --filter api typecheck",
     "db:push": "pnpm --filter api prisma db push",
     "db:migrate": "pnpm --filter api prisma db push",
     "db:seed": "pnpm --filter api prisma db seed",

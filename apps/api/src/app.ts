@@ -14,11 +14,16 @@ import { teacherRouter } from '@/modules/teacher';
 
 export const app = express();
 
+const deployedOrigins = [env.WEB_ORIGIN, ...(env.WEB_ORIGINS?.split(',') ?? [])]
+  .filter((origin): origin is string => Boolean(origin))
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const allowedOrigins = [
-  env.WEB_ORIGIN,
+  ...deployedOrigins,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
-].filter(Boolean) as string[];
+];
 
 app.use(helmet());
 app.use(
