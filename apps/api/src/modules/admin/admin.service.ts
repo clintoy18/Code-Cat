@@ -1,11 +1,15 @@
-import { Role, type ReportType } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+import { Role } from '@shared/types/user';
 import { prisma } from '@/config/database';
 import { levelsService } from '@/modules/levels/levels.service';
+
+type PrismaRole = NonNullable<Prisma.UserCreateInput['role']>;
+type ReportType = NonNullable<Prisma.AdminReportCreateInput['reportType']>;
 
 export const adminService = {
   async getPlayers() {
     return prisma.user.findMany({
-      where: { role: Role.STUDENT },
+      where: { role: Role.STUDENT as PrismaRole },
       select: {
         id: true,
         username: true,
@@ -69,7 +73,7 @@ export const adminService = {
     return prisma.adminReport.create({
       data: {
         adminId,
-        reportType: payload.reportType,
+        reportType: payload.reportType as ReportType,
         description: payload.description,
       },
     });

@@ -1,11 +1,14 @@
-import { Role } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+import { Role } from '@shared/types/user';
 import { prisma } from '@/config/database';
 import { AppError } from '@/middleware/errorHandler';
+
+type PrismaRole = NonNullable<Prisma.UserCreateInput['role']>;
 
 export const teacherService = {
   async getStudents() {
     return prisma.user.findMany({
-      where: { role: Role.STUDENT },
+      where: { role: Role.STUDENT as PrismaRole },
       select: {
         id: true,
         username: true,
@@ -30,7 +33,7 @@ export const teacherService = {
     const student = await prisma.user.findFirst({
       where: {
         id: studentId,
-        role: Role.STUDENT,
+        role: Role.STUDENT as PrismaRole,
       },
       select: {
         id: true,

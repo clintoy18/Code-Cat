@@ -1,7 +1,8 @@
-import { ReportType } from '@prisma/client';
 import { z } from 'zod';
 import { objectIdSchema } from '@/lib/objectId';
 import { createLevelSchema, levelIdParamsSchema, updateLevelSchema } from '@/modules/levels/levels.schema';
+
+const reportTypes = ['PLAYER_PROGRESS', 'CONTENT_USAGE', 'ACHIEVEMENT_SUMMARY'] as const;
 
 export const playerIdParamsSchema = z.object({
   id: objectIdSchema,
@@ -13,7 +14,7 @@ export const createAnnouncementSchema = z.object({
 });
 
 export const generateReportSchema = z.object({
-  reportType: z.nativeEnum(ReportType),
+  reportType: z.enum(reportTypes),
   description: z.string().trim().min(10).max(1000),
 });
 

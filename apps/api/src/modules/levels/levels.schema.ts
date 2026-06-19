@@ -1,4 +1,5 @@
-import { Difficulty, PuzzleType } from '@/shared';
+import { Difficulty } from '@shared/types/level';
+import { PuzzleType } from '@shared/types/puzzle';
 import { z } from 'zod';
 import { objectIdSchema } from '@/lib/objectId';
 

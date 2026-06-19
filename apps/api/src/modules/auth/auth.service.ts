@@ -1,9 +1,11 @@
-import { type Role as PrismaRole } from '@prisma/client';
-import { Role } from '@/shared';
+import type { Prisma } from '@prisma/client';
+import type { Role } from '@shared/types/user';
 import { prisma } from '@/config/database';
 import { compareHash, hashValue } from '@/lib/hash';
 import { signJwt } from '@/lib/jwt';
 import { AppError } from '@/middleware/errorHandler';
+
+type PrismaRole = NonNullable<Prisma.UserCreateInput['role']>;
 
 interface IRegisterInput {
   username: string;

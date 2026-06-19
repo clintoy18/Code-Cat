@@ -1,4 +1,4 @@
-import { Role } from '@/shared';
+import { Role } from '@shared/types/user';
 import { z } from 'zod';
 
 export const registerSchema = z.object({

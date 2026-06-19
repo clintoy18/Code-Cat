@@ -1,6 +1,9 @@
-import type { CompletionStatus } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+import type { CompletionStatus } from '@shared/types/progress';
 import { prisma } from '@/config/database';
 import { AppError } from '@/middleware/errorHandler';
+
+type PrismaCompletionStatus = NonNullable<Prisma.PlayerProgressCreateInput['status']>;
 
 export const progressService = {
   async saveProgress(userId: string, payload: {
@@ -19,7 +22,7 @@ export const progressService = {
         },
       },
       update: {
-        status: payload.status,
+        status: payload.status as PrismaCompletionStatus,
         attempts: payload.attempts,
         timeSpent: payload.timeSpent,
       },
@@ -27,7 +30,7 @@ export const progressService = {
         userId,
         levelId: payload.levelId,
         puzzleId: payload.puzzleId,
-        status: payload.status,
+        status: payload.status as PrismaCompletionStatus,
         attempts: payload.attempts,
         timeSpent: payload.timeSpent,
       },

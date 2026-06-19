@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Role } from '@/shared';
+import { Role } from '@shared/types/user';
 import { authenticate } from '@/middleware/authenticate';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validate';

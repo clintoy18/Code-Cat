@@ -1,4 +1,4 @@
-import { Difficulty } from '@/shared';
+import { Difficulty } from '@shared/types/level';
 import { z } from 'zod';
 
 export const updateSettingsSchema = z.object({

@@ -1,4 +1,4 @@
-import type { Role } from '@/shared';
+import type { Role } from '@shared/types/user';
 
 declare global {
   namespace Express {

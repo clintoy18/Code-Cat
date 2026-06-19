@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { Role, type IUser } from '@shared/types';
+import type { Role, IUser } from '@shared/types';
 
 interface IAuthState {
   token: string | null;

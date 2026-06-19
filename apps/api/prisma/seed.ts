@@ -1,8 +1,15 @@
 import bcrypt from 'bcryptjs';
-import { Difficulty, PuzzleType, Role } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
+import { Difficulty } from '@shared/types/level';
+import { PuzzleType } from '@shared/types/puzzle';
+import { Role } from '@shared/types/user';
 
 const prisma = new PrismaClient();
+
+type PrismaRole = NonNullable<Prisma.UserCreateInput['role']>;
+type PrismaDifficulty = NonNullable<Prisma.LevelCreateInput['difficulty']>;
+type PrismaPuzzleType = NonNullable<Prisma.PuzzleCreateWithoutLevelInput['type']>;
 
 const seed = async () => {
   const adminPasswordHash = await bcrypt.hash('admin12345', 12);
@@ -16,7 +23,7 @@ const seed = async () => {
       username: 'codecat-admin',
       email: 'admin@codecat.dev',
       passwordHash: adminPasswordHash,
-      role: Role.ADMIN,
+      role: Role.ADMIN as PrismaRole,
       settings: {
         create: {},
       },
@@ -30,7 +37,7 @@ const seed = async () => {
       username: 'codecat-teacher',
       email: 'teacher@codecat.dev',
       passwordHash: teacherPasswordHash,
-      role: Role.TEACHER,
+      role: Role.TEACHER as PrismaRole,
       settings: {
         create: {},
       },
@@ -44,7 +51,7 @@ const seed = async () => {
       username: 'codecat-student',
       email: 'student@codecat.dev',
       passwordHash: studentPasswordHash,
-      role: Role.STUDENT,
+      role: Role.STUDENT as PrismaRole,
       settings: {
         create: {},
       },
@@ -57,7 +64,7 @@ const seed = async () => {
     create: {
       name: 'Cat Steps',
       description: 'Learn sequencing by arranging steps for the cat.',
-      difficulty: Difficulty.EASY,
+      difficulty: Difficulty.EASY as PrismaDifficulty,
       order: 1,
       puzzles: {
         create: [
@@ -65,14 +72,14 @@ const seed = async () => {
             description: 'Move the cat to the fish bowl in three steps.',
             expectedOutput: 'CAT_REACHES_FISH',
             hint: 'Start with forward movement.',
-            type: PuzzleType.SEQUENCING,
+            type: PuzzleType.SEQUENCING as PrismaPuzzleType,
             order: 1,
           },
           {
             description: 'Collect two stars before the finish tile.',
             expectedOutput: 'CAT_COLLECTS_STARS',
             hint: 'Think in order from left to right.',
-            type: PuzzleType.SEQUENCING,
+            type: PuzzleType.SEQUENCING as PrismaPuzzleType,
             order: 2,
           },
         ],

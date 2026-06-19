@@ -1,6 +1,11 @@
-import type { Difficulty, PuzzleType } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+import type { Difficulty } from '@shared/types/level';
+import type { PuzzleType } from '@shared/types/puzzle';
 import { prisma } from '@/config/database';
 import { AppError } from '@/middleware/errorHandler';
+
+type PrismaDifficulty = NonNullable<Prisma.LevelCreateInput['difficulty']>;
+type PrismaPuzzleType = NonNullable<Prisma.PuzzleCreateWithoutLevelInput['type']>;
 
 interface ILevelPayload {
   name: string;
@@ -39,11 +44,12 @@ const formatLevel = (level: {
   id: string;
   name: string;
   description: string;
-  difficulty: Difficulty;
+  difficulty: PrismaDifficulty;
   order: number;
   createdAt: Date;
 }) => ({
   ...level,
+  difficulty: level.difficulty as Difficulty,
   createdAt: level.createdAt.toISOString(),
 });
 
@@ -103,7 +109,7 @@ export const levelsService = {
       data: {
         name: payload.name,
         description: payload.description,
-        difficulty: payload.difficulty,
+        difficulty: payload.difficulty as PrismaDifficulty,
         order: payload.order,
         puzzles: payload.puzzles?.length
           ? {
@@ -111,7 +117,7 @@ export const levelsService = {
                 description: puzzle.description,
                 expectedOutput: puzzle.expectedOutput,
                 hint: puzzle.hint ?? null,
-                type: puzzle.type,
+                type: puzzle.type as PrismaPuzzleType,
                 order: puzzle.order,
               })),
             }
@@ -153,7 +159,7 @@ export const levelsService = {
       data: {
         name: payload.name,
         description: payload.description,
-        difficulty: payload.difficulty,
+        difficulty: payload.difficulty as PrismaDifficulty | undefined,
         order: payload.order,
         puzzles: payload.puzzles
           ? {
@@ -161,7 +167,7 @@ export const levelsService = {
                 description: puzzle.description,
                 expectedOutput: puzzle.expectedOutput,
                 hint: puzzle.hint ?? null,
-                type: puzzle.type,
+                type: puzzle.type as PrismaPuzzleType,
                 order: puzzle.order,
               })),
             }

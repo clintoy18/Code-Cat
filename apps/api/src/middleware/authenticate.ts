@@ -20,7 +20,7 @@ export const authenticate = (req: Request, _res: Response, next: NextFunction) =
       role: payload.role,
     };
     return next();
-  } catch (_error) {
+  } catch {
     return next(new AppError('UNAUTHORIZED', 'Authentication token is invalid or expired.', 401));
   }
 };

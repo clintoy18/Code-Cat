@@ -1,4 +1,4 @@
-import { CompletionStatus } from '@/shared';
+import { CompletionStatus } from '@shared/types/progress';
 import { z } from 'zod';
 import { objectIdSchema } from '@/lib/objectId';
 

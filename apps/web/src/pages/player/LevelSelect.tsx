@@ -125,20 +125,7 @@ export const LevelSelect = () => {
             return (
               <article
                 key={puzzle.id}
-                className={`level-card ${isUnlocked ? 'level-card--unlocked' : 'level-card--locked'} ${isCompleted ? 'level-card--completed' : ''} ${isUnlocked ? 'level-card--interactive' : ''}`}
-                role={isUnlocked ? 'button' : undefined}
-                tabIndex={isUnlocked ? 0 : -1}
-                onClick={isUnlocked ? () => openPuzzle(puzzle.id) : undefined}
-                onKeyDown={
-                  isUnlocked
-                    ? (event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          openPuzzle(puzzle.id);
-                        }
-                      }
-                    : undefined
-                }
+                className={`level-card ${isUnlocked ? 'level-card--unlocked' : 'level-card--locked'} ${isCompleted ? 'level-card--completed' : ''}`}
               >
                 <div className="level-card__header">
                   <div>

@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { Role } from '@/shared';
+import type { Role } from '@shared/types/user';
 import { env } from '@/config/env';
 
 export interface IJwtPayload {
