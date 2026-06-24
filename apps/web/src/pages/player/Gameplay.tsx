@@ -221,6 +221,7 @@ export const Gameplay = () => {
   const clearedCount = completedPuzzleIds.length;
   const commandCount = countProgramBlocks(program);
   const visitedCount = Math.max(0, animatedVisited.length - 1);
+  const budgetLabel = `${visitedCount}/${puzzle?.parMoves ?? 0}`;
   const nextPuzzleUnlocked = nextPuzzle
     ? unlockedPuzzleIds.includes(nextPuzzle.id)
     : false;
@@ -409,9 +410,13 @@ export const Gameplay = () => {
         setResultPopup({
           tone: 'success',
           title: 'Room Cleared',
-          body: nextPuzzle
-            ? `The cat reached the door. Next up: ${nextPuzzle.title}.`
-            : 'The cat reached the door. All current playable rooms are complete.',
+          body: puzzle?.requiresParClear
+            ? nextPuzzle
+              ? `The cat cleared the room in ${visited.length - 1} moves. Next up: ${nextPuzzle.title}.`
+              : `The cat cleared the room in ${visited.length - 1} moves. All current playable rooms are complete.`
+            : nextPuzzle
+              ? `The cat reached the door. Next up: ${nextPuzzle.title}.`
+              : 'The cat reached the door. All current playable rooms are complete.',
         });
       }
 
@@ -430,7 +435,7 @@ export const Gameplay = () => {
     }
 
     previousDisplayStatusRef.current = displayStatus;
-  }, [displayStatus, isPlaybackRunning, log, nextPuzzle]);
+  }, [displayStatus, isPlaybackRunning, log, nextPuzzle, puzzle, visited]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -1414,12 +1419,18 @@ export const Gameplay = () => {
                 <div>
                   <p className="success-banner__eyebrow">Room Cleared</p>
                   <h2 className="success-banner__title">
-                    The cat reached the door.
+                    {puzzle.requiresParClear
+                      ? 'The cat cleared the route under par.'
+                      : 'The cat reached the door.'}
                   </h2>
                   <p className="success-banner__body">
-                    {nextPuzzle
-                      ? `Next up: ${nextPuzzle.title}.`
-                      : 'All starter rooms are complete. Replay any level or return to the level map.'}
+                    {puzzle.requiresParClear
+                      ? nextPuzzle
+                        ? `Par clear: ${visitedCount}/${puzzle.parMoves} moves. Next up: ${nextPuzzle.title}.`
+                        : `Par clear: ${visitedCount}/${puzzle.parMoves} moves. All starter rooms are complete.`
+                      : nextPuzzle
+                        ? `Next up: ${nextPuzzle.title}.`
+                        : 'All starter rooms are complete. Replay any level or return to the level map.'}
                   </p>
                 </div>
                 <div className="success-banner__actions">
@@ -1451,13 +1462,19 @@ export const Gameplay = () => {
                   <span className="hud-tile__value">{commandCount}</span>
                 </div>
                 <div className="hud-tile">
-                  <span className="hud-tile__label">Tiles</span>
+                  <span className="hud-tile__label">Moves</span>
                   <span className="hud-tile__value">{visitedCount}</span>
                 </div>
                 <div className="hud-tile">
                   <span className="hud-tile__label">Difficulty</span>
                   <span className="hud-tile__value">{puzzle.difficulty}</span>
                 </div>
+                {puzzle.requiresParClear ? (
+                  <div className="hud-tile">
+                    <span className="hud-tile__label">Budget</span>
+                    <span className="hud-tile__value">{budgetLabel}</span>
+                  </div>
+                ) : null}
                 <div className="hud-tile">
                   <span className="hud-tile__label">Progress</span>
                   <span className="hud-tile__value">

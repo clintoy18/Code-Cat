@@ -6,6 +6,7 @@ import {
   createRepeatBlockTemplate,
   createWhileBlockTemplate,
   type IBlockTemplate,
+  type IPuzzleDefinition,
   type IProgramBlock,
 } from '@/features/game/engine';
 import { Gameplay } from './Gameplay';
@@ -33,7 +34,7 @@ const ifPathUpBlock: IBlockTemplate = {
   action: 'UP',
 };
 
-const puzzle = {
+const puzzle: IPuzzleDefinition = {
   id: 'echo-ramp',
   title: 'Echo Ramp',
   lesson: 'Loops' as const,
@@ -57,19 +58,27 @@ const puzzle = {
 
 let mockGameState: ReturnType<typeof buildGameState>;
 
-function buildGameState(program: IProgramBlock[]) {
+function buildGameState(
+  program: IProgramBlock[],
+  puzzleOverride: Partial<typeof puzzle> = {},
+) {
+  const activePuzzle = {
+    ...puzzle,
+    ...puzzleOverride,
+  };
+
   return {
-    puzzles: [puzzle],
-    activePuzzleId: puzzle.id,
+    puzzles: [activePuzzle],
+    activePuzzleId: activePuzzle.id,
     completedPuzzleIds: [],
-    unlockedPuzzleIds: [puzzle.id],
+    unlockedPuzzleIds: [activePuzzle.id],
     latestCompletedPuzzleId: null,
-    puzzle,
+    puzzle: activePuzzle,
     program,
-    catPosition: puzzle.start,
-    visited: [puzzle.start],
+    catPosition: activePuzzle.start,
+    visited: [activePuzzle.start],
     roomState: { hasKey: false },
-    status: 'ready' as const,
+    status: 'ready' as 'idle' | 'ready' | 'running' | 'success' | 'error',
     log: ['Puzzle loaded'],
     loadPuzzle: vi.fn(),
     replaceProgram: mockReplaceProgram,
@@ -232,5 +241,105 @@ describe('Gameplay loop editor', () => {
     expect(mockReplaceProgram.mock.calls[0][0][0].loopBody[2].kind).toBe(
       'REPEAT',
     );
+  });
+
+  it('shows the par budget for strategy rooms', () => {
+    mockGameState = buildGameState([], {
+      id: 'strategy-test',
+      lesson: 'Strategy',
+      parMoves: 10,
+      requiresParClear: true,
+    });
+    mockRunProgram.mockReturnValue({
+      puzzle: mockGameState.puzzle,
+      program: [],
+      catPosition: mockGameState.puzzle.start,
+      visited: [
+        mockGameState.puzzle.start,
+        { row: 3, col: 0 },
+        { row: 2, col: 0 },
+      ],
+      roomState: { hasKey: false },
+      status: 'ready',
+      log: ['Puzzle loaded'],
+      stepIndex: 0,
+      didReachDoor: false,
+    });
+
+    render(
+      <MemoryRouter>
+        <Gameplay />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Moves')).toBeInTheDocument();
+    expect(screen.getByText('Budget')).toBeInTheDocument();
+    expect(screen.getByText('0/10')).toBeInTheDocument();
+  });
+
+  it('shows strategy-specific success banner copy for par clears', () => {
+    mockGameState = buildGameState([], {
+      id: 'strategy-success',
+      lesson: 'Strategy',
+      parMoves: 10,
+      requiresParClear: true,
+    });
+    mockGameState.status = 'success';
+    mockGameState.visited = [
+      mockGameState.puzzle.start,
+      { row: 3, col: 0 },
+      { row: 2, col: 0 },
+    ];
+    mockGameState.catPosition = { row: 2, col: 0 };
+
+    render(
+      <MemoryRouter>
+        <Gameplay />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByText('The cat cleared the route under par.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Par clear: 2\/10 moves\./)).toBeInTheDocument();
+  });
+
+  it('shows the over-par failure message when a strategy route misses budget', () => {
+    mockGameState = buildGameState([], {
+      id: 'strategy-over-par',
+      lesson: 'Strategy',
+      parMoves: 3,
+      requiresParClear: true,
+    });
+
+    const view = render(
+      <MemoryRouter>
+        <Gameplay />
+      </MemoryRouter>,
+    );
+
+    mockGameState.status = 'error';
+    mockGameState.log = [
+      'Running Strategy Over Par...',
+      'The route reached the door in 4 moves, but this room requires 3 moves or fewer.',
+    ];
+
+    view.rerender(
+      <MemoryRouter>
+        <Gameplay />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Route Failed')).toBeInTheDocument();
+    expect(
+      screen.getByRole('alertdialog', { name: 'Route Failed' }),
+    ).toHaveTextContent(
+      'The route reached the door in 4 moves, but this room requires 3 moves or fewer.',
+    );
+    expect(
+      screen.getAllByText(
+        'The route reached the door in 4 moves, but this room requires 3 moves or fewer.',
+      ),
+    ).toHaveLength(2);
   });
 });

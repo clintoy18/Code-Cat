@@ -20,4 +20,21 @@ describe('curriculum roadmap gating', () => {
       'memory-ribbon',
     );
   });
+
+  it('includes World 6 in the playable roadmap and starter puzzle list', () => {
+    expect(curriculumWorlds.map((world) => world.id)).toContain('strategy');
+    expect(playableWorlds.map((world) => world.id)).toContain('strategy');
+    expect(starterPuzzles.map((puzzle) => puzzle.id)).toContain(
+      'perimeter-plan',
+    );
+    expect(starterPuzzles.map((puzzle) => puzzle.id)).toContain(
+      'false-shortcut',
+    );
+  });
+
+  it('keeps future World 6 puzzles out of the starter progression path', () => {
+    expect(starterPuzzles.map((puzzle) => puzzle.id)).not.toContain(
+      'switchback-budget',
+    );
+  });
 });

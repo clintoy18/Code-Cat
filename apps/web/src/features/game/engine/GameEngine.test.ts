@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { stateWorldPuzzles } from '@/features/game/data/worlds/stateWorld';
+import { strategyWorldPuzzles } from '@/features/game/data/worlds/strategyWorld';
 import {
   GameEngine,
   createFunctionCallBlockTemplate,
@@ -331,5 +332,101 @@ describe('GameEngine loops', () => {
     expect(snapshot.status).toBe('success');
     expect(snapshot.roomState.hasKey).toBe(true);
     expect(snapshot.didReachDoor).toBe(true);
+  });
+
+  it('fails a strategy room that reaches the door over par', () => {
+    const engine = new GameEngine();
+    const puzzle = buildPuzzle([moveUpBlock, moveRightBlock]);
+
+    engine.loadPuzzle({
+      ...puzzle,
+      id: 'strategy-over-par',
+      title: 'Strategy Over Par',
+      lesson: 'Strategy',
+      parMoves: 3,
+      requiresParClear: true,
+      rows: 3,
+      cols: 3,
+      start: { row: 2, col: 0 },
+      door: { row: 0, col: 2 },
+      walls: [],
+    });
+    engine.replaceProgram([
+      moveUpBlock,
+      moveRightBlock,
+      moveUpBlock,
+      moveRightBlock,
+    ]);
+
+    const snapshot = engine.run();
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.didReachDoor).toBe(false);
+    expect(
+      snapshot.log.some((entry) => entry.includes('requires 3 moves or fewer')),
+    ).toBe(true);
+  });
+
+  it('solves the authored false-shortcut puzzle within par', () => {
+    const engine = new GameEngine();
+    const puzzle = strategyWorldPuzzles.find(
+      (entry) => entry.id === 'false-shortcut',
+    );
+
+    expect(puzzle).toBeDefined();
+
+    engine.loadPuzzle(puzzle!);
+    engine.replaceProgram([
+      moveUpBlock,
+      moveUpBlock,
+      moveRightBlock,
+      moveRightBlock,
+      moveUpBlock,
+      moveRightBlock,
+      moveRightBlock,
+      moveUpBlock,
+      moveUpBlock,
+      moveRightBlock,
+    ]);
+
+    const snapshot = engine.run();
+
+    expect(snapshot.status).toBe('success');
+    expect(snapshot.didReachDoor).toBe(true);
+    expect(
+      snapshot.log.some((entry) => entry.includes('Strategy clear: 10/10')),
+    ).toBe(true);
+  });
+
+  it('solves the authored perimeter-plan puzzle within par', () => {
+    const engine = new GameEngine();
+    const puzzle = strategyWorldPuzzles.find(
+      (entry) => entry.id === 'perimeter-plan',
+    );
+
+    expect(puzzle).toBeDefined();
+
+    engine.loadPuzzle(puzzle!);
+    engine.replaceProgram([
+      moveRightBlock,
+      moveRightBlock,
+      moveRightBlock,
+      moveRightBlock,
+      moveRightBlock,
+      moveRightBlock,
+      moveUpBlock,
+      moveUpBlock,
+      moveUpBlock,
+      moveUpBlock,
+      moveUpBlock,
+    ]);
+
+    const snapshot = engine.run();
+
+    expect(snapshot.status).toBe('success');
+    expect(snapshot.didReachDoor).toBe(true);
+    expect(
+      snapshot.log.some((entry) => entry.includes('Strategy clear: 11/11')),
+    ).toBe(true);
   });
 });

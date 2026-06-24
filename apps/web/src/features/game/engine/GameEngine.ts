@@ -100,6 +100,7 @@ export interface IPuzzleDefinition {
   lesson: LessonTopic;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   parMoves: number;
+  requiresParClear?: boolean;
   objective: string;
   rows: number;
   cols: number;
@@ -207,6 +208,8 @@ const buildInitialRoomState = (puzzle: IPuzzleDefinition): IRoomState => ({
     puzzle.start.col === puzzle.key.col,
   ),
 });
+
+const getMoveCount = (visited: IPosition[]) => Math.max(0, visited.length - 1);
 
 export const cloneBlockTemplate = (block: IBlockTemplate): IBlockTemplate => {
   if (block.kind === 'REPEAT') {
@@ -672,6 +675,30 @@ export class GameEngine {
       didReachDoor = false;
       executionState.log.push(
         'This room expects a hasKey check to control a real move after the key is collected.',
+      );
+    }
+
+    const moveCount = getMoveCount(executionState.visited);
+
+    if (
+      didReachDoor &&
+      puzzle.requiresParClear &&
+      moveCount > puzzle.parMoves
+    ) {
+      status = 'error';
+      didReachDoor = false;
+      executionState.log.push(
+        `The route reached the door in ${moveCount} moves, but this room requires ${puzzle.parMoves} moves or fewer.`,
+      );
+    }
+
+    if (
+      didReachDoor &&
+      puzzle.requiresParClear &&
+      moveCount <= puzzle.parMoves
+    ) {
+      executionState.log.push(
+        `Strategy clear: ${moveCount}/${puzzle.parMoves} moves.`,
       );
     }
 

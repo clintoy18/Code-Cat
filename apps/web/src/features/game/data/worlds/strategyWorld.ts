@@ -1,10 +1,30 @@
 import type { IBlockTemplate, IPuzzleDefinition } from '@/features/game/engine';
 import type { ICurriculumWorld } from '../lessonRoadmap';
 
-const moveUpBlock: IBlockTemplate = { key: 'move-up', label: 'moveUp()', kind: 'MOVE', move: 'UP' };
-const moveRightBlock: IBlockTemplate = { key: 'move-right', label: 'moveRight()', kind: 'MOVE', move: 'RIGHT' };
-const moveDownBlock: IBlockTemplate = { key: 'move-down', label: 'moveDown()', kind: 'MOVE', move: 'DOWN' };
-const moveLeftBlock: IBlockTemplate = { key: 'move-left', label: 'moveLeft()', kind: 'MOVE', move: 'LEFT' };
+const moveUpBlock: IBlockTemplate = {
+  key: 'move-up',
+  label: 'moveUp()',
+  kind: 'MOVE',
+  move: 'UP',
+};
+const moveRightBlock: IBlockTemplate = {
+  key: 'move-right',
+  label: 'moveRight()',
+  kind: 'MOVE',
+  move: 'RIGHT',
+};
+const moveDownBlock: IBlockTemplate = {
+  key: 'move-down',
+  label: 'moveDown()',
+  kind: 'MOVE',
+  move: 'DOWN',
+};
+const moveLeftBlock: IBlockTemplate = {
+  key: 'move-left',
+  label: 'moveLeft()',
+  kind: 'MOVE',
+  move: 'LEFT',
+};
 
 const ifPathUpBlock: IBlockTemplate = {
   key: 'if-path-up',
@@ -22,14 +42,6 @@ const ifPathRightBlock: IBlockTemplate = {
   action: 'RIGHT',
 };
 
-const ifPathLeftBlock: IBlockTemplate = {
-  key: 'if-path-left',
-  label: 'if (pathLeftClear) moveLeft()',
-  kind: 'CONDITIONAL',
-  condition: 'PATH_LEFT_CLEAR',
-  action: 'LEFT',
-};
-
 const ifDoorUpBlock: IBlockTemplate = {
   key: 'if-door-up',
   label: 'if (doorUp) moveUp()',
@@ -45,7 +57,9 @@ export const strategyWorldPuzzles: IPuzzleDefinition[] = [
     lesson: 'Strategy',
     difficulty: 'Hard',
     parMoves: 11,
-    objective: 'This future capstone room asks learners to compare whole-board routes and commit to the strongest plan.',
+    requiresParClear: true,
+    objective:
+      'Compare the available routes and clear the room within the 11-move par budget.',
     rows: 6,
     cols: 7,
     start: { row: 5, col: 0 },
@@ -65,38 +79,12 @@ export const strategyWorldPuzzles: IPuzzleDefinition[] = [
       { row: 1, col: 1 },
       { row: 1, col: 5 },
     ],
-    availableBlocks: [moveUpBlock, moveRightBlock, moveDownBlock, moveLeftBlock],
-  },
-  {
-    id: 'switchback-budget',
-    title: 'Switchback Budget',
-    lesson: 'Strategy',
-    difficulty: 'Hard',
-    parMoves: 10,
-    objective: 'Students will eventually break this maze into subgoals and compare route budgets rather than guessing turns.',
-    rows: 6,
-    cols: 6,
-    start: { row: 5, col: 1 },
-    door: { row: 0, col: 4 },
-    walls: [
-      { row: 5, col: 0 },
-      { row: 5, col: 2 },
-      { row: 4, col: 0 },
-      { row: 4, col: 3 },
-      { row: 4, col: 4 },
-      { row: 3, col: 0 },
-      { row: 3, col: 1 },
-      { row: 3, col: 4 },
-      { row: 2, col: 0 },
-      { row: 2, col: 1 },
-      { row: 2, col: 4 },
-      { row: 1, col: 0 },
-      { row: 1, col: 1 },
-      { row: 1, col: 5 },
-      { row: 0, col: 1 },
-      { row: 0, col: 2 },
+    availableBlocks: [
+      moveUpBlock,
+      moveRightBlock,
+      moveDownBlock,
+      moveLeftBlock,
     ],
-    availableBlocks: [moveUpBlock, moveRightBlock, moveLeftBlock, ifPathUpBlock, ifPathRightBlock, ifPathLeftBlock, ifDoorUpBlock],
   },
   {
     id: 'false-shortcut',
@@ -104,7 +92,9 @@ export const strategyWorldPuzzles: IPuzzleDefinition[] = [
     lesson: 'Strategy',
     difficulty: 'Hard',
     parMoves: 10,
-    objective: 'This roadmap room is built to teach that the nearest-looking opening is not always the best algorithmic choice.',
+    requiresParClear: true,
+    objective:
+      'The nearest-looking opening wastes moves. Find the stronger route and stay within 10 moves.',
     rows: 6,
     cols: 7,
     start: { row: 5, col: 0 },
@@ -128,7 +118,56 @@ export const strategyWorldPuzzles: IPuzzleDefinition[] = [
       { row: 0, col: 2 },
       { row: 0, col: 3 },
     ],
-    availableBlocks: [moveUpBlock, moveRightBlock, ifPathUpBlock, ifPathRightBlock, ifDoorUpBlock],
+    availableBlocks: [
+      moveUpBlock,
+      moveRightBlock,
+      ifPathUpBlock,
+      ifPathRightBlock,
+      ifDoorUpBlock,
+    ],
+  },
+];
+
+export const strategyWorldFuturePuzzles: IPuzzleDefinition[] = [
+  {
+    id: 'switchback-budget',
+    title: 'Switchback Budget',
+    lesson: 'Strategy',
+    difficulty: 'Hard',
+    parMoves: 10,
+    requiresParClear: true,
+    objective:
+      'This follow-up room stays in reserve for larger route-budget lessons and richer strategy heuristics.',
+    rows: 6,
+    cols: 6,
+    start: { row: 5, col: 1 },
+    door: { row: 0, col: 4 },
+    walls: [
+      { row: 5, col: 0 },
+      { row: 5, col: 2 },
+      { row: 4, col: 0 },
+      { row: 4, col: 3 },
+      { row: 4, col: 4 },
+      { row: 3, col: 0 },
+      { row: 3, col: 1 },
+      { row: 3, col: 4 },
+      { row: 2, col: 0 },
+      { row: 2, col: 1 },
+      { row: 2, col: 4 },
+      { row: 1, col: 0 },
+      { row: 1, col: 1 },
+      { row: 1, col: 5 },
+      { row: 0, col: 1 },
+      { row: 0, col: 2 },
+    ],
+    availableBlocks: [
+      moveUpBlock,
+      moveRightBlock,
+      moveLeftBlock,
+      ifPathUpBlock,
+      ifPathRightBlock,
+      ifDoorUpBlock,
+    ],
   },
 ];
 
@@ -138,11 +177,21 @@ export const strategyWorld: ICurriculumWorld = {
   title: 'World 6: Strategy',
   shortLabel: 'Strategy',
   focus: ['Strategy'],
-  description: 'Students combine all earlier concepts and start thinking about optimization, alternatives, and algorithmic choices.',
-  studentOutcome: 'Learners compare routes, reason about tradeoffs, and prepare for search and pathfinding lessons.',
+  description:
+    'Students combine earlier concepts and start choosing routes based on budget, tradeoffs, and overall plan quality.',
+  studentOutcome:
+    'Learners compare alternatives, reject tempting dead ends, and optimize for a target move budget.',
   agentOwner: 'Agent Strategy',
-  status: 'scaffolded',
-  currentMechanics: ['Par targets', 'Condition checks'],
-  futureMechanics: ['Collectibles', 'Enemy patrols', 'Shortest-path challenges'],
+  status: 'playable',
+  currentMechanics: [
+    'Par budget clears',
+    'Route comparison',
+    'Condition checks',
+  ],
+  futureMechanics: [
+    'Collectibles',
+    'Enemy patrols',
+    'Shortest-path challenges',
+  ],
   puzzles: strategyWorldPuzzles,
 };
