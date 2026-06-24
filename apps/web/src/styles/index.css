@@ -2076,6 +2076,58 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   }
 
+  .level-continue,
+  .level-world,
+  .level-comingSoon {
+    display: grid;
+    gap: 20px;
+  }
+
+  .level-continue__body,
+  .level-world__description {
+    margin: 10px 0 0;
+    max-width: 760px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-2);
+  }
+
+  .level-continue__card {
+    display: grid;
+  }
+
+  .level-world__header,
+  .level-comingSoon__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .level-world__eyebrow {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+
+  .level-world__title {
+    margin: 8px 0 0;
+    font-family: 'Sora', sans-serif;
+    font-size: 24px;
+    line-height: 1.12;
+    color: var(--text-0);
+  }
+
+  .level-world__summary,
+  .level-comingSoon__grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
   .world-card {
     display: grid;
     gap: 14px;
@@ -2219,6 +2271,13 @@ body {
 
   .level-card--locked {
     opacity: 0.72;
+  }
+
+  .level-card--next {
+    border-color: rgba(180, 180, 186, 0.28);
+    box-shadow:
+      0 0 0 4px rgba(255, 255, 255, 0.03) inset,
+      12px 12px 0 rgba(0, 0, 0, 0.3);
   }
 
   .level-card--interactive {
@@ -2444,7 +2503,9 @@ body {
 
   .gameplay-toolbar,
   .success-banner,
-  .level-card__footer {
+  .level-card__footer,
+  .level-world__header,
+  .level-comingSoon__header {
     flex-direction: column;
     align-items: flex-start;
   }

@@ -14,7 +14,7 @@ vi.mock('@/hooks/useGame', () => ({
 }));
 
 describe('LevelSelect', () => {
-  it('describes Strategy as part of the live game', () => {
+  it('prioritizes the next playable room and hides scaffolded roadmap copy', () => {
     render(
       <MemoryRouter>
         <LevelSelect />
@@ -22,10 +22,10 @@ describe('LevelSelect', () => {
     );
 
     expect(
-      screen.getByText(
-        /The live game now covers Foundations, Decisions, Loops, Functions, Variables, and Strategy/i,
-      ),
+      screen.getByRole('heading', { name: /Recommended next room/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/live \/ 0 scaffolded/i)).toBeInTheDocument();
+    expect(screen.getByText(/Playable Worlds/i)).toBeInTheDocument();
+    expect(screen.getByText(/World 6: Strategy/i)).toBeInTheDocument();
+    expect(screen.queryByText(/scaffolded/i)).not.toBeInTheDocument();
   });
 });

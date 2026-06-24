@@ -1,42 +1,117 @@
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui';
 import {
   curriculumWorlds,
   playableWorlds,
 } from '@/features/game/data/curriculumRoadmap';
-import { getRoadmapStats } from '@/features/game/data/lessonRoadmap';
+import type { IPuzzleDefinition } from '@/features/game/engine';
 import { useGame } from '@/hooks/useGame';
+import { useNavigate } from 'react-router-dom';
+
+const scaffoldedWorlds = curriculumWorlds.filter(
+  (world) => world.status === 'scaffolded',
+);
 
 export const LevelSelect = () => {
   const navigate = useNavigate();
   const { puzzles, loadPuzzle, unlockedPuzzleIds, completedPuzzleIds } =
     useGame();
-  const roadmapStats = getRoadmapStats(curriculumWorlds);
+
   const completedCount = completedPuzzleIds.length;
-  const nextOpenPuzzleId =
+  const nextPuzzle =
     puzzles.find(
       (puzzle) =>
         unlockedPuzzleIds.includes(puzzle.id) &&
         !completedPuzzleIds.includes(puzzle.id),
-    )?.id ?? puzzles[0]?.id;
+    ) ?? puzzles[0] ?? null;
+  const puzzleIndexById = new Map(
+    puzzles.map((puzzle, index) => [puzzle.id, index + 1]),
+  );
 
   const openPuzzle = (puzzleId: string) => {
     loadPuzzle(puzzleId);
     navigate(`/gameplay/${puzzleId}`);
   };
 
+  const renderLevelCard = (puzzle: IPuzzleDefinition) => {
+    const isUnlocked = unlockedPuzzleIds.includes(puzzle.id);
+    const isCompleted = completedPuzzleIds.includes(puzzle.id);
+    const isNext = puzzle.id === nextPuzzle?.id && !isCompleted;
+
+    return (
+      <article
+        key={puzzle.id}
+        className={`level-card ${isUnlocked ? 'level-card--unlocked' : 'level-card--locked'} ${isCompleted ? 'level-card--completed' : ''} ${isNext ? 'level-card--next' : ''}`}
+      >
+        <div className="level-card__header">
+          <div>
+            <p className="level-card__eyebrow">
+              Level {puzzleIndexById.get(puzzle.id) ?? '?'}
+            </p>
+            <h3 className="level-card__title">{puzzle.title}</h3>
+          </div>
+          <span
+            className={`level-badge ${isCompleted ? 'level-badge--completed' : isUnlocked ? 'level-badge--open' : 'level-badge--locked'}`}
+          >
+            {isCompleted ? 'Cleared' : isUnlocked ? 'Unlocked' : 'Locked'}
+          </span>
+        </div>
+
+        <div className="level-card__meta">
+          <span>{puzzle.lesson}</span>
+          <span>{puzzle.difficulty}</span>
+          <span>Par {puzzle.parMoves}</span>
+        </div>
+
+        <p className="level-card__objective">{puzzle.objective}</p>
+
+        <div className="level-card__footer">
+          <div className="level-card__track">
+            <span
+              className={`level-dot ${isCompleted ? 'level-dot--completed' : isUnlocked ? 'level-dot--open' : 'level-dot--locked'}`}
+            />
+            <span>
+              {isNext
+                ? 'Recommended next room'
+                : isCompleted
+                  ? 'Completed and replayable'
+                  : isUnlocked
+                    ? 'Ready to play'
+                    : 'Unlock the previous room first'}
+            </span>
+          </div>
+          <Button
+            className={
+              isCompleted ? 'pixel-button pixel-button--ghost' : 'pixel-button'
+            }
+            variant={isCompleted ? 'ghost' : 'primary'}
+            disabled={!isUnlocked}
+            onClick={(event) => {
+              event.stopPropagation();
+              openPuzzle(puzzle.id);
+            }}
+          >
+            {isCompleted
+              ? 'Replay Level'
+              : isUnlocked
+                ? 'Play Level'
+                : 'Locked'}
+          </Button>
+        </div>
+      </article>
+    );
+  };
+
   return (
     <div className="pixel-page space-y-6">
       <section className="mission-brief">
         <div className="mission-brief__copy">
-          <p className="mission-brief__eyebrow">Level Map</p>
+          <p className="mission-brief__eyebrow">Level Select</p>
           <h1 className="mission-brief__title">
-            Clear the ice rooms one world at a time.
+            Pick the next room and keep climbing.
           </h1>
           <p className="mission-brief__objective">
-            The live game now covers Foundations, Decisions, Loops, Functions,
-            Variables, and Strategy. Clear each room, then replay for tighter
-            helper, state, and par-budget clears.
+            Start the highlighted room, or replay any cleared level to tighten
+            your route, helper use, state checks, or par-budget finish.
           </p>
         </div>
         <div className="mission-brief__stats">
@@ -53,84 +128,36 @@ export const LevelSelect = () => {
             </span>
           </div>
           <div className="mission-stat">
-            <span className="mission-stat__label">Current Focus</span>
-            <span className="mission-stat__value">
-              {puzzles.findIndex((puzzle) => puzzle.id === nextOpenPuzzleId) +
-                1 || 1}
-            </span>
+            <span className="mission-stat__label">Worlds Live</span>
+            <span className="mission-stat__value">{playableWorlds.length}</span>
           </div>
           <div className="mission-stat">
-            <span className="mission-stat__label">Roadmap</span>
+            <span className="mission-stat__label">Next Room</span>
             <span className="mission-stat__value">
-              {roadmapStats.playableWorlds} live /{' '}
-              {roadmapStats.scaffoldedWorlds} scaffolded
+              {nextPuzzle ? puzzleIndexById.get(nextPuzzle.id) : '-'}
             </span>
           </div>
         </div>
       </section>
 
-      <section className="world-roadmap">
-        {curriculumWorlds.map((world) => (
-          <article
-            key={world.id}
-            className={`world-card ${world.status === 'playable' ? 'world-card--playable' : 'world-card--scaffolded'}`}
-          >
-            <div className="world-card__header">
-              <div>
-                <p className="world-card__eyebrow">
-                  World {world.order} - {world.agentOwner}
-                </p>
-                <h2 className="world-card__title">{world.title}</h2>
-              </div>
-              <span
-                className={`world-card__status world-card__status--${world.status}`}
-              >
-                {world.status === 'playable'
-                  ? 'Playable Now'
-                  : 'Scaffolded Next'}
-              </span>
-            </div>
+      {nextPuzzle ? (
+        <section className="level-continue">
+          <div className="level-continue__copy">
+            <p className="pixel-kicker">Continue</p>
+            <h2 className="pixel-panel__title">Recommended next room</h2>
+            <p className="level-continue__body">
+              Jump straight into the next required level, then return here to
+              replay any cleared rooms.
+            </p>
+          </div>
+          <div className="level-continue__card">{renderLevelCard(nextPuzzle)}</div>
+        </section>
+      ) : null}
 
-            <p className="world-card__description">{world.description}</p>
-            <p className="world-card__outcome">{world.studentOutcome}</p>
-
-            <div className="world-card__chips">
-              {world.focus.map((topic) => (
-                <span key={topic}>{topic}</span>
-              ))}
-            </div>
-
-            <div className="world-card__details">
-              <div>
-                <p className="world-card__label">Current Mechanics</p>
-                <p className="world-card__text">
-                  {world.currentMechanics.join(' / ')}
-                </p>
-              </div>
-              <div>
-                <p className="world-card__label">Next Mechanics</p>
-                <p className="world-card__text">
-                  {world.futureMechanics.join(' / ')}
-                </p>
-              </div>
-            </div>
-
-            <div className="world-card__footer">
-              <span>{world.puzzles.length} lesson rooms mapped</span>
-              <span>
-                {world.status === 'playable'
-                  ? 'Included in current progression'
-                  : 'Roadmapped for the next engine pass'}
-              </span>
-            </div>
-          </article>
-        ))}
-      </section>
-
-      <section className="space-y-4">
+      <section className="space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="pixel-kicker">Playable Rooms</p>
+            <p className="pixel-kicker">Playable Worlds</p>
             <h2 className="pixel-panel__title">Current progression</h2>
           </div>
           <span className="game-chip">
@@ -143,79 +170,75 @@ export const LevelSelect = () => {
           </span>
         </div>
 
-        <section className="level-map">
-          {puzzles.map((puzzle, index) => {
-            const isUnlocked = unlockedPuzzleIds.includes(puzzle.id);
-            const isCompleted = completedPuzzleIds.includes(puzzle.id);
-            const isNext = puzzle.id === nextOpenPuzzleId && !isCompleted;
+        {playableWorlds.map((world) => {
+          const worldPuzzles = world.puzzles
+            .map((worldPuzzle) =>
+              puzzles.find((puzzle) => puzzle.id === worldPuzzle.id),
+            )
+            .filter((puzzle): puzzle is IPuzzleDefinition => Boolean(puzzle));
 
-            return (
-              <article
-                key={puzzle.id}
-                className={`level-card ${isUnlocked ? 'level-card--unlocked' : 'level-card--locked'} ${isCompleted ? 'level-card--completed' : ''}`}
-              >
-                <div className="level-card__header">
-                  <div>
-                    <p className="level-card__eyebrow">Level {index + 1}</p>
-                    <h2 className="level-card__title">{puzzle.title}</h2>
-                  </div>
-                  <span
-                    className={`level-badge ${isCompleted ? 'level-badge--completed' : isUnlocked ? 'level-badge--open' : 'level-badge--locked'}`}
-                  >
-                    {isCompleted
-                      ? 'Cleared'
-                      : isUnlocked
-                        ? 'Unlocked'
-                        : 'Locked'}
+          return (
+            <section key={world.id} className="level-world">
+              <div className="level-world__header">
+                <div>
+                  <p className="level-world__eyebrow">
+                    World {world.order} • {world.shortLabel}
+                  </p>
+                  <h3 className="level-world__title">{world.title}</h3>
+                  <p className="level-world__description">{world.description}</p>
+                </div>
+                <div className="level-world__summary">
+                  <span className="game-chip">
+                    {world.focus.join(' / ')}
+                  </span>
+                  <span className="game-chip">
+                    {worldPuzzles.length} levels
                   </span>
                 </div>
+              </div>
 
-                <div className="level-card__meta">
-                  <span>{puzzle.lesson}</span>
-                  <span>{puzzle.difficulty}</span>
-                  <span>Par {puzzle.parMoves}</span>
-                </div>
+              <section className="level-map">
+                {worldPuzzles.map((puzzle) => renderLevelCard(puzzle))}
+              </section>
+            </section>
+          );
+        })}
+      </section>
 
-                <p className="level-card__objective">{puzzle.objective}</p>
-
-                <div className="level-card__footer">
-                  <div className="level-card__track">
-                    <span
-                      className={`level-dot ${isCompleted ? 'level-dot--completed' : isUnlocked ? 'level-dot--open' : 'level-dot--locked'}`}
-                    />
-                    <span>
-                      {isNext
-                        ? 'Next required mission'
-                        : isCompleted
-                          ? 'Completed and replayable'
-                          : 'Unlock the previous room first'}
-                    </span>
+      {scaffoldedWorlds.length ? (
+        <section className="level-comingSoon">
+          <div className="level-comingSoon__header">
+            <div>
+              <p className="pixel-kicker">Coming Soon</p>
+              <h2 className="pixel-panel__title">Future worlds</h2>
+            </div>
+            <span className="game-chip">
+              {scaffoldedWorlds.length} scaffolded
+            </span>
+          </div>
+          <div className="level-comingSoon__grid">
+            {scaffoldedWorlds.map((world) => (
+              <article key={world.id} className="world-card">
+                <div className="world-card__header">
+                  <div>
+                    <p className="world-card__eyebrow">World {world.order}</p>
+                    <h3 className="world-card__title">{world.title}</h3>
                   </div>
-                  <Button
-                    className={
-                      isCompleted
-                        ? 'pixel-button pixel-button--ghost'
-                        : 'pixel-button'
-                    }
-                    variant={isCompleted ? 'ghost' : 'primary'}
-                    disabled={!isUnlocked}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      openPuzzle(puzzle.id);
-                    }}
-                  >
-                    {isCompleted
-                      ? 'Replay Level'
-                      : isUnlocked
-                        ? 'Play Level'
-                        : 'Locked'}
-                  </Button>
+                  <span className="world-card__status">
+                    Coming Soon
+                  </span>
+                </div>
+                <p className="world-card__description">{world.description}</p>
+                <div className="world-card__chips">
+                  {world.focus.map((topic) => (
+                    <span key={topic}>{topic}</span>
+                  ))}
                 </div>
               </article>
-            );
-          })}
+            ))}
+          </div>
         </section>
-      </section>
+      ) : null}
     </div>
   );
 };
