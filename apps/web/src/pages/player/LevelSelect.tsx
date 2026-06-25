@@ -7,7 +7,6 @@ import {
 import type { IPuzzleDefinition } from '@/features/game/engine';
 import { useGame } from '@/hooks/useGame';
 import { useNavigate } from 'react-router-dom';
-import { AssignedClassroomGameplays } from './AssignedClassroomGameplays';
 
 const scaffoldedWorlds = curriculumWorlds.filter(
   (world) => world.status === 'scaffolded',
@@ -38,12 +37,7 @@ export const LevelSelect = () => {
     officialPuzzles.map((puzzle, index) => [puzzle.id, index + 1]),
   );
 
-  const openPuzzle = (puzzleId: string, assignmentId?: string) => {
-    if (assignmentId) {
-      navigate(`/gameplay/${puzzleId}?assignmentId=${assignmentId}`);
-      return;
-    }
-
+  const openPuzzle = (puzzleId: string) => {
     loadPuzzle(puzzleId);
     navigate(`/gameplay/${puzzleId}`);
   };
@@ -121,13 +115,14 @@ export const LevelSelect = () => {
     <div className="pixel-page space-y-6">
       <section className="mission-brief">
         <div className="mission-brief__copy">
-          <p className="mission-brief__eyebrow">Level Map</p>
+          <p className="mission-brief__eyebrow">Normal Gameplay</p>
           <h1 className="mission-brief__title">
             Pick the next room and keep climbing.
           </h1>
           <p className="mission-brief__objective">
-            Start the highlighted room, or replay any cleared level to tighten
-            your route, helper use, state checks, and par-budget finishes.
+            This page only tracks the built-in Code Cat progression. Start the
+            highlighted room, or replay any cleared level to tighten your
+            route, helper use, state checks, and par-budget finishes.
           </p>
         </div>
         <div className="mission-brief__stats">
@@ -171,8 +166,6 @@ export const LevelSelect = () => {
           </div>
         </section>
       ) : null}
-
-      <AssignedClassroomGameplays />
 
       <section className="space-y-6">
         <div className="flex items-center justify-between gap-3">

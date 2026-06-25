@@ -5,8 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 const linksByRole: Record<Role, Array<{ to: string; label: string }>> = {
   [Role.STUDENT]: [
     { to: '/', label: 'Main Menu' },
-    { to: '/levels', label: 'Levels' },
-    { to: '/classroom-gameplays', label: 'Classroom Gameplays' },
+    { to: '/levels', label: 'Normal Gameplay' },
+    { to: '/classroom-gameplays', label: 'Classroom Gameplay' },
     { to: '/gameplay', label: 'Gameplay' },
     { to: '/achievements', label: 'Achievements' },
   ],

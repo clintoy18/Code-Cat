@@ -55,20 +55,20 @@ export const AssignedClassroomGameplays = ({
         <div className="pixel-page space-y-6">
           <section className="mission-brief">
             <div className="mission-brief__copy">
-              <p className="mission-brief__eyebrow">Classroom Gameplays</p>
+              <p className="mission-brief__eyebrow">Classroom Gameplay</p>
               <h1 className="mission-brief__title">
-                Assigned classroom work will appear here.
+                Teacher-assigned gameplay will appear here.
               </h1>
               <p className="mission-brief__objective">
-                Once a teacher assigns official rooms or custom classroom
-                gameplays, they will show up in this queue with their due dates
+                Official levels assigned through classrooms and teacher-built
+                custom rooms will show up in this queue with their due dates
                 and replay status.
               </p>
             </div>
           </section>
           <section className="pixel-panel">
             <p className="pixel-panel__body">
-              No classroom gameplays are assigned right now. Check back after
+              No classroom gameplay is assigned right now. Check back after
               your teacher schedules a room for your class.
             </p>
           </section>
@@ -84,7 +84,7 @@ export const AssignedClassroomGameplays = ({
       {mode === 'page' ? (
         <section className="mission-brief">
           <div className="mission-brief__copy">
-            <p className="mission-brief__eyebrow">Classroom Gameplays</p>
+            <p className="mission-brief__eyebrow">Classroom Gameplay</p>
             <h1 className="mission-brief__title">
               Teacher-assigned rooms live here.
             </h1>
@@ -130,8 +130,8 @@ export const AssignedClassroomGameplays = ({
       ) : (
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="pixel-kicker">Assigned Rooms</p>
-            <h2 className="pixel-panel__title">Teacher classroom work</h2>
+            <p className="pixel-kicker">Classroom Gameplay</p>
+            <h2 className="pixel-panel__title">Teacher-assigned work</h2>
             <p className="level-world__description">
               These rooms come from classrooms you are enrolled in. Assigned
               rooms are tracked separately from your base-world progression.
