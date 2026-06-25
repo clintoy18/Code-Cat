@@ -7,7 +7,6 @@ const linksByRole: Record<Role, Array<{ to: string; label: string }>> = {
     { to: '/', label: 'Main Menu' },
     { to: '/levels', label: 'Normal Gameplay' },
     { to: '/classroom-gameplays', label: 'Classroom Gameplay' },
-    { to: '/gameplay', label: 'Gameplay' },
     { to: '/achievements', label: 'Achievements' },
   ],
   [Role.TEACHER]: [
