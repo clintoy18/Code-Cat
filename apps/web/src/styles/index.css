@@ -106,6 +106,23 @@ body {
     position: relative;
   }
 
+  .main-menu-shell {
+    min-height: max(620px, calc(100dvh - 8rem));
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 24px;
+    align-content: start;
+  }
+
+  .main-menu-shell__hero {
+    min-height: calc(100dvh - 8rem);
+    align-items: center;
+  }
+
+  .main-menu-shell__grid {
+    align-content: start;
+  }
+
   .auth-shell {
     min-height: 100vh;
     padding: 24px;
@@ -2422,6 +2439,16 @@ body {
 }
 
 @media (max-width: 1024px) {
+  .main-menu-shell {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .main-menu-shell__hero {
+    min-height: 0;
+  }
+
   .gameplay-focus {
     overflow: auto;
   }
@@ -2529,6 +2556,10 @@ body {
 }
 
 @media (max-width: 640px) {
+  .main-menu-shell {
+    gap: 16px;
+  }
+
   .gameplay-result-popup {
     padding: 12px;
   }

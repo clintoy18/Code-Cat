@@ -105,13 +105,13 @@ export const LevelSelect = () => {
     <div className="pixel-page space-y-6">
       <section className="mission-brief">
         <div className="mission-brief__copy">
-          <p className="mission-brief__eyebrow">Level Select</p>
+          <p className="mission-brief__eyebrow">Level Map</p>
           <h1 className="mission-brief__title">
             Pick the next room and keep climbing.
           </h1>
           <p className="mission-brief__objective">
             Start the highlighted room, or replay any cleared level to tighten
-            your route, helper use, state checks, or par-budget finish.
+            your route, helper use, state checks, and par-budget finishes.
           </p>
         </div>
         <div className="mission-brief__stats">
@@ -147,10 +147,12 @@ export const LevelSelect = () => {
             <h2 className="pixel-panel__title">Recommended next room</h2>
             <p className="level-continue__body">
               Jump straight into the next required level, then return here to
-              replay any cleared rooms.
+              revisit any cleared rooms.
             </p>
           </div>
-          <div className="level-continue__card">{renderLevelCard(nextPuzzle)}</div>
+          <div className="level-continue__card">
+            {renderLevelCard(nextPuzzle)}
+          </div>
         </section>
       ) : null}
 
@@ -182,15 +184,13 @@ export const LevelSelect = () => {
               <div className="level-world__header">
                 <div>
                   <p className="level-world__eyebrow">
-                    World {world.order} • {world.shortLabel}
+                    World {world.order} / {world.shortLabel}
                   </p>
                   <h3 className="level-world__title">{world.title}</h3>
                   <p className="level-world__description">{world.description}</p>
                 </div>
                 <div className="level-world__summary">
-                  <span className="game-chip">
-                    {world.focus.join(' / ')}
-                  </span>
+                  <span className="game-chip">{world.focus.join(' / ')}</span>
                   <span className="game-chip">
                     {worldPuzzles.length} levels
                   </span>
@@ -224,9 +224,7 @@ export const LevelSelect = () => {
                     <p className="world-card__eyebrow">World {world.order}</p>
                     <h3 className="world-card__title">{world.title}</h3>
                   </div>
-                  <span className="world-card__status">
-                    Coming Soon
-                  </span>
+                  <span className="world-card__status">Coming Soon</span>
                 </div>
                 <p className="world-card__description">{world.description}</p>
                 <div className="world-card__chips">

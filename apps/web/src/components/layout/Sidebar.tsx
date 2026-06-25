@@ -35,8 +35,8 @@ export const Sidebar = () => {
             className={({ isActive }) =>
               `rounded-2xl px-4 py-3 text-sm font-medium transition ${
                 isActive
-                  ? 'bg-white/80 text-slate-900'
-                  : 'text-slate-700 hover:bg-white/70'
+                  ? 'bg-white/14 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]'
+                  : 'text-slate-200 hover:bg-white/10 hover:text-white'
               }`
             }
           >

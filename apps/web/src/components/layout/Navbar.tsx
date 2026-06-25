@@ -25,7 +25,7 @@ export const Navbar = () => {
             {roleLabelMap[role]}
           </span>
         ) : null}
-        <span className="text-sm text-slate-600">{user?.username ?? 'Guest'}</span>
+        <span className="text-sm text-slate-200">{user?.username ?? 'Guest'}</span>
         <Button variant="ghost" size="sm" onClick={logout}>
           <LogOut className="h-4 w-4" />
           Sign out

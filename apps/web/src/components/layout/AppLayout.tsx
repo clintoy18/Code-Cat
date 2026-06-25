@@ -19,7 +19,7 @@ export const AppLayout = () => {
       <Navbar />
       <div className="grid flex-1 items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
         <Sidebar />
-        <main className="min-w-0">
+        <main className="min-h-0 min-w-0">
           <Outlet />
         </main>
       </div>

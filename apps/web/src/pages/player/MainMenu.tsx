@@ -6,9 +6,18 @@ import { useGame } from '@/hooks/useGame';
 import codeCatLogo from '@/assets/codecat-logo.png';
 
 const cards = [
-  { title: 'Foundations World', body: 'Start with sequencing, debugging, and efficiency before the cat enters richer logic rooms.' },
-  { title: 'Decision World', body: 'Move beyond straight-line routes and teach the cat to react to true and false checks.' },
-  { title: 'Loops World', body: 'World 3 is now live with repeat blocks, while functions, variables, and strategy remain next on the roadmap.' },
+  {
+    title: 'Foundations World',
+    body: 'Start with sequencing, debugging, and efficiency before the cat enters richer logic rooms.',
+  },
+  {
+    title: 'Decision World',
+    body: 'Move beyond straight-line routes and teach the cat to react to true and false checks.',
+  },
+  {
+    title: 'Strategy World',
+    body: 'The live student path now reaches loops, functions, variables, and strategy, where working routes get tightened into stronger ones.',
+  },
 ];
 
 export const MainMenu = () => {
@@ -20,18 +29,21 @@ export const MainMenu = () => {
   const completionPercent = puzzles.length ? Math.round((completedPuzzleIds.length / puzzles.length) * 100) : 0;
 
   return (
-    <div className="pixel-page space-y-6">
+    <div className="pixel-page main-menu-shell">
       <motion.section
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        className="pixel-hero"
+        className="pixel-hero main-menu-shell__hero"
       >
         <div>
           <img src={codeCatLogo} alt="Code Cat" className="hero-logo" />
-          <h1 className="pixel-hero__title">A classroom puzzle game where code moves the cat tile by tile.</h1>
+          <h1 className="pixel-hero__title">
+            Mission control for every playable room.
+          </h1>
           <p className="pixel-hero__body">
-            Students learn logic through short playable rooms, clear one level at a time, and stay focused in a
-            game-first interface instead of a worksheet-like screen.
+            Students learn logic through short playable rooms, clear one level
+            at a time, and return here to continue the next mission or review
+            overall progress across the live worlds.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to="/levels">
@@ -63,13 +75,14 @@ export const MainMenu = () => {
             <div className="pixel-progress__bar" style={{ width: `${completionPercent}%` }} />
           </div>
           <p className="mt-3 text-sm text-brand-100">
-            {completedPuzzleIds.length} of {puzzles.length} playable rooms completed across {playableWorldCount} live
-            worlds. {scaffoldedWorldCount} more worlds are scoped next.
+            {completedPuzzleIds.length} of {puzzles.length} playable rooms
+            completed across {playableWorldCount} live worlds. {scaffoldedWorldCount}{' '}
+            future worlds remain outside the student path.
           </p>
         </div>
       </motion.section>
 
-      <section className="pixel-card-grid">
+      <section className="pixel-card-grid main-menu-shell__grid">
         {cards.map((card, index) => (
           <motion.article
             key={card.title}
