@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { Role } from '@shared/types';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -26,16 +26,22 @@ export const Sidebar = () => {
   const links = role ? linksByRole[role] : [];
 
   return (
-    <aside className="glass-panel h-fit p-4">
+    <aside className="glass-panel flex h-full flex-col p-4 lg:sticky lg:top-6 lg:h-[calc(100dvh-7.5rem)] lg:overflow-y-auto">
       <nav className="flex flex-col gap-2">
         {links.map((link) => (
-          <Link
+          <NavLink
             key={link.to}
             to={link.to}
-            className="rounded-2xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-white/70"
+            className={({ isActive }) =>
+              `rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                isActive
+                  ? 'bg-white/80 text-slate-900'
+                  : 'text-slate-700 hover:bg-white/70'
+              }`
+            }
           >
             {link.label}
-          </Link>
+          </NavLink>
         ))}
       </nav>
     </aside>
