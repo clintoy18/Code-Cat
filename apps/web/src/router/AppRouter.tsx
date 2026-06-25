@@ -15,6 +15,9 @@ const MainMenu = lazy(() => import('@/pages/player/MainMenu').then((module) => (
 const LevelSelect = lazy(() =>
   import('@/pages/player/LevelSelect').then((module) => ({ default: module.LevelSelect })),
 );
+const ClassroomGameplays = lazy(() =>
+  import('@/pages/player/ClassroomGameplays').then((module) => ({ default: module.ClassroomGameplays })),
+);
 const Gameplay = lazy(() => import('@/pages/player/Gameplay').then((module) => ({ default: module.Gameplay })));
 const Achievements = lazy(() =>
   import('@/pages/player/Achievements').then((module) => ({ default: module.Achievements })),
@@ -48,6 +51,7 @@ export const AppRouter = () => (
         <Route element={<PlayerRoutes />}>
           <Route path="/" element={<MainMenu />} />
           <Route path="/levels" element={<LevelSelect />} />
+          <Route path="/classroom-gameplays" element={<ClassroomGameplays />} />
           <Route path="/gameplay" element={<GameplayRedirect />} />
           <Route path="/gameplay/:puzzleId" element={<Gameplay />} />
           <Route path="/achievements" element={<Achievements />} />

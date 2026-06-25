@@ -58,7 +58,34 @@ let mockAssignmentQueryData: {
     roomKey: string;
     status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
   }>;
-  customRoom: null;
+  customRoom: {
+    id: string;
+    teacherId: string;
+    versionGroupId: string;
+    versionNumber: number;
+    title: string;
+    description: string;
+    lessonTag: string;
+    objective: string;
+    difficulty: string;
+    parMoves: number;
+    codeBudget: number;
+    lifecycleStatus: string;
+    definition: {
+      rows: number;
+      cols: number;
+      start: { row: number; col: number };
+      door: { row: number; col: number };
+      key?: { row: number; col: number } | null;
+      doorRequiresKey?: boolean;
+      walls: Array<{ row: number; col: number }>;
+      availableBlocks: IBlockTemplate[];
+    };
+    isLatest: boolean;
+    publishedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
 } | null = null;
 
 const moveUpBlock: IBlockTemplate = {
@@ -492,5 +519,112 @@ describe('Gameplay loop editor', () => {
         movesUsed: 1,
       }),
     );
+  });
+
+  it('starts a playable session for a custom teacher room assignment', () => {
+    const customRoomPuzzle: IPuzzleDefinition = {
+      ...puzzle,
+      id: 'custom-room-1',
+      title: 'Teacher Maze',
+      lesson: 'Functions',
+      objective: 'Use the helper to reach the exit.',
+    };
+
+    mockGameState = buildGameState([]);
+    mockGameState.sessionMode = 'official';
+    mockGameState.activePuzzleId = customRoomPuzzle.id;
+    mockAssignmentQueryData = {
+      classroom: {
+        id: 'classroom-1',
+        teacherId: 'teacher-1',
+        name: 'Function Lab',
+        description: 'Teacher custom room assignment',
+        isPrivate: true,
+        requiresApproval: false,
+        createdAt: '2026-06-25T00:00:00.000Z',
+        updatedAt: '2026-06-25T00:00:00.000Z',
+      },
+      assignment: {
+        id: 'assignment-custom-1',
+        classroomId: 'classroom-1',
+        teacherId: 'teacher-1',
+        targetType: 'CUSTOM_ROOM',
+        title: 'Teacher Maze Run',
+        description: 'Play the custom room.',
+        startAt: '2026-06-25T00:00:00.000Z',
+        dueAt: null,
+        officialWorldId: null,
+        officialPuzzleId: null,
+        customRoomVersionId: 'custom-room-1',
+        roomManifest: [
+          {
+            roomKey: 'custom-room-1',
+            title: 'Teacher Maze',
+            objective: 'Use the helper to reach the exit.',
+            lesson: 'Functions',
+            difficulty: 'Medium',
+            parMoves: 6,
+            codeBudget: 6,
+            sourceType: 'CUSTOM_ROOM',
+          },
+        ],
+        createdAt: '2026-06-25T00:00:00.000Z',
+        updatedAt: '2026-06-25T00:00:00.000Z',
+      },
+      progress: [{ roomKey: 'custom-room-1', status: 'IN_PROGRESS' }],
+      customRoom: {
+        id: 'custom-room-1',
+        teacherId: 'teacher-1',
+        versionGroupId: 'group-1',
+        versionNumber: 1,
+        title: 'Teacher Maze',
+        description: 'Custom room',
+        lessonTag: 'Functions',
+        objective: 'Use the helper to reach the exit.',
+        difficulty: 'Medium',
+        parMoves: 6,
+        codeBudget: 6,
+        lifecycleStatus: 'PUBLISHED',
+        definition: {
+          rows: customRoomPuzzle.rows,
+          cols: customRoomPuzzle.cols,
+          start: customRoomPuzzle.start,
+          door: customRoomPuzzle.door,
+          key: null,
+          doorRequiresKey: false,
+          walls: customRoomPuzzle.walls,
+          availableBlocks: customRoomPuzzle.availableBlocks,
+        },
+        isLatest: true,
+        publishedAt: '2026-06-25T00:00:00.000Z',
+        createdAt: '2026-06-25T00:00:00.000Z',
+        updatedAt: '2026-06-25T00:00:00.000Z',
+      },
+    };
+    mockResolveAssignmentManifestToPuzzles.mockReturnValue([customRoomPuzzle]);
+
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/gameplay/custom-room-1?assignmentId=assignment-custom-1',
+        ]}
+      >
+        <Routes>
+          <Route path="/gameplay/:puzzleId" element={<Gameplay />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(mockResolveAssignmentManifestToPuzzles).toHaveBeenCalledWith({
+      manifest: mockAssignmentQueryData.assignment.roomManifest,
+      customRoom: mockAssignmentQueryData.customRoom,
+    });
+    expect(mockStartAssignmentSession).toHaveBeenCalledWith(
+      'assignment-custom-1',
+      [customRoomPuzzle],
+      'custom-room-1',
+      [],
+    );
+    expect(screen.getByText('Teacher Maze Run')).toBeInTheDocument();
   });
 });
