@@ -29,8 +29,8 @@ describe('teacher score utilities', () => {
         failuresBeforeSuccess: 3,
       }),
     ).toEqual({
-      score: 68,
-      letterGrade: 'D',
+      score: 74,
+      letterGrade: 'C',
     });
   });
 

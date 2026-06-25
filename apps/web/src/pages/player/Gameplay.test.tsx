@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createRepeatBlockTemplate,
@@ -13,6 +13,53 @@ import { Gameplay } from './Gameplay';
 
 const mockReplaceProgram = vi.fn();
 const mockRunProgram = vi.fn();
+const mockStartOfficialSession = vi.fn();
+const mockStartAssignmentSession = vi.fn();
+const mockCreateAssignmentRoomProgress = vi.fn();
+const mockResolveAssignmentManifestToPuzzles = vi.fn();
+let mockAssignmentQueryData: {
+  classroom: {
+    id: string;
+    teacherId: string;
+    name: string;
+    description: string;
+    isPrivate: boolean;
+    requiresApproval: boolean;
+    createdAt: string;
+    updatedAt: string;
+  };
+  assignment: {
+    id: string;
+    classroomId: string;
+    teacherId: string;
+    targetType: 'OFFICIAL_WORLD' | 'OFFICIAL_PUZZLE' | 'CUSTOM_ROOM';
+    title: string;
+    description: string | null;
+    startAt: string;
+    dueAt: string | null;
+    officialWorldId: string | null;
+    officialPuzzleId: string | null;
+    customRoomVersionId: string | null;
+    roomManifest: Array<{
+      roomKey: string;
+      title: string;
+      objective: string;
+      lesson: string;
+      difficulty: string;
+      parMoves: number;
+      codeBudget: number;
+      sourceType: 'OFFICIAL_PUZZLE' | 'CUSTOM_ROOM';
+      officialPuzzleId?: string;
+    }>;
+    createdAt: string;
+    updatedAt: string;
+  };
+  progress: Array<{
+    roomKey: string;
+    status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+  }>;
+  customRoom: null;
+} | null = null;
 
 const moveUpBlock: IBlockTemplate = {
   key: 'move-up',
@@ -68,9 +115,13 @@ function buildGameState(
   };
 
   return {
+    officialPuzzles: [activePuzzle],
     puzzles: [activePuzzle],
+    sessionMode: 'official' as 'official' | 'assignment',
+    activeAssignmentId: null as string | null,
     activePuzzleId: activePuzzle.id,
     completedPuzzleIds: [],
+    completedAssignmentPuzzleIds: [],
     unlockedPuzzleIds: [activePuzzle.id],
     latestCompletedPuzzleId: null,
     puzzle: activePuzzle,
@@ -85,11 +136,25 @@ function buildGameState(
     clearProgram: vi.fn(),
     runProgram: mockRunProgram,
     resetPuzzle: vi.fn(),
+    startOfficialSession: mockStartOfficialSession,
+    startAssignmentSession: mockStartAssignmentSession,
   };
 }
 
 vi.mock('@/hooks/useGame', () => ({
   useGame: () => mockGameState,
+}));
+
+vi.mock('@/features/teacher', () => ({
+  resolveAssignmentManifestToPuzzles: (...args: unknown[]) =>
+    mockResolveAssignmentManifestToPuzzles(...args),
+  useStudentAssignmentQuery: () => ({
+    data: mockAssignmentQueryData,
+    isLoading: false,
+  }),
+  useCreateAssignmentRoomProgressMutation: () => ({
+    mutate: mockCreateAssignmentRoomProgress,
+  }),
 }));
 
 vi.mock('@/store/settingsStore', () => ({
@@ -115,6 +180,12 @@ describe('Gameplay loop editor', () => {
   beforeEach(() => {
     mockReplaceProgram.mockReset();
     mockRunProgram.mockReset();
+    mockStartOfficialSession.mockReset();
+    mockStartAssignmentSession.mockReset();
+    mockCreateAssignmentRoomProgress.mockReset();
+    mockResolveAssignmentManifestToPuzzles.mockReset();
+    mockAssignmentQueryData = null;
+    mockResolveAssignmentManifestToPuzzles.mockReturnValue([]);
     mockReplaceProgram.mockImplementation((nextProgram: IProgramBlock[]) => {
       mockGameState.program = nextProgram;
     });
@@ -341,5 +412,85 @@ describe('Gameplay loop editor', () => {
         'The route reached the door in 4 moves, but this room requires 3 moves or fewer.',
       ),
     ).toHaveLength(2);
+  });
+
+  it('submits assignment room progress after a successful assignment run', () => {
+    mockGameState = buildGameState([]);
+    mockGameState.sessionMode = 'assignment';
+    mockGameState.activeAssignmentId = 'assignment-1';
+    mockGameState.completedAssignmentPuzzleIds = [];
+    mockAssignmentQueryData = {
+      classroom: {
+        id: 'classroom-1',
+        teacherId: 'teacher-1',
+        name: 'Loop Lab',
+        description: 'Teacher assignment',
+        isPrivate: true,
+        requiresApproval: false,
+        createdAt: '2026-06-25T00:00:00.000Z',
+        updatedAt: '2026-06-25T00:00:00.000Z',
+      },
+      assignment: {
+        id: 'assignment-1',
+        classroomId: 'classroom-1',
+        teacherId: 'teacher-1',
+        targetType: 'OFFICIAL_PUZZLE',
+        title: 'Loop Drill',
+        description: null,
+        startAt: '2026-06-25T00:00:00.000Z',
+        dueAt: null,
+        officialWorldId: null,
+        officialPuzzleId: 'echo-ramp',
+        customRoomVersionId: null,
+        roomManifest: [
+          {
+            roomKey: 'echo-ramp',
+            title: 'Echo Ramp',
+            objective: 'Solve the room.',
+            lesson: 'Loops',
+            difficulty: 'Hard',
+            parMoves: 1,
+            codeBudget: 1,
+            sourceType: 'OFFICIAL_PUZZLE',
+            officialPuzzleId: 'echo-ramp',
+          },
+        ],
+        createdAt: '2026-06-25T00:00:00.000Z',
+        updatedAt: '2026-06-25T00:00:00.000Z',
+      },
+      progress: [],
+      customRoom: null,
+    };
+    mockResolveAssignmentManifestToPuzzles.mockReturnValue([mockGameState.puzzle]);
+    mockRunProgram.mockReturnValue({
+      puzzle: mockGameState.puzzle,
+      program: mockGameState.program,
+      catPosition: mockGameState.puzzle.door,
+      visited: [mockGameState.puzzle.start, { row: 3, col: 0 }],
+      roomState: { hasKey: false },
+      status: 'success',
+      log: ['Solved'],
+      stepIndex: 1,
+      didReachDoor: true,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/gameplay/echo-ramp?assignmentId=assignment-1']}>
+        <Routes>
+          <Route path="/gameplay/:puzzleId" element={<Gameplay />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+    expect(mockCreateAssignmentRoomProgress).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assignmentId: 'assignment-1',
+        roomKey: 'echo-ramp',
+        status: 'COMPLETED',
+        movesUsed: 1,
+      }),
+    );
   });
 });

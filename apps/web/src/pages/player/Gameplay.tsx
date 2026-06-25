@@ -1,8 +1,14 @@
-import { useEffect, useRef, useState, type DragEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { CompletionStatus } from '@shared/types';
 import { Cat, Grid } from '@/components/game';
 import { Button } from '@/components/ui';
 import { gameAudio } from '@/features/game/audio/gameAudio';
+import {
+  resolveAssignmentManifestToPuzzles,
+  useCreateAssignmentRoomProgressMutation,
+  useStudentAssignmentQuery,
+} from '@/features/teacher';
 import {
   cloneBlockTemplate,
   createRepeatBlockTemplate,
@@ -161,10 +167,16 @@ const getBlockHeader = (block: TRenderableBlock) => {
 export const Gameplay = () => {
   const navigate = useNavigate();
   const { puzzleId: routePuzzleId } = useParams<{ puzzleId: string }>();
+  const [searchParams] = useSearchParams();
+  const assignmentId = searchParams.get('assignmentId');
   const {
+    officialPuzzles,
     puzzles,
+    sessionMode,
+    activeAssignmentId,
     activePuzzleId,
     completedPuzzleIds,
+    completedAssignmentPuzzleIds,
     unlockedPuzzleIds,
     puzzle,
     program,
@@ -177,8 +189,13 @@ export const Gameplay = () => {
     clearProgram,
     runProgram,
     resetPuzzle,
+    startOfficialSession,
+    startAssignmentSession,
     loadPuzzle,
   } = useGame();
+  const assignmentQuery = useStudentAssignmentQuery(assignmentId);
+  const createAssignmentRoomProgressMutation =
+    useCreateAssignmentRoomProgressMutation();
   const volume = useSettingsStore((state) => state.volume);
   const [animatedCatPosition, setAnimatedCatPosition] =
     useState<IPosition | null>(clonePosition(catPosition));
@@ -203,6 +220,7 @@ export const Gameplay = () => {
     null,
   );
   const [resultPopup, setResultPopup] = useState<TResultPopup | null>(null);
+  const [attemptStartedAt, setAttemptStartedAt] = useState(() => Date.now());
   const playbackTimeoutsRef = useRef<number[]>([]);
   const gameplayShellRef = useRef<HTMLDivElement | null>(null);
   const terminalBodyRef = useRef<HTMLDivElement | null>(null);
@@ -211,6 +229,24 @@ export const Gameplay = () => {
   const routePuzzle = routePuzzleId
     ? (puzzles.find((entry) => entry.id === routePuzzleId) ?? null)
     : null;
+  const assignmentDetail = assignmentQuery.data ?? null;
+  const assignmentPuzzles = useMemo(
+    () =>
+      assignmentDetail
+        ? resolveAssignmentManifestToPuzzles({
+            manifest: assignmentDetail.assignment.roomManifest,
+            customRoom: assignmentDetail.customRoom,
+          })
+        : [],
+    [assignmentDetail],
+  );
+  const completedAssignmentRoomIds = useMemo(
+    () =>
+      (assignmentDetail?.progress ?? [])
+        .filter((entry) => entry.status === CompletionStatus.COMPLETED)
+        .map((entry) => entry.roomKey),
+    [assignmentDetail],
+  );
 
   const currentPuzzleIndex = puzzles.findIndex(
     (entry) => entry.id === activePuzzleId,
@@ -218,7 +254,10 @@ export const Gameplay = () => {
   const currentLevelNumber =
     currentPuzzleIndex >= 0 ? currentPuzzleIndex + 1 : 1;
   const nextPuzzle = getPuzzleByOffset(puzzles, activePuzzleId, 1);
-  const clearedCount = completedPuzzleIds.length;
+  const clearedCount =
+    sessionMode === 'assignment'
+      ? completedAssignmentPuzzleIds.length
+      : completedPuzzleIds.length;
   const commandCount = countProgramBlocks(program);
   const visitedCount = Math.max(0, animatedVisited.length - 1);
   const budgetLabel = `${visitedCount}/${puzzle?.parMoves ?? 0}`;
@@ -292,23 +331,66 @@ export const Gameplay = () => {
   );
 
   useEffect(() => {
-    if (!routePuzzleId || !puzzles.length) {
+    if (!routePuzzleId) {
       return;
     }
 
-    if (!routePuzzle) {
+    if (assignmentId) {
+      if (assignmentQuery.isLoading) {
+        return;
+      }
+
+      if (!assignmentDetail || !assignmentPuzzles.length) {
+        navigate('/levels', { replace: true });
+        return;
+      }
+
+      const routeAssignmentPuzzle = assignmentPuzzles.find(
+        (entry) => entry.id === routePuzzleId,
+      );
+
+      if (!routeAssignmentPuzzle) {
+        navigate('/levels', { replace: true });
+        return;
+      }
+
+      if (
+        sessionMode !== 'assignment' ||
+        activeAssignmentId !== assignmentId ||
+        activePuzzleId !== routePuzzleId
+      ) {
+        startAssignmentSession(
+          assignmentId,
+          assignmentPuzzles,
+          routePuzzleId,
+          completedAssignmentRoomIds,
+        );
+      }
+
+      return;
+    }
+
+    if (!officialPuzzles.length) {
+      return;
+    }
+
+    const routeOfficialPuzzle =
+      officialPuzzles.find((entry) => entry.id === routePuzzleId) ?? null;
+
+    if (!routeOfficialPuzzle) {
       navigate('/levels', { replace: true });
       return;
     }
 
-    if (!unlockedPuzzleIds.includes(routePuzzle.id)) {
+    if (!unlockedPuzzleIds.includes(routeOfficialPuzzle.id)) {
       const fallbackPuzzleId =
-        puzzles.find(
+        officialPuzzles.find(
           (entry) =>
             unlockedPuzzleIds.includes(entry.id) &&
             !completedPuzzleIds.includes(entry.id),
         )?.id ??
-        puzzles.find((entry) => unlockedPuzzleIds.includes(entry.id))?.id ??
+        officialPuzzles.find((entry) => unlockedPuzzleIds.includes(entry.id))
+          ?.id ??
         null;
 
       navigate(fallbackPuzzleId ? `/gameplay/${fallbackPuzzleId}` : '/levels', {
@@ -317,17 +399,24 @@ export const Gameplay = () => {
       return;
     }
 
-    if (activePuzzleId !== routePuzzle.id) {
-      loadPuzzle(routePuzzle.id);
+    if (sessionMode !== 'official' || activePuzzleId !== routeOfficialPuzzle.id) {
+      startOfficialSession(routeOfficialPuzzle.id);
     }
   }, [
+    activeAssignmentId,
     activePuzzleId,
+    assignmentDetail,
+    assignmentId,
+    assignmentPuzzles,
+    assignmentQuery.isLoading,
     completedPuzzleIds,
-    loadPuzzle,
+    completedAssignmentRoomIds,
     navigate,
-    puzzles,
-    routePuzzle,
+    officialPuzzles,
     routePuzzleId,
+    sessionMode,
+    startAssignmentSession,
+    startOfficialSession,
     unlockedPuzzleIds,
   ]);
 
@@ -338,6 +427,10 @@ export const Gameplay = () => {
       setAnimatedRoomState(cloneRoomState(roomState));
     }
   }, [catPosition, visited, roomState, isPlaybackRunning, puzzle?.id]);
+
+  useEffect(() => {
+    setAttemptStartedAt(Date.now());
+  }, [assignmentId, puzzle?.id]);
 
   useEffect(() => {
     setCodeDraft(serializeProgramToCode(program));
@@ -545,6 +638,30 @@ export const Gameplay = () => {
     }
 
     const snapshot = runProgram();
+
+    if (
+      assignmentId &&
+      activeAssignmentId === assignmentId &&
+      snapshot.puzzle &&
+      (snapshot.status === 'success' || snapshot.status === 'error')
+    ) {
+      createAssignmentRoomProgressMutation.mutate({
+        assignmentId,
+        roomKey: snapshot.puzzle.id,
+        status:
+          snapshot.status === 'success'
+            ? CompletionStatus.COMPLETED
+            : CompletionStatus.IN_PROGRESS,
+        movesUsed: Math.max(0, snapshot.visited.length - 1),
+        blocksUsed: countProgramBlocks(program),
+        timeSpent: Math.max(
+          1,
+          Math.round((Date.now() - attemptStartedAt) / 1000),
+        ),
+      });
+      setAttemptStartedAt(Date.now());
+    }
+
     playRun(snapshot);
   };
 
@@ -584,7 +701,11 @@ export const Gameplay = () => {
 
   const loadAndPlayPuzzle = (nextTargetPuzzle: IPuzzleDefinition) => {
     loadPuzzle(nextTargetPuzzle.id);
-    navigate(`/gameplay/${nextTargetPuzzle.id}`);
+    navigate(
+      assignmentId
+        ? `/gameplay/${nextTargetPuzzle.id}?assignmentId=${assignmentId}`
+        : `/gameplay/${nextTargetPuzzle.id}`,
+    );
   };
 
   const addBlockToInsertTarget = (

@@ -162,9 +162,9 @@ export const Lessons = () => {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-brand-700">Room Builder</p>
+        <p className="teacher-kicker text-sm font-semibold uppercase tracking-[0.3em]">Room Builder</p>
         <h1 className="mt-2 font-display text-3xl font-bold">Publish teacher-made rooms without leaving the dashboard.</h1>
-        <p className="mt-3 max-w-3xl text-sm text-slate-700">
+        <p className="teacher-copy mt-3 max-w-3xl text-sm">
           The builder focuses on MVP controls that affect playability directly: layout, key-door logic, block palette,
           par moves, lesson tag, and objective text. It avoids a heavier custom-world editor for now.
         </p>
@@ -174,21 +174,21 @@ export const Lessons = () => {
         <article className="glass-panel p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm uppercase tracking-[0.28em] text-brand-700">Builder</p>
+              <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Builder</p>
               <h2 className="mt-2 font-display text-2xl font-bold">Create or version a room</h2>
             </div>
-            <span className="rounded-full bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700">
+            <span className="teacher-chip">
               {publishedRoomCount} published
             </span>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <label className="block md:col-span-2">
-              <span className="text-sm font-semibold text-slate-700">Use base version</span>
+              <span className="teacher-label text-sm font-semibold">Use base version</span>
               <select
                 value={form.baseVersionId}
                 onChange={(event) => hydrateFromRoom(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2"
               >
                 <option value="">Start from scratch</option>
                 {roomVersions.map((room) => (
@@ -199,38 +199,38 @@ export const Lessons = () => {
               </select>
             </label>
             <label className="block md:col-span-2">
-              <span className="text-sm font-semibold text-slate-700">Room title</span>
+              <span className="teacher-label text-sm font-semibold">Room title</span>
               <input
                 value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2"
                 placeholder="Key Ladder Lab"
               />
             </label>
             <label className="block md:col-span-2">
-              <span className="text-sm font-semibold text-slate-700">Description</span>
+              <span className="teacher-label text-sm font-semibold">Description</span>
               <textarea
                 value={form.description}
                 onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                className="mt-2 min-h-24 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2 min-h-24"
                 placeholder="Students must collect a key, avoid wasted moves, and reuse the cleanest route."
               />
             </label>
             <label className="block md:col-span-2">
-              <span className="text-sm font-semibold text-slate-700">Objective</span>
+              <span className="teacher-label text-sm font-semibold">Objective</span>
               <textarea
                 value={form.objective}
                 onChange={(event) => setForm((current) => ({ ...current, objective: event.target.value }))}
-                className="mt-2 min-h-24 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2 min-h-24"
                 placeholder="Collect the key, then use the shortest safe route into the locked exit."
               />
             </label>
             <label className="block">
-              <span className="text-sm font-semibold text-slate-700">Lesson tag</span>
+              <span className="teacher-label text-sm font-semibold">Lesson tag</span>
               <select
                 value={form.lessonTag}
                 onChange={(event) => setForm((current) => ({ ...current, lessonTag: event.target.value as typeof current.lessonTag }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2"
               >
                 {['Sequencing', 'Debugging', 'Efficiency', 'Conditionals', 'Boolean Logic', 'Loops', 'Functions', 'Variables', 'Strategy'].map((topic) => (
                   <option key={topic} value={topic}>
@@ -240,11 +240,11 @@ export const Lessons = () => {
               </select>
             </label>
             <label className="block">
-              <span className="text-sm font-semibold text-slate-700">Difficulty</span>
+              <span className="teacher-label text-sm font-semibold">Difficulty</span>
               <select
                 value={form.difficulty}
                 onChange={(event) => setForm((current) => ({ ...current, difficulty: event.target.value as typeof current.difficulty }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2"
               >
                 {['Easy', 'Medium', 'Hard'].map((difficulty) => (
                   <option key={difficulty} value={difficulty}>
@@ -254,31 +254,31 @@ export const Lessons = () => {
               </select>
             </label>
             <label className="block">
-              <span className="text-sm font-semibold text-slate-700">Par moves</span>
+              <span className="teacher-label text-sm font-semibold">Par moves</span>
               <input
                 type="number"
                 min={1}
                 value={form.parMoves}
                 onChange={(event) => setForm((current) => ({ ...current, parMoves: Number(event.target.value) }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-semibold text-slate-700">Code budget</span>
+              <span className="teacher-label text-sm font-semibold">Code budget</span>
               <input
                 type="number"
                 min={1}
                 value={form.codeBudget}
                 onChange={(event) => setForm((current) => ({ ...current, codeBudget: Number(event.target.value) }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-semibold text-slate-700">Publish status</span>
+              <span className="teacher-label text-sm font-semibold">Publish status</span>
               <select
                 value={form.lifecycleStatus}
                 onChange={(event) => setForm((current) => ({ ...current, lifecycleStatus: event.target.value as RoomLifecycleStatus }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2"
               >
                 <option value={RoomLifecycleStatus.DRAFT}>Draft</option>
                 <option value={RoomLifecycleStatus.PUBLISHED}>Published</option>
@@ -299,7 +299,7 @@ export const Lessons = () => {
               ['Key col', 'keyCol'],
             ].map(([label, field]) => (
               <label key={field} className="block">
-                <span className="text-sm font-semibold text-slate-700">{label}</span>
+                <span className="teacher-label text-sm font-semibold">{label}</span>
                 <input
                   type="number"
                   min={0}
@@ -310,13 +310,13 @@ export const Lessons = () => {
                       [field]: field.startsWith('key') ? event.target.value : Number(event.target.value),
                     }))
                   }
-                  className="mt-2 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                  className="teacher-field mt-2"
                 />
               </label>
             ))}
           </div>
 
-          <label className="mt-4 flex items-center gap-3 rounded-2xl border border-[var(--color-line)] bg-white/75 px-4 py-3 text-sm text-slate-700">
+          <label className="teacher-surface teacher-copy mt-4 flex items-center gap-3 rounded-2xl px-4 py-3 text-sm">
             <input
               type="checkbox"
               checked={form.doorRequiresKey}
@@ -326,23 +326,23 @@ export const Lessons = () => {
           </label>
 
           <label className="mt-4 block">
-            <span className="text-sm font-semibold text-slate-700">Walls</span>
+            <span className="teacher-label text-sm font-semibold">Walls</span>
             <textarea
               value={form.wallsText}
               onChange={(event) => setForm((current) => ({ ...current, wallsText: event.target.value }))}
-              className="mt-2 min-h-28 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+              className="teacher-field mt-2 min-h-28"
               placeholder={'One wall per line\n1, 2\n2, 2\n3, 2'}
             />
           </label>
 
           <div className="mt-6">
-            <p className="text-sm font-semibold text-slate-700">Allowed blocks</p>
+            <p className="teacher-label text-sm font-semibold">Allowed blocks</p>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {blockPresetCatalog.map((preset) => (
-                <label key={preset.id} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--color-line)] bg-white/75 px-4 py-3 text-sm text-slate-700">
+                <label key={preset.id} className="teacher-surface teacher-copy flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm">
                   <div>
-                    <p className="font-semibold text-slate-800">{preset.label}</p>
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{preset.category}</p>
+                    <p className="font-semibold text-[var(--text-0)]">{preset.label}</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-2)]">{preset.category}</p>
                   </div>
                   <input
                     type="checkbox"
@@ -364,32 +364,32 @@ export const Lessons = () => {
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             <label className="block">
-              <span className="text-sm font-semibold text-slate-700">Helper name</span>
+              <span className="teacher-label text-sm font-semibold">Helper name</span>
               <input
                 value={form.helperName}
                 onChange={(event) => setForm((current) => ({ ...current, helperName: event.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-semibold text-slate-700">Repeat count</span>
+              <span className="teacher-label text-sm font-semibold">Repeat count</span>
               <input
                 type="number"
                 min={2}
                 max={5}
                 value={form.repeatCount}
                 onChange={(event) => setForm((current) => ({ ...current, repeatCount: Number(event.target.value) }))}
-                className="mt-2 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-semibold text-slate-700">While condition</span>
+              <span className="teacher-label text-sm font-semibold">While condition</span>
               <select
                 value={form.whileCondition}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, whileCondition: event.target.value as typeof current.whileCondition }))
                 }
-                className="mt-2 w-full rounded-2xl border border-[var(--color-line)] bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-brand-400"
+                className="teacher-field mt-2"
               >
                 {['PATH_UP_CLEAR', 'PATH_RIGHT_CLEAR', 'PATH_DOWN_CLEAR', 'PATH_LEFT_CLEAR', 'HAS_KEY', 'DOOR_UP', 'DOOR_RIGHT', 'DOOR_DOWN', 'DOOR_LEFT'].map((condition) => (
                   <option key={condition} value={condition}>
@@ -404,7 +404,7 @@ export const Lessons = () => {
             type="button"
             onClick={submitRoom}
             disabled={createRoomMutation.isPending}
-            className="mt-6 w-full rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="teacher-button-primary mt-6 w-full"
           >
             {createRoomMutation.isPending ? 'Saving room version...' : 'Save room version'}
           </button>
@@ -413,37 +413,37 @@ export const Lessons = () => {
         <article className="glass-panel p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm uppercase tracking-[0.28em] text-brand-700">Library</p>
+              <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Library</p>
               <h2 className="mt-2 font-display text-2xl font-bold">Latest room versions</h2>
             </div>
-            <span className="rounded-full bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700">
+            <span className="teacher-chip">
               {roomVersions.length} latest
             </span>
           </div>
 
           <div className="mt-5 space-y-3">
             {roomVersions.map((room) => (
-              <article key={room.id} className="rounded-3xl border border-[var(--color-line)] bg-white/75 p-4">
+              <article key={room.id} className="teacher-surface rounded-3xl p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="font-display text-xl font-bold text-[var(--color-ink)]">{room.title}</h3>
-                    <p className="mt-2 text-sm text-slate-600">{room.description}</p>
+                    <p className="teacher-copy mt-2 text-sm">{room.description}</p>
                   </div>
-                  <span className="rounded-full bg-slate-900 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-white">
+                  <span className="teacher-tag">
                     {room.lifecycleStatus}
                   </span>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">
                   <span>v{room.versionNumber}</span>
                   <span>{room.lessonTag}</span>
                   <span>{room.parMoves} par</span>
                   <span>{room.codeBudget} budget</span>
                 </div>
-                <p className="mt-3 text-sm text-slate-600">{room.objective}</p>
+                <p className="teacher-copy mt-3 text-sm">{room.objective}</p>
                 <button
                   type="button"
                   onClick={() => hydrateFromRoom(room.id)}
-                  className="mt-4 rounded-2xl border border-[var(--color-line)] bg-white/90 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
+                  className="teacher-button-secondary mt-4"
                 >
                   Use as next version base
                 </button>

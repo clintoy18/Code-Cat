@@ -310,6 +310,142 @@ body {
     color: #c6b6b6;
   }
 
+  .teacher-field {
+    width: 100%;
+    min-width: 0;
+    border-radius: 1rem;
+    border: 1px solid rgba(100, 116, 139, 0.22);
+    background: rgba(255, 255, 255, 0.88);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    color: #0f172a;
+    caret-color: #0f172a;
+    outline: none;
+    transition:
+      border-color 140ms ease,
+      background-color 140ms ease,
+      box-shadow 140ms ease;
+    appearance: none;
+  }
+
+  .teacher-field::placeholder {
+    color: #64748b;
+  }
+
+  .teacher-field:hover {
+    background: rgba(255, 255, 255, 0.94);
+    border-color: rgba(100, 116, 139, 0.3);
+  }
+
+  .teacher-field:focus {
+    border-color: rgba(94, 94, 102, 0.82);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.96);
+  }
+
+  .teacher-field option {
+    color: #0f172a;
+    background: #ffffff;
+  }
+
+  .teacher-kicker {
+    color: var(--text-2);
+  }
+
+  .teacher-copy {
+    color: var(--text-1);
+  }
+
+  .teacher-label {
+    color: #d7d7dc;
+  }
+
+  .teacher-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-1);
+  }
+
+  .teacher-tag {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: rgba(20, 20, 24, 0.92);
+    padding: 0.25rem 0.75rem;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-1);
+  }
+
+  .teacher-button-primary,
+  .teacher-button-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      opacity 140ms ease;
+  }
+
+  .teacher-button-primary {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(180deg, #6f727c 0%, #53565f 100%);
+    color: var(--text-0);
+  }
+
+  .teacher-button-primary:hover {
+    background: linear-gradient(180deg, #7a7d88 0%, #5b5f69 100%);
+  }
+
+  .teacher-button-secondary {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-1);
+  }
+
+  .teacher-button-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .teacher-button-primary:disabled,
+  .teacher-button-secondary:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .teacher-surface {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-1);
+  }
+
+  .teacher-surface--active {
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .teacher-surface--muted {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .teacher-note {
+    background: rgba(18, 18, 22, 0.94);
+    color: var(--text-1);
+  }
+
   .pixel-kicker {
     margin: 0;
     font-size: 11px;

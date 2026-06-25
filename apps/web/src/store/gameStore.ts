@@ -1,5 +1,9 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import {
+  createJSONStorage,
+  persist,
+  type StateStorage,
+} from 'zustand/middleware';
 import { starterPuzzles } from '@/features/game/data/starterPuzzles';
 import {
   gameEngine,
@@ -7,6 +11,7 @@ import {
   type IGameEngineSnapshot,
   type IPuzzleDefinition,
 } from '@/features/game/engine';
+import { useAuthStore } from './authStore';
 
 interface IGameState extends IGameEngineSnapshot {
   officialPuzzles: IPuzzleDefinition[];
@@ -19,7 +24,12 @@ interface IGameState extends IGameEngineSnapshot {
   unlockedPuzzleIds: string[];
   latestCompletedPuzzleId: string | null;
   startOfficialSession: (initialPuzzleId?: string | null) => void;
-  startAssignmentSession: (assignmentId: string, puzzles: IPuzzleDefinition[], initialPuzzleId?: string | null) => void;
+  startAssignmentSession: (
+    assignmentId: string,
+    puzzles: IPuzzleDefinition[],
+    initialPuzzleId?: string | null,
+    completedPuzzleIds?: string[],
+  ) => void;
   loadPuzzle: (puzzleId: string) => void;
   addBlock: (template: IBlockTemplate) => void;
   replaceProgram: (templates: IBlockTemplate[]) => void;
@@ -28,6 +38,28 @@ interface IGameState extends IGameEngineSnapshot {
   runProgram: () => IGameEngineSnapshot;
   resetPuzzle: () => void;
 }
+
+type TPersistedGameState = Pick<
+  IGameState,
+  'activePuzzleId' | 'completedPuzzleIds' | 'latestCompletedPuzzleId'
+>;
+
+const getProgressStorageOwnerId = () => useAuthStore.getState().user?.id ?? null;
+
+const getProgressStorageKey = (name: string) => {
+  const ownerId = getProgressStorageOwnerId();
+
+  return `${name}:${ownerId ?? 'guest'}`;
+};
+
+const progressStorage: StateStorage = {
+  getItem: (name) => localStorage.getItem(getProgressStorageKey(name)),
+  setItem: (name, value) => localStorage.setItem(getProgressStorageKey(name), value),
+  removeItem: (name) => localStorage.removeItem(getProgressStorageKey(name)),
+};
+
+const hasPersistedProgressForCurrentUser = (name: string) =>
+  localStorage.getItem(getProgressStorageKey(name)) !== null;
 
 const getOfficialUnlockedPuzzleIds = (completedPuzzleIds: string[]) => {
   const unlocked = new Set<string>();
@@ -59,24 +91,49 @@ const getNextOpenOfficialPuzzleId = (completedPuzzleIds: string[], unlockedPuzzl
   starterPuzzles[0]?.id ??
   null;
 
-gameEngine.loadPuzzle(starterPuzzles[0]);
+let isHydratingOfficialPuzzleState = false;
 
-const initialSnapshot = gameEngine.getSnapshot();
-const initialUnlockedPuzzleIds = getOfficialUnlockedPuzzleIds([]);
+const buildOfficialGameState = (
+  persistedState?: Partial<TPersistedGameState>,
+) => {
+  const completedPuzzleIds = persistedState?.completedPuzzleIds ?? [];
+  const unlockedPuzzleIds = getOfficialUnlockedPuzzleIds(completedPuzzleIds);
+  const activePuzzleId =
+    persistedState?.activePuzzleId &&
+    unlockedPuzzleIds.includes(persistedState.activePuzzleId)
+      ? persistedState.activePuzzleId
+      : getNextOpenOfficialPuzzleId(completedPuzzleIds, unlockedPuzzleIds);
+  const nextPuzzle =
+    starterPuzzles.find((puzzle) => puzzle.id === activePuzzleId) ??
+    starterPuzzles[0] ??
+    null;
+
+  if (nextPuzzle) {
+    isHydratingOfficialPuzzleState = true;
+    gameEngine.loadPuzzle(nextPuzzle);
+    isHydratingOfficialPuzzleState = false;
+  }
+
+  return {
+    ...gameEngine.getSnapshot(),
+    officialPuzzles: starterPuzzles,
+    puzzles: starterPuzzles,
+    sessionMode: 'official' as const,
+    activeAssignmentId: null,
+    activePuzzleId: nextPuzzle?.id ?? null,
+    completedPuzzleIds,
+    completedAssignmentPuzzleIds: [],
+    unlockedPuzzleIds,
+    latestCompletedPuzzleId: persistedState?.latestCompletedPuzzleId ?? null,
+  };
+};
+
+const initialGameState = buildOfficialGameState();
 
 export const useGameStore = create<IGameState>()(
   persist(
     (set, get) => ({
-      ...initialSnapshot,
-      officialPuzzles: starterPuzzles,
-      puzzles: starterPuzzles,
-      sessionMode: 'official',
-      activeAssignmentId: null,
-      activePuzzleId: initialSnapshot.puzzle?.id ?? null,
-      completedPuzzleIds: [],
-      completedAssignmentPuzzleIds: [],
-      unlockedPuzzleIds: initialUnlockedPuzzleIds,
-      latestCompletedPuzzleId: null,
+      ...initialGameState,
       startOfficialSession: (initialPuzzleId = null) => {
         const { completedPuzzleIds } = get();
         const unlockedPuzzleIds = getOfficialUnlockedPuzzleIds(completedPuzzleIds);
@@ -101,7 +158,12 @@ export const useGameStore = create<IGameState>()(
           latestCompletedPuzzleId: null,
         });
       },
-      startAssignmentSession: (assignmentId, puzzles, initialPuzzleId = null) => {
+      startAssignmentSession: (
+        assignmentId,
+        puzzles,
+        initialPuzzleId = null,
+        completedPuzzleIds = [],
+      ) => {
         const nextPuzzle =
           puzzles.find((puzzle) => puzzle.id === initialPuzzleId) ?? puzzles[0] ?? null;
 
@@ -114,7 +176,7 @@ export const useGameStore = create<IGameState>()(
           puzzles,
           sessionMode: 'assignment',
           activeAssignmentId: assignmentId,
-          completedAssignmentPuzzleIds: [],
+          completedAssignmentPuzzleIds: completedPuzzleIds,
           unlockedPuzzleIds: puzzles.map((puzzle) => puzzle.id),
           latestCompletedPuzzleId: null,
         });
@@ -175,39 +237,52 @@ export const useGameStore = create<IGameState>()(
     }),
     {
       name: 'codecat-game',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => progressStorage),
       partialize: (state) => ({
         activePuzzleId: state.activePuzzleId,
         completedPuzzleIds: state.completedPuzzleIds,
         latestCompletedPuzzleId: state.latestCompletedPuzzleId,
       }),
       merge: (persistedState, currentState) => {
-        const typedPersistedState = persistedState as Partial<IGameState> | undefined;
-        const completedPuzzleIds = typedPersistedState?.completedPuzzleIds ?? currentState.completedPuzzleIds;
-        const unlockedPuzzleIds = getOfficialUnlockedPuzzleIds(completedPuzzleIds);
-        const activePuzzleId =
-          typedPersistedState?.activePuzzleId && unlockedPuzzleIds.includes(typedPersistedState.activePuzzleId)
-            ? typedPersistedState.activePuzzleId
-            : getNextOpenOfficialPuzzleId(completedPuzzleIds, unlockedPuzzleIds);
+        const typedPersistedState =
+          persistedState as Partial<TPersistedGameState> | undefined;
 
         return {
           ...currentState,
-          ...typedPersistedState,
-          officialPuzzles: starterPuzzles,
-          puzzles: starterPuzzles,
-          sessionMode: 'official',
-          activeAssignmentId: null,
-          activePuzzleId,
-          completedPuzzleIds,
-          completedAssignmentPuzzleIds: [],
-          unlockedPuzzleIds,
+          ...buildOfficialGameState(typedPersistedState),
         };
       },
     },
   ),
 );
 
+let previousProgressOwnerId = getProgressStorageOwnerId();
+
+useAuthStore.subscribe((state) => {
+  const nextProgressOwnerId = state.user?.id ?? null;
+
+  if (nextProgressOwnerId === previousProgressOwnerId) {
+    return;
+  }
+
+  previousProgressOwnerId = nextProgressOwnerId;
+
+  if (hasPersistedProgressForCurrentUser('codecat-game')) {
+    void useGameStore.persist.rehydrate();
+    return;
+  }
+
+  useGameStore.setState((currentState) => ({
+    ...currentState,
+    ...buildOfficialGameState(),
+  }));
+});
+
 gameEngine.subscribe((snapshot) => {
+  if (isHydratingOfficialPuzzleState) {
+    return;
+  }
+
   useGameStore.setState({
     ...snapshot,
     activePuzzleId: snapshot.puzzle?.id ?? null,
