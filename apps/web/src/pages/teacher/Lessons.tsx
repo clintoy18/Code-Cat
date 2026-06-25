@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react';
 import { RoomLifecycleStatus, type GameCondition, type LessonTopic, type RoomDifficulty } from '@shared/types/teacher';
 import { blockPresetCatalog, buildTeacherBlocksFromPresetSelection, useCreateRoomMutation, useTeacherRoomsQuery } from '@/features/teacher';
+import {
+  RoomLayoutEditor,
+  type IRoomLayoutDraft,
+} from '@/features/teacher/RoomLayoutEditor';
 
 type RoomBuilderFormState = {
   baseVersionId: string;
@@ -12,30 +16,12 @@ type RoomBuilderFormState = {
   parMoves: number;
   codeBudget: number;
   lifecycleStatus: RoomLifecycleStatus;
-  rows: number;
-  cols: number;
-  startRow: number;
-  startCol: number;
-  doorRow: number;
-  doorCol: number;
-  keyRow: string;
-  keyCol: string;
-  doorRequiresKey: boolean;
-  wallsText: string;
+  layout: IRoomLayoutDraft;
   selectedPresetIds: string[];
   helperName: string;
   repeatCount: number;
   whileCondition: GameCondition;
 };
-
-const parseWalls = (value: string) =>
-  value
-    .split('\n')
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-    .map((entry) => entry.split(',').map((segment) => Number(segment.trim())))
-    .filter((entry) => entry.length === 2 && entry.every((segment) => Number.isFinite(segment)))
-    .map(([row, col]) => ({ row, col }));
 
 export const Lessons = () => {
   const roomsQuery = useTeacherRoomsQuery();
@@ -51,16 +37,15 @@ export const Lessons = () => {
     parMoves: 6,
     codeBudget: 6,
     lifecycleStatus: RoomLifecycleStatus.PUBLISHED,
-    rows: 5,
-    cols: 5,
-    startRow: 4,
-    startCol: 0,
-    doorRow: 0,
-    doorCol: 4,
-    keyRow: '',
-    keyCol: '',
-    doorRequiresKey: false,
-    wallsText: '',
+    layout: {
+      rows: 5,
+      cols: 5,
+      start: { row: 4, col: 0 },
+      door: { row: 0, col: 4 },
+      key: null,
+      doorRequiresKey: false,
+      walls: [],
+    },
     selectedPresetIds: ['move-up', 'move-right', 'repeat'],
     helperName: 'helperStep',
     repeatCount: 2,
@@ -89,16 +74,15 @@ export const Lessons = () => {
       parMoves: room.parMoves,
       codeBudget: room.codeBudget,
       lifecycleStatus: room.lifecycleStatus,
-      rows: room.definition.rows,
-      cols: room.definition.cols,
-      startRow: room.definition.start.row,
-      startCol: room.definition.start.col,
-      doorRow: room.definition.door.row,
-      doorCol: room.definition.door.col,
-      keyRow: room.definition.key?.row?.toString() ?? '',
-      keyCol: room.definition.key?.col?.toString() ?? '',
-      doorRequiresKey: Boolean(room.definition.doorRequiresKey),
-      wallsText: room.definition.walls.map((wall) => `${wall.row}, ${wall.col}`).join('\n'),
+      layout: {
+        rows: room.definition.rows,
+        cols: room.definition.cols,
+        start: room.definition.start,
+        door: room.definition.door,
+        key: room.definition.key ?? null,
+        doorRequiresKey: Boolean(room.definition.doorRequiresKey),
+        walls: room.definition.walls,
+      },
       selectedPresetIds: room.definition.availableBlocks.some((block) => block.kind === 'FUNCTION_DEF')
         ? ['helper']
         : room.definition.availableBlocks.map((block) => block.key),
@@ -118,25 +102,13 @@ export const Lessons = () => {
 
   const submitRoom = async () => {
     const definition = {
-      rows: Number(form.rows),
-      cols: Number(form.cols),
-      start: {
-        row: Number(form.startRow),
-        col: Number(form.startCol),
-      },
-      door: {
-        row: Number(form.doorRow),
-        col: Number(form.doorCol),
-      },
-      key:
-        form.keyRow !== '' && form.keyCol !== ''
-          ? {
-              row: Number(form.keyRow),
-              col: Number(form.keyCol),
-            }
-          : null,
-      doorRequiresKey: form.doorRequiresKey,
-      walls: parseWalls(form.wallsText),
+      rows: Number(form.layout.rows),
+      cols: Number(form.layout.cols),
+      start: form.layout.start,
+      door: form.layout.door,
+      key: form.layout.key,
+      doorRequiresKey: form.layout.doorRequiresKey,
+      walls: form.layout.walls,
       availableBlocks: buildTeacherBlocksFromPresetSelection({
         selectedPresetIds: form.selectedPresetIds,
         helperName: form.helperName,
@@ -170,7 +142,7 @@ export const Lessons = () => {
         </p>
       </div>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+      <section>
         <article className="glass-panel p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -197,6 +169,9 @@ export const Lessons = () => {
                   </option>
                 ))}
               </select>
+              <p className="teacher-copy mt-2 text-xs">
+                Saved room versions stay available here, so the separate library panel is no longer needed.
+              </p>
             </label>
             <label className="block md:col-span-2">
               <span className="teacher-label text-sm font-semibold">Room title</span>
@@ -287,53 +262,18 @@ export const Lessons = () => {
             </label>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              ['Rows', 'rows'],
-              ['Cols', 'cols'],
-              ['Start row', 'startRow'],
-              ['Start col', 'startCol'],
-              ['Door row', 'doorRow'],
-              ['Door col', 'doorCol'],
-              ['Key row', 'keyRow'],
-              ['Key col', 'keyCol'],
-            ].map(([label, field]) => (
-              <label key={field} className="block">
-                <span className="teacher-label text-sm font-semibold">{label}</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={form[field as keyof typeof form] as string | number}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      [field]: field.startsWith('key') ? event.target.value : Number(event.target.value),
-                    }))
-                  }
-                  className="teacher-field mt-2"
-                />
-              </label>
-            ))}
+          <div className="mt-6">
+            <RoomLayoutEditor
+              value={form.layout}
+              onChange={(layout) =>
+                setForm((current) => ({
+                  ...current,
+                  layout,
+                }))
+              }
+              disabled={createRoomMutation.isPending}
+            />
           </div>
-
-          <label className="teacher-surface teacher-copy mt-4 flex items-center gap-3 rounded-2xl px-4 py-3 text-sm">
-            <input
-              type="checkbox"
-              checked={form.doorRequiresKey}
-              onChange={(event) => setForm((current) => ({ ...current, doorRequiresKey: event.target.checked }))}
-            />
-            Require key before entering the door
-          </label>
-
-          <label className="mt-4 block">
-            <span className="teacher-label text-sm font-semibold">Walls</span>
-            <textarea
-              value={form.wallsText}
-              onChange={(event) => setForm((current) => ({ ...current, wallsText: event.target.value }))}
-              className="teacher-field mt-2 min-h-28"
-              placeholder={'One wall per line\n1, 2\n2, 2\n3, 2'}
-            />
-          </label>
 
           <div className="mt-6">
             <p className="teacher-label text-sm font-semibold">Allowed blocks</p>
@@ -408,48 +348,6 @@ export const Lessons = () => {
           >
             {createRoomMutation.isPending ? 'Saving room version...' : 'Save room version'}
           </button>
-        </article>
-
-        <article className="glass-panel p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Library</p>
-              <h2 className="mt-2 font-display text-2xl font-bold">Latest room versions</h2>
-            </div>
-            <span className="teacher-chip">
-              {roomVersions.length} latest
-            </span>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {roomVersions.map((room) => (
-              <article key={room.id} className="teacher-surface rounded-3xl p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-display text-xl font-bold text-[var(--color-ink)]">{room.title}</h3>
-                    <p className="teacher-copy mt-2 text-sm">{room.description}</p>
-                  </div>
-                  <span className="teacher-tag">
-                    {room.lifecycleStatus}
-                  </span>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">
-                  <span>v{room.versionNumber}</span>
-                  <span>{room.lessonTag}</span>
-                  <span>{room.parMoves} par</span>
-                  <span>{room.codeBudget} budget</span>
-                </div>
-                <p className="teacher-copy mt-3 text-sm">{room.objective}</p>
-                <button
-                  type="button"
-                  onClick={() => hydrateFromRoom(room.id)}
-                  className="teacher-button-secondary mt-4"
-                >
-                  Use as next version base
-                </button>
-              </article>
-            ))}
-          </div>
         </article>
       </section>
     </div>

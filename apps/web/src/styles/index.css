@@ -446,6 +446,197 @@ body {
     color: var(--text-1);
   }
 
+  .teacher-layoutEditor {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .teacher-layoutEditor__sidebar,
+  .teacher-layoutEditor__boardPane {
+    display: grid;
+    gap: 16px;
+  }
+
+  .teacher-layoutEditor__group,
+  .teacher-layoutEditor__boardHeader,
+  .teacher-layoutEditor__boardFrame,
+  .teacher-layoutEditor__legend {
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 16px;
+  }
+
+  .teacher-layoutEditor__tool {
+    display: grid;
+    gap: 6px;
+    width: 100%;
+    text-align: left;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 14px;
+    color: var(--text-1);
+    transition:
+      border-color 140ms ease,
+      background-color 140ms ease,
+      transform 140ms ease;
+  }
+
+  .teacher-layoutEditor__tool:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .teacher-layoutEditor__tool--active {
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.11);
+  }
+
+  .teacher-layoutEditor__toolLabel {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-0);
+  }
+
+  .teacher-layoutEditor__toolHelper {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-2);
+  }
+
+  .teacher-layoutEditor__stats {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .teacher-layoutEditor__stat {
+    display: grid;
+    gap: 6px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 12px;
+    color: var(--text-0);
+  }
+
+  .teacher-layoutEditor__statLabel {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+
+  .teacher-layoutEditor__boardFrame {
+    overflow: auto;
+    padding: 18px;
+  }
+
+  .teacher-layoutEditor__board {
+    display: grid;
+    gap: 10px;
+    min-width: fit-content;
+  }
+
+  .teacher-layoutEditor__tile {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: clamp(38px, 5vw, 54px);
+    aspect-ratio: 1;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background:
+      linear-gradient(180deg, rgba(64, 64, 71, 0.86), rgba(42, 42, 48, 0.94)),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+    color: var(--text-0);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+      0 10px 20px rgba(0, 0, 0, 0.18);
+    transition:
+      transform 120ms ease,
+      border-color 120ms ease,
+      box-shadow 120ms ease;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .teacher-layoutEditor__tile:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+      0 12px 22px rgba(0, 0, 0, 0.22);
+  }
+
+  .teacher-layoutEditor__tile:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.36);
+    outline-offset: 2px;
+  }
+
+  .teacher-layoutEditor__tileCoord {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .teacher-layoutEditor__tileGlyph {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .teacher-layoutEditor__tile--start {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(106, 106, 114, 0.95),
+        rgba(68, 68, 75, 0.96)
+      ),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+  }
+
+  .teacher-layoutEditor__tile--door {
+    background:
+      linear-gradient(180deg, rgba(86, 86, 94, 0.95), rgba(50, 50, 58, 0.96)),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+  }
+
+  .teacher-layoutEditor__tile--key {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(119, 119, 127, 0.95),
+        rgba(70, 70, 79, 0.96)
+      ),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+  }
+
+  .teacher-layoutEditor__tile--wall {
+    background:
+      linear-gradient(180deg, rgba(39, 39, 44, 0.98), rgba(24, 24, 29, 0.98)),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .teacher-layoutEditor__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-2);
+  }
+
   .pixel-kicker {
     margin: 0;
     font-size: 11px;
@@ -2724,6 +2915,10 @@ body {
     padding: 18px;
   }
 
+  .teacher-layoutEditor__stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .auth-shell {
     padding: 16px;
   }
@@ -2788,5 +2983,11 @@ body {
 
   .level-rail {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1480px) {
+  .teacher-layoutEditor {
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
   }
 }
