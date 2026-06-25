@@ -1,6 +1,20 @@
-import { useMemo, useState } from 'react';
-import { RoomLifecycleStatus, type GameCondition, type LessonTopic, type RoomDifficulty } from '@shared/types/teacher';
-import { blockPresetCatalog, buildTeacherBlocksFromPresetSelection, useCreateRoomMutation, useTeacherRoomsQuery } from '@/features/teacher';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  AssignmentTargetType,
+  RoomLifecycleStatus,
+  type GameCondition,
+  type LessonTopic,
+  type RoomDifficulty,
+} from '@shared/types/teacher';
+import { useSearchParams } from 'react-router-dom';
+import {
+  blockPresetCatalog,
+  buildTeacherBlocksFromPresetSelection,
+  useCreateAssignmentMutation,
+  useCreateRoomMutation,
+  useTeacherClassroomsQuery,
+  useTeacherRoomsQuery,
+} from '@/features/teacher';
 import {
   RoomLayoutEditor,
   type IRoomLayoutDraft,
@@ -23,10 +37,39 @@ type RoomBuilderFormState = {
   whileCondition: GameCondition;
 };
 
+const todayDateValue = new Date().toISOString().slice(0, 16);
+const nextWeekDateValue = new Date(
+  Date.now() + 7 * 24 * 60 * 60 * 1000,
+).toISOString().slice(0, 16);
+const builderSteps = [
+  {
+    title: 'Pick classroom',
+    description: 'Choose the classroom that should receive the room after publish.',
+  },
+  {
+    title: 'Build room',
+    description: 'Set the layout, objective, and scoring limits in one pass.',
+  },
+  {
+    title: 'Assign gameplay',
+    description: 'Publish the room into a student-playable classroom gameplay.',
+  },
+];
+
 export const Lessons = () => {
+  const [searchParams] = useSearchParams();
+  const classroomIdFromSearch = searchParams.get('classroomId');
+  const classroomsQuery = useTeacherClassroomsQuery();
   const roomsQuery = useTeacherRoomsQuery();
   const createRoomMutation = useCreateRoomMutation();
+  const classrooms = useMemo(
+    () => classroomsQuery.data ?? [],
+    [classroomsQuery.data],
+  );
   const roomVersions = useMemo(() => roomsQuery.data ?? [], [roomsQuery.data]);
+  const [selectedClassroomId, setSelectedClassroomId] = useState<string>(
+    classroomIdFromSearch ?? '',
+  );
   const [form, setForm] = useState<RoomBuilderFormState>({
     baseVersionId: '',
     title: '',
@@ -51,11 +94,30 @@ export const Lessons = () => {
     repeatCount: 2,
     whileCondition: 'PATH_UP_CLEAR',
   });
+  const [assignmentDraft, setAssignmentDraft] = useState({
+    assignToClassroom: true,
+    title: '',
+    description: '',
+    startAt: todayDateValue,
+    dueAt: nextWeekDateValue,
+  });
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const publishedRoomCount = useMemo(
     () => roomVersions.filter((room) => room.lifecycleStatus === 'PUBLISHED').length,
     [roomVersions],
   );
+  const createAssignmentMutation = useCreateAssignmentMutation(
+    selectedClassroomId || null,
+  );
+  const selectedClassroom =
+    classrooms.find((classroom) => classroom.id === selectedClassroomId) ?? null;
+
+  useEffect(() => {
+    if (!selectedClassroomId && classrooms[0]) {
+      setSelectedClassroomId(classrooms[0].id);
+    }
+  }, [classrooms, selectedClassroomId]);
 
   const hydrateFromRoom = (roomId: string) => {
     const room = roomVersions.find((entry) => entry.id === roomId);
@@ -101,6 +163,19 @@ export const Lessons = () => {
   };
 
   const submitRoom = async () => {
+    setSubmitError(null);
+
+    if (
+      assignmentDraft.assignToClassroom &&
+      selectedClassroomId &&
+      form.lifecycleStatus !== RoomLifecycleStatus.PUBLISHED
+    ) {
+      setSubmitError(
+        'Rooms must be published before they can be attached to a classroom.',
+      );
+      return;
+    }
+
     const definition = {
       rows: Number(form.layout.rows),
       cols: Number(form.layout.cols),
@@ -117,7 +192,7 @@ export const Lessons = () => {
       }),
     };
 
-    await createRoomMutation.mutateAsync({
+    const roomVersion = await createRoomMutation.mutateAsync({
       baseVersionId: form.baseVersionId || undefined,
       title: form.title,
       description: form.description,
@@ -129,140 +204,241 @@ export const Lessons = () => {
       lifecycleStatus: form.lifecycleStatus,
       definition,
     });
+
+    if (assignmentDraft.assignToClassroom && selectedClassroomId) {
+      await createAssignmentMutation.mutateAsync({
+        title: assignmentDraft.title.trim() || roomVersion.title,
+        description:
+          assignmentDraft.description.trim() || roomVersion.description || null,
+        targetType: AssignmentTargetType.CUSTOM_ROOM,
+        customRoomVersionId: roomVersion.id,
+        startAt: new Date(assignmentDraft.startAt).toISOString(),
+        dueAt: assignmentDraft.dueAt
+          ? new Date(assignmentDraft.dueAt).toISOString()
+          : null,
+      });
+    }
   };
 
   return (
     <div className="space-y-6">
       <div>
         <p className="teacher-kicker text-sm font-semibold uppercase tracking-[0.3em]">Room Builder</p>
-        <h1 className="mt-2 font-display text-3xl font-bold">Publish teacher-made rooms without leaving the dashboard.</h1>
+        <h1 className="mt-2 font-display text-3xl font-bold">Build classroom levels without splitting the workflow.</h1>
         <p className="teacher-copy mt-3 max-w-3xl text-sm">
-          The builder focuses on MVP controls that affect playability directly: layout, key-door logic, block palette,
-          par moves, lesson tag, and objective text. It avoids a heavier custom-world editor for now.
+          This is now the only page for classroom gameplay delivery: choose the room target, shape the puzzle, then
+          publish it into a student-playable assignment.
         </p>
       </div>
 
+      <div className="teacher-flow">
+        {builderSteps.map((step, index) => (
+          <article key={step.title} className="teacher-flow__step">
+            <span className="teacher-flow__stepNumber">0{index + 1}</span>
+            <div className="teacher-flow__stepCopy">
+              <h2 className="font-display text-lg font-bold text-[var(--text-0)]">{step.title}</h2>
+              <p className="teacher-copy text-sm">{step.description}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+
       <section>
-        <article className="glass-panel p-6">
+        <article className="glass-panel space-y-6 p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Builder</p>
+              <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Classroom Level Builder</p>
               <h2 className="mt-2 font-display text-2xl font-bold">Create or version a room</h2>
             </div>
-            <span className="teacher-chip">
-              {publishedRoomCount} published
-            </span>
+            <span className="teacher-chip">{publishedRoomCount} published</span>
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <label className="block md:col-span-2">
-              <span className="teacher-label text-sm font-semibold">Use base version</span>
-              <select
-                value={form.baseVersionId}
-                onChange={(event) => hydrateFromRoom(event.target.value)}
-                className="teacher-field mt-2"
-              >
-                <option value="">Start from scratch</option>
-                {roomVersions.map((room) => (
-                  <option key={room.id} value={room.id}>
-                    {room.title} / v{room.versionNumber}
-                  </option>
-                ))}
-              </select>
-              <p className="teacher-copy mt-2 text-xs">
-                Saved room versions stay available here, so the separate library panel is no longer needed.
+          <div className="grid gap-4 xl:grid-cols-3">
+            <section className="teacher-sectionCard">
+              <div className="teacher-sectionCard__header">
+                <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Step 1</p>
+                <h3 className="mt-2 font-display text-xl font-bold">Target and version source</h3>
+                <p className="teacher-copy mt-2 text-sm">
+                  Start with the classroom target, then decide whether to build from a blank slate or a saved version.
+                </p>
+              </div>
+              <div className="mt-4 space-y-4">
+                <label className="block">
+                  <span className="teacher-label text-sm font-semibold">Target classroom</span>
+                  <select
+                    value={selectedClassroomId}
+                    onChange={(event) => setSelectedClassroomId(event.target.value)}
+                    className="teacher-field mt-2"
+                  >
+                    <option value="">Build room first without classroom assignment</option>
+                    {classrooms.map((classroom) => (
+                      <option key={classroom.id} value={classroom.id}>
+                        {classroom.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="teacher-copy mt-2 text-xs">
+                    Choose a classroom here if this level should become playable for that classroom right after save.
+                  </p>
+                </label>
+                <label className="block">
+                  <span className="teacher-label text-sm font-semibold">Use base version</span>
+                  <select
+                    value={form.baseVersionId}
+                    onChange={(event) => hydrateFromRoom(event.target.value)}
+                    className="teacher-field mt-2"
+                  >
+                    <option value="">Start from scratch</option>
+                    {roomVersions.map((room) => (
+                      <option key={room.id} value={room.id}>
+                        {room.title} / v{room.versionNumber}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="teacher-copy mt-2 text-xs">
+                    Saved versions stay in this selector, so the separate library panel is no longer necessary.
+                  </p>
+                </label>
+              </div>
+            </section>
+
+            <section className="teacher-sectionCard xl:col-span-2">
+              <div className="teacher-sectionCard__header">
+                <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Step 2</p>
+                <h3 className="mt-2 font-display text-xl font-bold">Room brief</h3>
+                <p className="teacher-copy mt-2 text-sm">
+                  Set the player-facing lesson framing before editing the grid so the room has a clear purpose.
+                </p>
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <label className="block md:col-span-2">
+                  <span className="teacher-label text-sm font-semibold">Room title</span>
+                  <input
+                    value={form.title}
+                    onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                    className="teacher-field mt-2"
+                    placeholder="Key Ladder Lab"
+                  />
+                </label>
+                <label className="block md:col-span-2">
+                  <span className="teacher-label text-sm font-semibold">Description</span>
+                  <textarea
+                    value={form.description}
+                    onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                    className="teacher-field mt-2 min-h-24"
+                    placeholder="Students must collect a key, avoid wasted moves, and reuse the cleanest route."
+                  />
+                </label>
+                <label className="block md:col-span-2">
+                  <span className="teacher-label text-sm font-semibold">Objective</span>
+                  <textarea
+                    value={form.objective}
+                    onChange={(event) => setForm((current) => ({ ...current, objective: event.target.value }))}
+                    className="teacher-field mt-2 min-h-24"
+                    placeholder="Collect the key, then use the shortest safe route into the locked exit."
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section className="teacher-sectionCard xl:col-span-3">
+              <div className="teacher-sectionCard__header">
+                <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Step 3</p>
+                <h3 className="mt-2 font-display text-xl font-bold">Scoring and publish rules</h3>
+                <p className="teacher-copy mt-2 text-sm">
+                  Set lesson topic, difficulty, and the performance budget students will be scored against.
+                </p>
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-5">
+                <label className="block">
+                  <span className="teacher-label text-sm font-semibold">Lesson tag</span>
+                  <select
+                    value={form.lessonTag}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        lessonTag: event.target.value as typeof current.lessonTag,
+                      }))
+                    }
+                    className="teacher-field mt-2"
+                  >
+                    {['Sequencing', 'Debugging', 'Efficiency', 'Conditionals', 'Boolean Logic', 'Loops', 'Functions', 'Variables', 'Strategy'].map((topic) => (
+                      <option key={topic} value={topic}>
+                        {topic}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="teacher-label text-sm font-semibold">Difficulty</span>
+                  <select
+                    value={form.difficulty}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        difficulty: event.target.value as typeof current.difficulty,
+                      }))
+                    }
+                    className="teacher-field mt-2"
+                  >
+                    {['Easy', 'Medium', 'Hard'].map((difficulty) => (
+                      <option key={difficulty} value={difficulty}>
+                        {difficulty}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="teacher-label text-sm font-semibold">Par moves</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.parMoves}
+                    onChange={(event) => setForm((current) => ({ ...current, parMoves: Number(event.target.value) }))}
+                    className="teacher-field mt-2"
+                  />
+                </label>
+                <label className="block">
+                  <span className="teacher-label text-sm font-semibold">Code budget</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.codeBudget}
+                    onChange={(event) => setForm((current) => ({ ...current, codeBudget: Number(event.target.value) }))}
+                    className="teacher-field mt-2"
+                  />
+                </label>
+                <label className="block">
+                  <span className="teacher-label text-sm font-semibold">Publish status</span>
+                  <select
+                    value={form.lifecycleStatus}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        lifecycleStatus: event.target.value as RoomLifecycleStatus,
+                      }))
+                    }
+                    className="teacher-field mt-2"
+                  >
+                    <option value={RoomLifecycleStatus.DRAFT}>Draft</option>
+                    <option value={RoomLifecycleStatus.PUBLISHED}>Published</option>
+                    <option value={RoomLifecycleStatus.ARCHIVED}>Archived</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <section className="teacher-sectionCard">
+            <div className="teacher-sectionCard__header">
+              <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Step 4</p>
+              <h3 className="mt-2 font-display text-xl font-bold">Build the room layout</h3>
+              <p className="teacher-copy mt-2 text-sm">
+                Place the start, exit, walls, and key logic directly on the board so the puzzle is easy to reason
+                about while editing.
               </p>
-            </label>
-            <label className="block md:col-span-2">
-              <span className="teacher-label text-sm font-semibold">Room title</span>
-              <input
-                value={form.title}
-                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                className="teacher-field mt-2"
-                placeholder="Key Ladder Lab"
-              />
-            </label>
-            <label className="block md:col-span-2">
-              <span className="teacher-label text-sm font-semibold">Description</span>
-              <textarea
-                value={form.description}
-                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                className="teacher-field mt-2 min-h-24"
-                placeholder="Students must collect a key, avoid wasted moves, and reuse the cleanest route."
-              />
-            </label>
-            <label className="block md:col-span-2">
-              <span className="teacher-label text-sm font-semibold">Objective</span>
-              <textarea
-                value={form.objective}
-                onChange={(event) => setForm((current) => ({ ...current, objective: event.target.value }))}
-                className="teacher-field mt-2 min-h-24"
-                placeholder="Collect the key, then use the shortest safe route into the locked exit."
-              />
-            </label>
-            <label className="block">
-              <span className="teacher-label text-sm font-semibold">Lesson tag</span>
-              <select
-                value={form.lessonTag}
-                onChange={(event) => setForm((current) => ({ ...current, lessonTag: event.target.value as typeof current.lessonTag }))}
-                className="teacher-field mt-2"
-              >
-                {['Sequencing', 'Debugging', 'Efficiency', 'Conditionals', 'Boolean Logic', 'Loops', 'Functions', 'Variables', 'Strategy'].map((topic) => (
-                  <option key={topic} value={topic}>
-                    {topic}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="teacher-label text-sm font-semibold">Difficulty</span>
-              <select
-                value={form.difficulty}
-                onChange={(event) => setForm((current) => ({ ...current, difficulty: event.target.value as typeof current.difficulty }))}
-                className="teacher-field mt-2"
-              >
-                {['Easy', 'Medium', 'Hard'].map((difficulty) => (
-                  <option key={difficulty} value={difficulty}>
-                    {difficulty}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="teacher-label text-sm font-semibold">Par moves</span>
-              <input
-                type="number"
-                min={1}
-                value={form.parMoves}
-                onChange={(event) => setForm((current) => ({ ...current, parMoves: Number(event.target.value) }))}
-                className="teacher-field mt-2"
-              />
-            </label>
-            <label className="block">
-              <span className="teacher-label text-sm font-semibold">Code budget</span>
-              <input
-                type="number"
-                min={1}
-                value={form.codeBudget}
-                onChange={(event) => setForm((current) => ({ ...current, codeBudget: Number(event.target.value) }))}
-                className="teacher-field mt-2"
-              />
-            </label>
-            <label className="block">
-              <span className="teacher-label text-sm font-semibold">Publish status</span>
-              <select
-                value={form.lifecycleStatus}
-                onChange={(event) => setForm((current) => ({ ...current, lifecycleStatus: event.target.value as RoomLifecycleStatus }))}
-                className="teacher-field mt-2"
-              >
-                <option value={RoomLifecycleStatus.DRAFT}>Draft</option>
-                <option value={RoomLifecycleStatus.PUBLISHED}>Published</option>
-                <option value={RoomLifecycleStatus.ARCHIVED}>Archived</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="mt-6">
+            </div>
+            <div className="mt-4">
             <RoomLayoutEditor
               value={form.layout}
               onChange={(layout) =>
@@ -273,80 +449,213 @@ export const Lessons = () => {
               }
               disabled={createRoomMutation.isPending}
             />
-          </div>
+            </div>
+          </section>
 
-          <div className="mt-6">
-            <p className="teacher-label text-sm font-semibold">Allowed blocks</p>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              {blockPresetCatalog.map((preset) => (
-                <label key={preset.id} className="teacher-surface teacher-copy flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm">
-                  <div>
-                    <p className="font-semibold text-[var(--text-0)]">{preset.label}</p>
-                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-2)]">{preset.category}</p>
-                  </div>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.82fr)]">
+            <section className="teacher-sectionCard">
+              <div className="teacher-sectionCard__header">
+                <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Step 5</p>
+                <h3 className="mt-2 font-display text-xl font-bold">Allowed blocks</h3>
+                <p className="teacher-copy mt-2 text-sm">
+                  Limit the commands available to students so the room matches the intended lesson.
+                </p>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {blockPresetCatalog.map((preset) => (
+                  <label
+                    key={preset.id}
+                    className="teacher-surface teacher-copy flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm"
+                  >
+                    <div>
+                      <p className="font-semibold text-[var(--text-0)]">{preset.label}</p>
+                      <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-2)]">{preset.category}</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      aria-label={`Allow block ${preset.label}`}
+                      checked={form.selectedPresetIds.includes(preset.id)}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          selectedPresetIds: event.target.checked
+                            ? [...current.selectedPresetIds, preset.id]
+                            : current.selectedPresetIds.filter((entry) => entry !== preset.id),
+                        }))
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            <section className="teacher-sectionCard">
+              <div className="teacher-sectionCard__header">
+                <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Tuning</p>
+                <h3 className="mt-2 font-display text-xl font-bold">Control defaults</h3>
+                <p className="teacher-copy mt-2 text-sm">
+                  Adjust the helper naming and loop defaults that appear when those block types are enabled.
+                </p>
+              </div>
+              <div className="mt-4 grid gap-4">
+                <label className="block">
+                  <span className="teacher-label text-sm font-semibold">Helper name</span>
                   <input
-                    type="checkbox"
-                    aria-label={`Allow block ${preset.label}`}
-                    checked={form.selectedPresetIds.includes(preset.id)}
+                    value={form.helperName}
+                    onChange={(event) => setForm((current) => ({ ...current, helperName: event.target.value }))}
+                    className="teacher-field mt-2"
+                  />
+                </label>
+                <label className="block">
+                  <span className="teacher-label text-sm font-semibold">Repeat count</span>
+                  <input
+                    type="number"
+                    min={2}
+                    max={5}
+                    value={form.repeatCount}
+                    onChange={(event) => setForm((current) => ({ ...current, repeatCount: Number(event.target.value) }))}
+                    className="teacher-field mt-2"
+                  />
+                </label>
+                <label className="block">
+                  <span className="teacher-label text-sm font-semibold">While condition</span>
+                  <select
+                    value={form.whileCondition}
                     onChange={(event) =>
                       setForm((current) => ({
                         ...current,
-                        selectedPresetIds: event.target.checked
-                          ? [...current.selectedPresetIds, preset.id]
-                          : current.selectedPresetIds.filter((entry) => entry !== preset.id),
+                        whileCondition: event.target.value as typeof current.whileCondition,
                       }))
                     }
-                  />
+                    className="teacher-field mt-2"
+                  >
+                    {['PATH_UP_CLEAR', 'PATH_RIGHT_CLEAR', 'PATH_DOWN_CLEAR', 'PATH_LEFT_CLEAR', 'HAS_KEY', 'DOOR_UP', 'DOOR_RIGHT', 'DOOR_DOWN', 'DOOR_LEFT'].map((condition) => (
+                      <option key={condition} value={condition}>
+                        {condition}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-              ))}
-            </div>
+              </div>
+            </section>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <label className="block">
-              <span className="teacher-label text-sm font-semibold">Helper name</span>
+          <section className="teacher-sectionCard">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Step 6</p>
+                <h3 className="mt-2 font-display text-2xl font-bold">
+                  Make this level playable for students
+                </h3>
+                <p className="teacher-copy mt-3 text-sm">
+                  {selectedClassroom
+                    ? `This room can be published directly into ${selectedClassroom.name} as a classroom gameplay.`
+                    : 'Select a classroom above if you want this room to become immediately playable for enrolled students.'}
+                </p>
+              </div>
+              <span className="teacher-chip">
+                {selectedClassroom ? 'Classroom linked' : 'Optional step'}
+              </span>
+            </div>
+
+            <label className="teacher-surface teacher-copy mt-4 flex items-center gap-3 rounded-2xl px-4 py-3 text-sm">
               <input
-                value={form.helperName}
-                onChange={(event) => setForm((current) => ({ ...current, helperName: event.target.value }))}
-                className="teacher-field mt-2"
-              />
-            </label>
-            <label className="block">
-              <span className="teacher-label text-sm font-semibold">Repeat count</span>
-              <input
-                type="number"
-                min={2}
-                max={5}
-                value={form.repeatCount}
-                onChange={(event) => setForm((current) => ({ ...current, repeatCount: Number(event.target.value) }))}
-                className="teacher-field mt-2"
-              />
-            </label>
-            <label className="block">
-              <span className="teacher-label text-sm font-semibold">While condition</span>
-              <select
-                value={form.whileCondition}
+                type="checkbox"
+                checked={assignmentDraft.assignToClassroom}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, whileCondition: event.target.value as typeof current.whileCondition }))
+                  setAssignmentDraft((current) => ({
+                    ...current,
+                    assignToClassroom: event.target.checked,
+                  }))
                 }
-                className="teacher-field mt-2"
-              >
-                {['PATH_UP_CLEAR', 'PATH_RIGHT_CLEAR', 'PATH_DOWN_CLEAR', 'PATH_LEFT_CLEAR', 'HAS_KEY', 'DOOR_UP', 'DOOR_RIGHT', 'DOOR_DOWN', 'DOOR_LEFT'].map((condition) => (
-                  <option key={condition} value={condition}>
-                    {condition}
-                  </option>
-                ))}
-              </select>
+                disabled={!selectedClassroomId}
+              />
+              Assign this custom room to the selected classroom after save
             </label>
-          </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <label className="block md:col-span-2">
+                <span className="teacher-label text-sm font-semibold">Gameplay title</span>
+                <input
+                  value={assignmentDraft.title}
+                  onChange={(event) =>
+                    setAssignmentDraft((current) => ({
+                      ...current,
+                      title: event.target.value,
+                    }))
+                  }
+                  className="teacher-field mt-2"
+                  placeholder="Defaults to the room title if left blank"
+                  disabled={!assignmentDraft.assignToClassroom || !selectedClassroomId}
+                />
+              </label>
+              <label className="block md:col-span-2">
+                <span className="teacher-label text-sm font-semibold">Gameplay note</span>
+                <textarea
+                  value={assignmentDraft.description}
+                  onChange={(event) =>
+                    setAssignmentDraft((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
+                  }
+                  className="teacher-field mt-2 min-h-24"
+                  placeholder="Explain what students should focus on in this classroom level."
+                  disabled={!assignmentDraft.assignToClassroom || !selectedClassroomId}
+                />
+              </label>
+              <label className="block">
+                <span className="teacher-label text-sm font-semibold">Start at</span>
+                <input
+                  type="datetime-local"
+                  value={assignmentDraft.startAt}
+                  onChange={(event) =>
+                    setAssignmentDraft((current) => ({
+                      ...current,
+                      startAt: event.target.value,
+                    }))
+                  }
+                  className="teacher-field mt-2"
+                  disabled={!assignmentDraft.assignToClassroom || !selectedClassroomId}
+                />
+              </label>
+              <label className="block">
+                <span className="teacher-label text-sm font-semibold">Due at</span>
+                <input
+                  type="datetime-local"
+                  value={assignmentDraft.dueAt}
+                  onChange={(event) =>
+                    setAssignmentDraft((current) => ({
+                      ...current,
+                      dueAt: event.target.value,
+                    }))
+                  }
+                  className="teacher-field mt-2"
+                  disabled={!assignmentDraft.assignToClassroom || !selectedClassroomId}
+                />
+              </label>
+            </div>
+          </section>
+
+          {submitError ? (
+            <div className="auth-alert auth-alert--error mt-6" role="alert">
+              {submitError}
+            </div>
+          ) : null}
 
           <button
             type="button"
             onClick={submitRoom}
-            disabled={createRoomMutation.isPending}
+            disabled={
+              createRoomMutation.isPending || createAssignmentMutation.isPending
+            }
             className="teacher-button-primary mt-6 w-full"
           >
-            {createRoomMutation.isPending ? 'Saving room version...' : 'Save room version'}
+            {createRoomMutation.isPending || createAssignmentMutation.isPending
+              ? 'Saving classroom level...'
+              : assignmentDraft.assignToClassroom && selectedClassroomId
+                ? 'Save room and assign to classroom'
+                : 'Save room version'}
           </button>
         </article>
       </section>
