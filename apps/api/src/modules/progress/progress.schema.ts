@@ -10,6 +10,19 @@ export const createProgressSchema = z.object({
   timeSpent: z.number().int().nonnegative(),
 });
 
+export const createAssignmentRoomProgressSchema = z.object({
+  assignmentId: objectIdSchema,
+  roomKey: z.string().min(1),
+  status: z.nativeEnum(CompletionStatus),
+  movesUsed: z.number().int().nonnegative(),
+  blocksUsed: z.number().int().nonnegative(),
+  timeSpent: z.number().int().nonnegative(),
+});
+
 export const progressLevelParamsSchema = z.object({
+  id: objectIdSchema,
+});
+
+export const assignmentParamsSchema = z.object({
   id: objectIdSchema,
 });

@@ -2,9 +2,13 @@ import { useGameStore } from '@/store/gameStore';
 
 export const useGame = () =>
   useGameStore((state) => ({
+    officialPuzzles: state.officialPuzzles,
     puzzles: state.puzzles,
+    sessionMode: state.sessionMode,
+    activeAssignmentId: state.activeAssignmentId,
     activePuzzleId: state.activePuzzleId,
     completedPuzzleIds: state.completedPuzzleIds,
+    completedAssignmentPuzzleIds: state.completedAssignmentPuzzleIds,
     unlockedPuzzleIds: state.unlockedPuzzleIds,
     latestCompletedPuzzleId: state.latestCompletedPuzzleId,
     puzzle: state.puzzle,
@@ -16,6 +20,8 @@ export const useGame = () =>
     log: state.log,
     stepIndex: state.stepIndex,
     didReachDoor: state.didReachDoor,
+    startOfficialSession: state.startOfficialSession,
+    startAssignmentSession: state.startAssignmentSession,
     loadPuzzle: state.loadPuzzle,
     addBlock: state.addBlock,
     replaceProgram: state.replaceProgram,

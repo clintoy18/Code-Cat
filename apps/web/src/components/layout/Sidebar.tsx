@@ -10,9 +10,10 @@ const linksByRole: Record<Role, Array<{ to: string; label: string }>> = {
     { to: '/achievements', label: 'Achievements' },
   ],
   [Role.TEACHER]: [
-    { to: '/teacher', label: 'Teacher Hub' },
-    { to: '/teacher/students', label: 'Students' },
-    { to: '/teacher/lessons', label: 'Lesson Notes' },
+    { to: '/teacher', label: 'Overview' },
+    { to: '/teacher/students', label: 'Classrooms' },
+    { to: '/teacher/lessons', label: 'Room Builder' },
+    { to: '/teacher/progress', label: 'Progress' },
   ],
   [Role.ADMIN]: [
     { to: '/admin', label: 'Dashboard' },

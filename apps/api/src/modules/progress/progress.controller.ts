@@ -16,6 +16,19 @@ export const createProgress = async (req: Request, res: Response, next: NextFunc
   }
 };
 
+export const createAssignmentRoomProgress = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      throw new AppError('UNAUTHORIZED', 'Authentication is required.', 401);
+    }
+
+    const result = await progressService.saveAssignmentRoomProgress(req.user.id, req.body);
+    return sendSuccess(res, result, 201, 'Assignment room progress saved.');
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const getMyProgress = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user) {
@@ -23,6 +36,32 @@ export const getMyProgress = async (req: Request, res: Response, next: NextFunct
     }
 
     const result = await progressService.getMyProgress(req.user.id);
+    return sendSuccess(res, result);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getMyAssignments = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      throw new AppError('UNAUTHORIZED', 'Authentication is required.', 401);
+    }
+
+    const result = await progressService.getMyAssignments(req.user.id);
+    return sendSuccess(res, result);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getMyAssignmentById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      throw new AppError('UNAUTHORIZED', 'Authentication is required.', 401);
+    }
+
+    const result = await progressService.getMyAssignmentById(req.user.id, req.params.id);
     return sendSuccess(res, result);
   } catch (error) {
     return next(error);

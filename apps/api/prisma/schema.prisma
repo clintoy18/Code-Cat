@@ -48,6 +48,18 @@ enum ReportType {
   ACHIEVEMENT_SUMMARY
 }
 
+enum RoomLifecycleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AssignmentTargetType {
+  OFFICIAL_WORLD
+  OFFICIAL_PUZZLE
+  CUSTOM_ROOM
+}
+
 model User {
   id                String            @id @default(auto()) @map("_id") @db.ObjectId
   username          String            @unique
@@ -58,6 +70,11 @@ model User {
   progressEntries   PlayerProgress[]
   settings          PlayerSettings?
   achievements      Achievement[]
+  taughtClassrooms  Classroom[]       @relation("TeacherClassrooms")
+  classroomEntries  ClassroomEnrollment[] @relation("StudentClassroomEnrollments")
+  teacherAssignments ClassroomAssignment[] @relation("TeacherAssignments")
+  customRoomVersions TeacherRoomVersion[] @relation("TeacherRoomVersions")
+  assignmentProgress StudentAssignmentProgress[] @relation("StudentAssignmentProgress")
   adminLogs         AdminLog[]        @relation("AdminLogs")
   announcements     Announcement[]    @relation("AdminAnnouncements")
   adminReports      AdminReport[]     @relation("AdminReports")
@@ -166,4 +183,113 @@ model AdminReport {
   admin       User       @relation("AdminReports", fields: [adminId], references: [id])
 
   @@map("admin_reports")
+}
+
+model Classroom {
+  id               String                @id @default(auto()) @map("_id") @db.ObjectId
+  teacherId        String                @map("teacher_id") @db.ObjectId
+  name             String
+  description      String
+  isPrivate        Boolean               @default(true) @map("is_private")
+  requiresApproval Boolean               @default(false) @map("requires_approval")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  teacher          User                  @relation("TeacherClassrooms", fields: [teacherId], references: [id])
+  enrollments      ClassroomEnrollment[]
+  assignments      ClassroomAssignment[]
+  progressEntries  StudentAssignmentProgress[]
+
+  @@map("classrooms")
+}
+
+model ClassroomEnrollment {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  classroomId String    @map("classroom_id") @db.ObjectId
+  studentId   String    @map("student_id") @db.ObjectId
+  createdAt   DateTime  @default(now()) @map("created_at")
+  classroom   Classroom @relation(fields: [classroomId], references: [id])
+  student     User      @relation("StudentClassroomEnrollments", fields: [studentId], references: [id])
+
+  @@unique([classroomId, studentId])
+  @@map("classroom_enrollments")
+}
+
+model TeacherRoomVersion {
+  id              String              @id @default(auto()) @map("_id") @db.ObjectId
+  teacherId       String              @map("teacher_id") @db.ObjectId
+  versionGroupId  String              @default(cuid()) @map("version_group_id")
+  versionNumber   Int                 @default(1) @map("version_number")
+  title           String
+  description     String
+  lessonTag       String              @map("lesson_tag")
+  objective       String
+  difficulty      Difficulty
+  parMoves        Int                 @map("par_moves")
+  codeBudget      Int                 @map("code_budget")
+  lifecycleStatus RoomLifecycleStatus @default(DRAFT) @map("lifecycle_status")
+  definition      Json
+  isLatest        Boolean             @default(true) @map("is_latest")
+  publishedAt     DateTime?           @map("published_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  teacher         User                @relation("TeacherRoomVersions", fields: [teacherId], references: [id])
+  assignments     ClassroomAssignment[]
+
+  @@unique([versionGroupId, versionNumber])
+  @@map("teacher_room_versions")
+}
+
+model ClassroomAssignment {
+  id                  String                @id @default(auto()) @map("_id") @db.ObjectId
+  classroomId         String                @map("classroom_id") @db.ObjectId
+  teacherId           String                @map("teacher_id") @db.ObjectId
+  targetType          AssignmentTargetType  @map("target_type")
+  title               String
+  description         String?
+  startAt             DateTime              @map("start_at")
+  dueAt               DateTime?             @map("due_at")
+  officialWorldId     String?               @map("official_world_id")
+  officialPuzzleId    String?               @map("official_puzzle_id")
+  customRoomVersionId String?               @map("custom_room_version_id") @db.ObjectId
+  roomManifest        Json                  @map("room_manifest")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+  classroom           Classroom             @relation(fields: [classroomId], references: [id])
+  teacher             User                  @relation("TeacherAssignments", fields: [teacherId], references: [id])
+  customRoomVersion   TeacherRoomVersion?   @relation(fields: [customRoomVersionId], references: [id])
+  progressEntries     StudentAssignmentProgress[]
+
+  @@map("classroom_assignments")
+}
+
+model StudentAssignmentProgress {
+  id                String           @id @default(auto()) @map("_id") @db.ObjectId
+  assignmentId      String           @map("assignment_id") @db.ObjectId
+  classroomId       String           @map("classroom_id") @db.ObjectId
+  studentId         String           @map("student_id") @db.ObjectId
+  roomKey           String           @map("room_key")
+  roomTitle         String           @map("room_title")
+  roomSource        String           @map("room_source")
+  status            CompletionStatus @default(NOT_STARTED)
+  attempts          Int              @default(0)
+  failures          Int              @default(0)
+  totalTimeSpent    Int              @default(0) @map("total_time_spent")
+  latestMovesUsed   Int?             @map("latest_moves_used")
+  bestMovesUsed     Int?             @map("best_moves_used")
+  latestBlocksUsed  Int?             @map("latest_blocks_used")
+  bestBlocksUsed    Int?             @map("best_blocks_used")
+  latestScore       Int?             @map("latest_score")
+  bestScore         Int?             @map("best_score")
+  latestLetterGrade String?          @map("latest_letter_grade")
+  bestLetterGrade   String?          @map("best_letter_grade")
+  lastPlayedAt      DateTime?        @map("last_played_at")
+  solvedAt          DateTime?        @map("solved_at")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  assignment        ClassroomAssignment @relation(fields: [assignmentId], references: [id])
+  classroom         Classroom        @relation(fields: [classroomId], references: [id])
+  student           User             @relation("StudentAssignmentProgress", fields: [studentId], references: [id])
+
+  @@unique([assignmentId, studentId, roomKey])
+  @@map("student_assignment_progress")
 }

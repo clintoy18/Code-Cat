@@ -35,6 +35,9 @@ const TeacherStudents = lazy(() =>
 const TeacherLessons = lazy(() =>
   import('@/pages/teacher/Lessons').then((module) => ({ default: module.Lessons })),
 );
+const TeacherProgress = lazy(() =>
+  import('@/pages/teacher/Progress').then((module) => ({ default: module.Progress })),
+);
 
 export const AppRouter = () => (
   <BrowserRouter>
@@ -58,6 +61,7 @@ export const AppRouter = () => (
           <Route index element={<TeacherDashboard />} />
           <Route path="students" element={<TeacherStudents />} />
           <Route path="lessons" element={<TeacherLessons />} />
+          <Route path="progress" element={<TeacherProgress />} />
         </Route>
         <Route path="*" element={<HomeRedirect />} />
       </Routes>
