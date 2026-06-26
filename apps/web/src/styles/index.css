@@ -277,12 +277,13 @@ body {
     width: 100%;
     min-width: 0;
     border-radius: 10px;
-    border: 2px solid rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.12);
     background:
-      linear-gradient(180deg, rgba(23, 23, 27, 0.98), rgba(17, 17, 20, 0.98)),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+      linear-gradient(180deg, rgba(29, 29, 34, 0.98), rgba(21, 21, 26, 0.98)),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
     padding: 12px 14px;
-    color: var(--text-0);
+    color: #f3f4f6;
+    caret-color: #f3f4f6;
     outline: none;
     transition:
       border-color 140ms ease,
@@ -292,16 +293,16 @@ body {
   }
 
   .auth-field__input::placeholder {
-    color: rgba(215, 215, 220, 0.42);
+    color: rgba(229, 231, 235, 0.58);
   }
 
   .auth-field__input:hover {
-    border-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.18);
   }
 
   .auth-field__input:focus {
-    border-color: rgba(196, 196, 202, 0.3);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+    border-color: rgba(214, 214, 221, 0.36);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
   }
 
   .auth-field__error {
@@ -314,38 +315,44 @@ body {
     width: 100%;
     min-width: 0;
     border-radius: 1rem;
-    border: 1px solid rgba(100, 116, 139, 0.22);
-    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background:
+      linear-gradient(180deg, rgba(33, 33, 39, 0.96), rgba(24, 24, 30, 0.98)),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
-    color: #0f172a;
-    caret-color: #0f172a;
+    color: #f3f4f6;
+    caret-color: #f3f4f6;
     outline: none;
     transition:
       border-color 140ms ease,
-      background-color 140ms ease,
+      background 140ms ease,
       box-shadow 140ms ease;
     appearance: none;
   }
 
   .teacher-field::placeholder {
-    color: #64748b;
+    color: rgba(226, 232, 240, 0.58);
   }
 
   .teacher-field:hover {
-    background: rgba(255, 255, 255, 0.94);
-    border-color: rgba(100, 116, 139, 0.3);
+    border-color: rgba(255, 255, 255, 0.18);
+    background:
+      linear-gradient(180deg, rgba(38, 38, 45, 0.97), rgba(27, 27, 33, 0.99)),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
   }
 
   .teacher-field:focus {
-    border-color: rgba(94, 94, 102, 0.82);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.96);
+    border-color: rgba(214, 214, 221, 0.34);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.07);
+    background:
+      linear-gradient(180deg, rgba(42, 42, 49, 0.98), rgba(30, 30, 37, 1)),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
   }
 
   .teacher-field option {
-    color: #0f172a;
-    background: #ffffff;
+    color: #f3f4f6;
+    background: #1f1f26;
   }
 
   .teacher-kicker {
