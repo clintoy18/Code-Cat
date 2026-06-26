@@ -42,7 +42,7 @@ const DEMO_TEACHER_COUNT = 10;
 const DEMO_STUDENT_COUNT = 10;
 const DEMO_CLASSROOM_COUNT = 10;
 const DEMO_LEVEL_COUNT = 3;
-const PRIMARY_TEACHER_EMAIL = 'teacher@codecat.dev';
+const PRIMARY_TEACHER_EMAIL = 'elena.cruz@codecat.dev';
 
 const now = new Date();
 const daysFromNow = (days: number) =>
@@ -306,34 +306,53 @@ const officialWorldManifest = {
 
 const teacherUsers: SeedUser[] = [
   {
-    username: 'codecat-teacher',
-    email: 'teacher@codecat.dev',
+    username: 'Elena Cruz',
+    email: 'elena.cruz@codecat.dev',
     role: Role.TEACHER,
     password: 'teacher12345',
   },
   {
-    username: 'teacher-ada',
-    email: 'ada@codecat.dev',
+    username: 'Ada Lim',
+    email: 'ada.lim@codecat.dev',
     role: Role.TEACHER,
     password: 'teacher12345',
   },
   {
-    username: 'teacher-grace',
-    email: 'grace@codecat.dev',
+    username: 'Grace Navarro',
+    email: 'grace.navarro@codecat.dev',
     role: Role.TEACHER,
     password: 'teacher12345',
   },
-  ...Array.from({ length: DEMO_TEACHER_COUNT - 3 }).map((_, index) => ({
-    username: `teacher-${String(index + 4).padStart(2, '0')}`,
-    email: `teacher${String(index + 4).padStart(2, '0')}@codecat.dev`,
+  ...[
+    ['Miguel Santos', 'miguel.santos@codecat.dev'],
+    ['Patricia Reyes', 'patricia.reyes@codecat.dev'],
+    ['Daniel Flores', 'daniel.flores@codecat.dev'],
+    ['Sofia Mendoza', 'sofia.mendoza@codecat.dev'],
+    ['Carlo Bautista', 'carlo.bautista@codecat.dev'],
+    ['Nina Valdez', 'nina.valdez@codecat.dev'],
+    ['Jasmine Ortega', 'jasmine.ortega@codecat.dev'],
+  ].map(([username, email]) => ({
     role: Role.TEACHER,
+    username,
+    email,
     password: 'teacher12345',
   })),
 ];
 
-const studentUsers: SeedUser[] = Array.from({ length: DEMO_STUDENT_COUNT }).map((_, index) => ({
-  username: `student-${String(index + 1).padStart(2, '0')}`,
-  email: `student${String(index + 1).padStart(2, '0')}@codecat.dev`,
+const studentUsers: SeedUser[] = [
+  ['Alyssa Ramos', 'alyssa.ramos@codecat.dev'],
+  ['Ethan Garcia', 'ethan.garcia@codecat.dev'],
+  ['Bianca Torres', 'bianca.torres@codecat.dev'],
+  ['Joshua Rivera', 'joshua.rivera@codecat.dev'],
+  ['Camille Dela Cruz', 'camille.delacruz@codecat.dev'],
+  ['Noah Villanueva', 'noah.villanueva@codecat.dev'],
+  ['Mae Santos', 'mae.santos@codecat.dev'],
+  ['Lucas Fernandez', 'lucas.fernandez@codecat.dev'],
+  ['Trisha Aquino', 'trisha.aquino@codecat.dev'],
+  ['Nathan Morales', 'nathan.morales@codecat.dev'],
+].map(([username, email]) => ({
+  username,
+  email,
   role: Role.STUDENT,
   password: 'student12345',
 }));
@@ -786,6 +805,18 @@ const createCustomAssignment = async (input: {
 };
 
 const seed = async () => {
+  if (teacherUsers.length !== DEMO_TEACHER_COUNT) {
+    throw new Error(
+      `Expected ${DEMO_TEACHER_COUNT} teacher users, received ${teacherUsers.length}.`,
+    );
+  }
+
+  if (studentUsers.length !== DEMO_STUDENT_COUNT) {
+    throw new Error(
+      `Expected ${DEMO_STUDENT_COUNT} student users, received ${studentUsers.length}.`,
+    );
+  }
+
   if (classroomBlueprints.length !== DEMO_CLASSROOM_COUNT) {
     throw new Error(
       `Expected ${DEMO_CLASSROOM_COUNT} classroom blueprints, received ${classroomBlueprints.length}.`,
@@ -1078,12 +1109,12 @@ const seed = async () => {
   // eslint-disable-next-line no-console
   console.table([
     { role: 'ADMIN', email: 'admin@codecat.dev', password: 'admin12345' },
-    { role: 'TEACHER', email: 'teacher@codecat.dev', password: 'teacher12345' },
-    { role: 'TEACHER', email: 'ada@codecat.dev', password: 'teacher12345' },
-    { role: 'TEACHER', email: 'grace@codecat.dev', password: 'teacher12345' },
-    { role: 'STUDENT', email: 'student01@codecat.dev', password: 'student12345' },
-    { role: 'STUDENT', email: 'student02@codecat.dev', password: 'student12345' },
-    { role: 'STUDENT', email: 'student03@codecat.dev', password: 'student12345' },
+    { role: 'TEACHER', email: 'elena.cruz@codecat.dev', password: 'teacher12345' },
+    { role: 'TEACHER', email: 'ada.lim@codecat.dev', password: 'teacher12345' },
+    { role: 'TEACHER', email: 'grace.navarro@codecat.dev', password: 'teacher12345' },
+    { role: 'STUDENT', email: 'alyssa.ramos@codecat.dev', password: 'student12345' },
+    { role: 'STUDENT', email: 'ethan.garcia@codecat.dev', password: 'student12345' },
+    { role: 'STUDENT', email: 'bianca.torres@codecat.dev', password: 'student12345' },
   ]);
 };
 
