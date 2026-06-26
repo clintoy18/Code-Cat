@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PaginationControls } from '@/components/shared';
 import { Button } from '@/components/ui';
 import { useStudentAssignmentsQuery } from '@/features/teacher';
 
@@ -11,9 +12,10 @@ export const AssignedClassroomGameplays = ({
   mode = 'embedded',
 }: IAssignedClassroomGameplaysProps) => {
   const navigate = useNavigate();
-  const studentAssignmentsQuery = useStudentAssignmentsQuery();
+  const [page, setPage] = useState(1);
+  const studentAssignmentsQuery = useStudentAssignmentsQuery({ page, pageSize: 6 });
   const assignmentGroups = useMemo(
-    () => studentAssignmentsQuery.data ?? [],
+    () => studentAssignmentsQuery.data?.items ?? [],
     [studentAssignmentsQuery.data],
   );
   const assignmentCount = assignmentGroups.reduce(
@@ -105,7 +107,9 @@ export const AssignedClassroomGameplays = ({
             </div>
             <div className="mission-stat">
               <span className="mission-stat__label">Classrooms</span>
-              <span className="mission-stat__value">{assignmentGroups.length}</span>
+              <span className="mission-stat__value">
+                {studentAssignmentsQuery.data?.pagination.totalItems ?? assignmentGroups.length}
+              </span>
             </div>
             <div className="mission-stat">
               <span className="mission-stat__label">Custom Rooms</span>
@@ -268,6 +272,14 @@ export const AssignedClassroomGameplays = ({
           </div>
         </section>
       ))}
+
+      <PaginationControls
+        page={studentAssignmentsQuery.data?.pagination.page ?? 1}
+        totalPages={studentAssignmentsQuery.data?.pagination.totalPages ?? 1}
+        totalItems={studentAssignmentsQuery.data?.pagination.totalItems ?? assignmentGroups.length}
+        pageSize={studentAssignmentsQuery.data?.pagination.pageSize ?? 6}
+        onPageChange={setPage}
+      />
     </section>
   );
 };

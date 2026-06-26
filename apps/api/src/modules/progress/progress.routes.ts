@@ -14,6 +14,7 @@ import {
   createAssignmentRoomProgressSchema,
   createProgressSchema,
   progressLevelParamsSchema,
+  studentAssignmentsPaginationQuerySchema,
 } from './progress.schema';
 
 export const progressRouter = Router();
@@ -22,6 +23,6 @@ progressRouter.use(authenticate);
 progressRouter.post('/', validate({ body: createProgressSchema }), createProgress);
 progressRouter.post('/rooms', validate({ body: createAssignmentRoomProgressSchema }), createAssignmentRoomProgress);
 progressRouter.get('/me', getMyProgress);
-progressRouter.get('/assignments/me', getMyAssignments);
+progressRouter.get('/assignments/me', validate({ query: studentAssignmentsPaginationQuerySchema }), getMyAssignments);
 progressRouter.get('/assignments/me/:id', validate({ params: assignmentParamsSchema }), getMyAssignmentById);
 progressRouter.get('/me/level/:id', validate({ params: progressLevelParamsSchema }), getMyLevelProgress);

@@ -21,6 +21,7 @@ import {
   toPrismaDifficulty,
   validateRoomDefinition,
 } from './teacher.utils';
+import { createPaginatedResult, normalizePagination } from '@/lib/pagination';
 
 type PrismaRole = NonNullable<Prisma.UserCreateInput['role']>;
 type PrismaDifficulty = NonNullable<Prisma.TeacherRoomVersionCreateInput['difficulty']>;
@@ -125,26 +126,67 @@ const getTeacherClassroomOrThrow = async (teacherId: string, classroomId: string
 };
 
 export const teacherService = {
-  async getStudents() {
-    const students = await prisma.user.findMany({
-      where: { role: Role.STUDENT as PrismaRole },
-      select: {
-        ...studentSelection,
-        _count: {
-          select: {
-            classroomEntries: true,
-            assignmentProgress: true,
+  async getStudents(
+    teacherIdInput: string | undefined,
+    query?: { page?: number; pageSize?: number; classroomId?: string },
+  ) {
+    const teacherId = requireTeacherId(teacherIdInput);
+    const pagination = normalizePagination(query, { defaultPageSize: 20 });
+
+    if (query?.classroomId) {
+      await getTeacherClassroomOrThrow(teacherId, query.classroomId);
+    }
+
+    const [totalStudents, students] = await Promise.all([
+      prisma.user.count({
+        where: { role: Role.STUDENT as PrismaRole },
+      }),
+      prisma.user.findMany({
+        where: { role: Role.STUDENT as PrismaRole },
+        select: {
+          ...studentSelection,
+          _count: {
+            select: {
+              classroomEntries: true,
+              assignmentProgress: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+    ]);
 
-    return students.map((student) => ({
-      ...formatStudent(student),
-      classroomCount: student._count.classroomEntries,
-      assignmentRoomCount: student._count.assignmentProgress,
-    }));
+    const enrolledStudentIds = query?.classroomId
+      ? new Set(
+          (
+            await prisma.classroomEnrollment.findMany({
+              where: {
+                classroomId: query.classroomId,
+                studentId: {
+                  in: students.map((student) => student.id),
+                },
+              },
+              select: {
+                studentId: true,
+              },
+            })
+          ).map((entry) => entry.studentId),
+        )
+      : null;
+
+    return createPaginatedResult(
+      students.map((student) => ({
+        ...formatStudent(student),
+        classroomCount: student._count.classroomEntries,
+        assignmentRoomCount: student._count.assignmentProgress,
+        isEnrolledInClassroom: enrolledStudentIds ? enrolledStudentIds.has(student.id) : undefined,
+      })),
+      totalStudents,
+      pagination.page,
+      pagination.pageSize,
+    );
   },
 
   async getStudentProgress(studentId: string) {
@@ -236,30 +278,46 @@ export const teacherService = {
     };
   },
 
-  async getClassrooms(teacherIdInput: string | undefined) {
+  async getClassrooms(
+    teacherIdInput: string | undefined,
+    query?: { page?: number; pageSize?: number },
+  ) {
     const teacherId = requireTeacherId(teacherIdInput);
-    const classrooms = await prisma.classroom.findMany({
-      where: { teacherId },
-      select: {
-        id: true,
-        teacherId: true,
-        name: true,
-        description: true,
-        isPrivate: true,
-        requiresApproval: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            enrollments: true,
-            assignments: true,
+    const pagination = normalizePagination(query, { defaultPageSize: 12 });
+    const [totalClassrooms, classrooms] = await Promise.all([
+      prisma.classroom.count({
+        where: { teacherId },
+      }),
+      prisma.classroom.findMany({
+        where: { teacherId },
+        select: {
+          id: true,
+          teacherId: true,
+          name: true,
+          description: true,
+          isPrivate: true,
+          requiresApproval: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: {
+              enrollments: true,
+              assignments: true,
+            },
           },
         },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
+        orderBy: { updatedAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+    ]);
 
-    return classrooms.map(formatClassroom);
+    return createPaginatedResult(
+      classrooms.map(formatClassroom),
+      totalClassrooms,
+      pagination.page,
+      pagination.pageSize,
+    );
   },
 
   async createClassroom(
@@ -313,57 +371,86 @@ export const teacherService = {
     return formatClassroom(classroom);
   },
 
-  async getClassroomById(teacherIdInput: string | undefined, classroomId: string) {
+  async getClassroomById(
+    teacherIdInput: string | undefined,
+    classroomId: string,
+    query?: {
+      enrollmentsPage?: number;
+      enrollmentsPageSize?: number;
+      assignmentsPage?: number;
+      assignmentsPageSize?: number;
+    },
+  ) {
     const teacherId = requireTeacherId(teacherIdInput);
-    const classroom = await prisma.classroom.findFirst({
-      where: {
-        id: classroomId,
-        teacherId,
+    const classroom = await getTeacherClassroomOrThrow(teacherId, classroomId);
+    const enrollmentsPagination = normalizePagination(
+      {
+        page: query?.enrollmentsPage,
+        pageSize: query?.enrollmentsPageSize,
       },
-      select: {
-        id: true,
-        teacherId: true,
-        name: true,
-        description: true,
-        isPrivate: true,
-        requiresApproval: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            enrollments: true,
-            assignments: true,
-          },
-        },
-        enrollments: {
-          select: {
-            id: true,
-            classroomId: true,
-            createdAt: true,
-            student: {
-              select: studentSelection,
-            },
-          },
-          orderBy: {
-            createdAt: 'asc',
-          },
-        },
-        assignments: {
-          orderBy: {
-            startAt: 'asc',
-          },
-        },
+      { defaultPageSize: 10 },
+    );
+    const assignmentsPagination = normalizePagination(
+      {
+        page: query?.assignmentsPage,
+        pageSize: query?.assignmentsPageSize,
       },
-    });
+      { defaultPageSize: 10 },
+    );
 
-    if (!classroom) {
-      throw new AppError('NOT_FOUND', 'Classroom not found.', 404);
-    }
+    const [totalEnrollments, enrollments, totalAssignments, assignments] = await Promise.all([
+      prisma.classroomEnrollment.count({
+        where: { classroomId },
+      }),
+      prisma.classroomEnrollment.findMany({
+        where: { classroomId },
+        select: {
+          id: true,
+          classroomId: true,
+          createdAt: true,
+          student: {
+            select: studentSelection,
+          },
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+        skip: enrollmentsPagination.skip,
+        take: enrollmentsPagination.take,
+      }),
+      prisma.classroomAssignment.count({
+        where: {
+          classroomId,
+          teacherId,
+        },
+      }),
+      prisma.classroomAssignment.findMany({
+        where: {
+          classroomId,
+          teacherId,
+        },
+        orderBy: {
+          startAt: 'asc',
+        },
+        skip: assignmentsPagination.skip,
+        take: assignmentsPagination.take,
+      }),
+    ]);
 
     return {
       classroom: formatClassroom(classroom),
-      enrollments: classroom.enrollments.map(formatEnrollment),
-      assignments: classroom.assignments.map((assignment) => formatAssignment(assignment)),
+      enrollments: createPaginatedResult(
+        enrollments.map(formatEnrollment),
+        totalEnrollments,
+        enrollmentsPagination.page,
+        enrollmentsPagination.pageSize,
+      ),
+      assignments: createPaginatedResult(
+        assignments.map((assignment) => formatAssignment(assignment)),
+        totalAssignments,
+        assignmentsPagination.page,
+        assignmentsPagination.pageSize,
+      ),
     };
   },
 
@@ -423,19 +510,38 @@ export const teacherService = {
     return enrollments.map(formatEnrollment);
   },
 
-  async getRoomVersions(teacherIdInput: string | undefined) {
+  async getRoomVersions(
+    teacherIdInput: string | undefined,
+    query?: { page?: number; pageSize?: number },
+  ) {
     const teacherId = requireTeacherId(teacherIdInput);
-    const roomVersions = await prisma.teacherRoomVersion.findMany({
-      where: {
-        teacherId,
-        isLatest: true,
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-    });
+    const pagination = normalizePagination(query, { defaultPageSize: 20 });
+    const [totalRoomVersions, roomVersions] = await Promise.all([
+      prisma.teacherRoomVersion.count({
+        where: {
+          teacherId,
+          isLatest: true,
+        },
+      }),
+      prisma.teacherRoomVersion.findMany({
+        where: {
+          teacherId,
+          isLatest: true,
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+    ]);
 
-    return roomVersions.map((roomVersion) => formatRoomVersion(roomVersion));
+    return createPaginatedResult(
+      roomVersions.map((roomVersion) => formatRoomVersion(roomVersion)),
+      totalRoomVersions,
+      pagination.page,
+      pagination.pageSize,
+    );
   },
 
   async createRoomVersion(
@@ -622,11 +728,25 @@ export const teacherService = {
     return formatAssignment(assignment);
   },
 
-  async getClassroomDashboard(teacherIdInput: string | undefined, classroomId: string) {
+  async getClassroomDashboard(
+    teacherIdInput: string | undefined,
+    classroomId: string,
+    query?: { rosterPage?: number; rosterPageSize?: number },
+  ) {
     const teacherId = requireTeacherId(teacherIdInput);
     const classroom = await getTeacherClassroomOrThrow(teacherId, classroomId);
+    const rosterPagination = normalizePagination(
+      {
+        page: query?.rosterPage,
+        pageSize: query?.rosterPageSize,
+      },
+      { defaultPageSize: 10 },
+    );
 
-    const [enrollments, assignments, progressEntries] = await Promise.all([
+    const [totalRoster, enrollments, assignments] = await Promise.all([
+      prisma.classroomEnrollment.count({
+        where: { classroomId },
+      }),
       prisma.classroomEnrollment.findMany({
         where: { classroomId },
         select: {
@@ -640,6 +760,8 @@ export const teacherService = {
         orderBy: {
           createdAt: 'asc',
         },
+        skip: rosterPagination.skip,
+        take: rosterPagination.take,
       }),
       prisma.classroomAssignment.findMany({
         where: { classroomId, teacherId },
@@ -647,13 +769,21 @@ export const teacherService = {
           startAt: 'asc',
         },
       }),
-      prisma.studentAssignmentProgress.findMany({
-        where: { classroomId },
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      }),
     ]);
+    const studentIds = enrollments.map((entry) => entry.student.id);
+    const progressEntries = studentIds.length
+      ? await prisma.studentAssignmentProgress.findMany({
+          where: {
+            classroomId,
+            studentId: {
+              in: studentIds,
+            },
+          },
+          orderBy: {
+            updatedAt: 'desc',
+          },
+        })
+      : [];
 
     const totalAssignedRooms = assignments.reduce((total, assignment) => {
       const manifest = formatAssignment(assignment).roomManifest;
@@ -707,11 +837,16 @@ export const teacherService = {
       enrollments: enrollments.map(formatEnrollment),
       assignments: assignments.map((assignment) => formatAssignment(assignment)),
       summary: {
-        studentCount: enrollments.length,
+        studentCount: totalRoster,
         assignmentCount: assignments.length,
         roomCount: totalAssignedRooms,
       },
-      roster,
+      roster: createPaginatedResult(
+        roster,
+        totalRoster,
+        rosterPagination.page,
+        rosterPagination.pageSize,
+      ),
     };
   },
 };

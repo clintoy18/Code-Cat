@@ -7,6 +7,7 @@ import {
   type RoomDifficulty,
 } from '@shared/types/teacher';
 import { useSearchParams } from 'react-router-dom';
+import { PaginationControls } from '@/components/shared';
 import {
   blockPresetCatalog,
   buildTeacherBlocksFromPresetSelection,
@@ -44,29 +45,31 @@ const nextWeekDateValue = new Date(
 const builderSteps = [
   {
     title: 'Pick classroom',
-    description: 'Choose the classroom that should receive the room after publish.',
+    description: 'Choose the classroom that should receive the level after publish.',
   },
   {
-    title: 'Build room',
+    title: 'Build level',
     description: 'Set the layout, objective, and scoring limits in one pass.',
   },
   {
     title: 'Assign gameplay',
-    description: 'Publish the room into a student-playable classroom gameplay.',
+    description: 'Publish the level into a student-playable classroom gameplay.',
   },
 ];
 
 export const Lessons = () => {
   const [searchParams] = useSearchParams();
   const classroomIdFromSearch = searchParams.get('classroomId');
-  const classroomsQuery = useTeacherClassroomsQuery();
-  const roomsQuery = useTeacherRoomsQuery();
+  const [classroomsPage, setClassroomsPage] = useState(1);
+  const [roomVersionsPage, setRoomVersionsPage] = useState(1);
+  const classroomsQuery = useTeacherClassroomsQuery({ page: classroomsPage, pageSize: 12 });
+  const roomsQuery = useTeacherRoomsQuery({ page: roomVersionsPage, pageSize: 12 });
   const createRoomMutation = useCreateRoomMutation();
   const classrooms = useMemo(
-    () => classroomsQuery.data ?? [],
+    () => classroomsQuery.data?.items ?? [],
     [classroomsQuery.data],
   );
-  const roomVersions = useMemo(() => roomsQuery.data ?? [], [roomsQuery.data]);
+  const roomVersions = useMemo(() => roomsQuery.data?.items ?? [], [roomsQuery.data]);
   const [selectedClassroomId, setSelectedClassroomId] = useState<string>(
     classroomIdFromSearch ?? '',
   );
@@ -95,7 +98,6 @@ export const Lessons = () => {
     whileCondition: 'PATH_UP_CLEAR',
   });
   const [assignmentDraft, setAssignmentDraft] = useState({
-    assignToClassroom: true,
     title: '',
     description: '',
     startAt: todayDateValue,
@@ -103,15 +105,12 @@ export const Lessons = () => {
   });
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const publishedRoomCount = useMemo(
-    () => roomVersions.filter((room) => room.lifecycleStatus === 'PUBLISHED').length,
-    [roomVersions],
-  );
   const createAssignmentMutation = useCreateAssignmentMutation(
     selectedClassroomId || null,
   );
   const selectedClassroom =
     classrooms.find((classroom) => classroom.id === selectedClassroomId) ?? null;
+  const willPublishToClassroom = Boolean(selectedClassroomId);
 
   useEffect(() => {
     if (!selectedClassroomId && classrooms[0]) {
@@ -166,8 +165,7 @@ export const Lessons = () => {
     setSubmitError(null);
 
     if (
-      assignmentDraft.assignToClassroom &&
-      selectedClassroomId &&
+      willPublishToClassroom &&
       form.lifecycleStatus !== RoomLifecycleStatus.PUBLISHED
     ) {
       setSubmitError(
@@ -205,7 +203,7 @@ export const Lessons = () => {
       definition,
     });
 
-    if (assignmentDraft.assignToClassroom && selectedClassroomId) {
+    if (selectedClassroomId) {
       await createAssignmentMutation.mutateAsync({
         title: assignmentDraft.title.trim() || roomVersion.title,
         description:
@@ -224,10 +222,11 @@ export const Lessons = () => {
     <div className="space-y-6">
       <div>
         <p className="teacher-kicker text-sm font-semibold uppercase tracking-[0.3em]">Room Builder</p>
-        <h1 className="mt-2 font-display text-3xl font-bold">Build classroom levels without splitting the workflow.</h1>
+        <h1 className="mt-2 font-display text-3xl font-bold">Create classroom levels for the rooms you already manage.</h1>
         <p className="teacher-copy mt-3 max-w-3xl text-sm">
-          This is now the only page for classroom gameplay delivery: choose the room target, shape the puzzle, then
-          publish it into a student-playable assignment.
+          This page is the level-creation step of the teacher flow: pick a classroom, build the level, then publish it
+          into classroom gameplay for enrolled students. If a student is already enrolled in that classroom, they can
+          play the level as soon as it is published here.
         </p>
       </div>
 
@@ -248,9 +247,11 @@ export const Lessons = () => {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Classroom Level Builder</p>
-              <h2 className="mt-2 font-display text-2xl font-bold">Create or version a room</h2>
+              <h2 className="mt-2 font-display text-2xl font-bold">Create or version a classroom level</h2>
             </div>
-            <span className="teacher-chip">{publishedRoomCount} published</span>
+            <span className="teacher-chip">
+              {roomsQuery.data?.pagination.totalItems ?? roomVersions.length} latest versions
+            </span>
           </div>
 
           <div className="grid gap-4 xl:grid-cols-3">
@@ -278,9 +279,16 @@ export const Lessons = () => {
                     ))}
                   </select>
                   <p className="teacher-copy mt-2 text-xs">
-                    Choose a classroom here if this level should become playable for that classroom right after save.
+                    Choosing a classroom here means enrolled students can play this level as soon as you publish it.
                   </p>
                 </label>
+                <PaginationControls
+                  page={classroomsQuery.data?.pagination.page ?? 1}
+                  totalPages={classroomsQuery.data?.pagination.totalPages ?? 1}
+                  totalItems={classroomsQuery.data?.pagination.totalItems ?? classrooms.length}
+                  pageSize={classroomsQuery.data?.pagination.pageSize ?? 12}
+                  onPageChange={setClassroomsPage}
+                />
                 <label className="block">
                   <span className="teacher-label text-sm font-semibold">Use base version</span>
                   <select
@@ -299,6 +307,13 @@ export const Lessons = () => {
                     Saved versions stay in this selector, so the separate library panel is no longer necessary.
                   </p>
                 </label>
+                <PaginationControls
+                  page={roomsQuery.data?.pagination.page ?? 1}
+                  totalPages={roomsQuery.data?.pagination.totalPages ?? 1}
+                  totalItems={roomsQuery.data?.pagination.totalItems ?? roomVersions.length}
+                  pageSize={roomsQuery.data?.pagination.pageSize ?? 12}
+                  onPageChange={setRoomVersionsPage}
+                />
               </div>
             </section>
 
@@ -549,33 +564,18 @@ export const Lessons = () => {
                 </h3>
                 <p className="teacher-copy mt-3 text-sm">
                   {selectedClassroom
-                    ? `This room can be published directly into ${selectedClassroom.name} as a classroom gameplay.`
-                    : 'Select a classroom above if you want this room to become immediately playable for enrolled students.'}
+                    ? `This level will be published directly into ${selectedClassroom.name}. Any enrolled student can play it automatically.`
+                    : 'Select a classroom above if this level should become automatically playable for enrolled students.'}
                 </p>
               </div>
               <span className="teacher-chip">
-                {selectedClassroom ? 'Classroom linked' : 'Optional step'}
+                {selectedClassroom ? 'Auto-published' : 'Optional step'}
               </span>
             </div>
 
-            <label className="teacher-surface teacher-copy mt-4 flex items-center gap-3 rounded-2xl px-4 py-3 text-sm">
-              <input
-                type="checkbox"
-                checked={assignmentDraft.assignToClassroom}
-                onChange={(event) =>
-                  setAssignmentDraft((current) => ({
-                    ...current,
-                    assignToClassroom: event.target.checked,
-                  }))
-                }
-                disabled={!selectedClassroomId}
-              />
-              Assign this custom room to the selected classroom after save
-            </label>
-
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <label className="block md:col-span-2">
-                <span className="teacher-label text-sm font-semibold">Gameplay title</span>
+                <span className="teacher-label text-sm font-semibold">Classroom gameplay title</span>
                 <input
                   value={assignmentDraft.title}
                   onChange={(event) =>
@@ -586,11 +586,11 @@ export const Lessons = () => {
                   }
                   className="teacher-field mt-2"
                   placeholder="Defaults to the room title if left blank"
-                  disabled={!assignmentDraft.assignToClassroom || !selectedClassroomId}
+                  disabled={!selectedClassroomId}
                 />
               </label>
               <label className="block md:col-span-2">
-                <span className="teacher-label text-sm font-semibold">Gameplay note</span>
+                <span className="teacher-label text-sm font-semibold">Classroom gameplay note</span>
                 <textarea
                   value={assignmentDraft.description}
                   onChange={(event) =>
@@ -601,7 +601,7 @@ export const Lessons = () => {
                   }
                   className="teacher-field mt-2 min-h-24"
                   placeholder="Explain what students should focus on in this classroom level."
-                  disabled={!assignmentDraft.assignToClassroom || !selectedClassroomId}
+                  disabled={!selectedClassroomId}
                 />
               </label>
               <label className="block">
@@ -616,7 +616,7 @@ export const Lessons = () => {
                     }))
                   }
                   className="teacher-field mt-2"
-                  disabled={!assignmentDraft.assignToClassroom || !selectedClassroomId}
+                  disabled={!selectedClassroomId}
                 />
               </label>
               <label className="block">
@@ -631,7 +631,7 @@ export const Lessons = () => {
                     }))
                   }
                   className="teacher-field mt-2"
-                  disabled={!assignmentDraft.assignToClassroom || !selectedClassroomId}
+                  disabled={!selectedClassroomId}
                 />
               </label>
             </div>
@@ -653,8 +653,8 @@ export const Lessons = () => {
           >
             {createRoomMutation.isPending || createAssignmentMutation.isPending
               ? 'Saving classroom level...'
-              : assignmentDraft.assignToClassroom && selectedClassroomId
-                ? 'Save room and assign to classroom'
+              : selectedClassroomId
+                ? 'Save room and publish to classroom'
                 : 'Save room version'}
           </button>
         </article>

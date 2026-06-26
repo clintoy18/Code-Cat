@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { PaginationControls } from '@/components/shared';
 import {
   useCreateClassroomMutation,
   useEnrollStudentsMutation,
@@ -9,8 +10,13 @@ import {
 } from '@/features/teacher';
 
 export const Students = () => {
-  const studentsQuery = useTeacherStudentsQuery();
-  const classroomsQuery = useTeacherClassroomsQuery();
+  const [studentsPage, setStudentsPage] = useState(1);
+  const [classroomsPage, setClassroomsPage] = useState(1);
+  const [enrollmentsPage, setEnrollmentsPage] = useState(1);
+  const [assignmentsPage, setAssignmentsPage] = useState(1);
+  const [availableStudentsPage, setAvailableStudentsPage] = useState(1);
+  const studentsQuery = useTeacherStudentsQuery({ page: studentsPage, pageSize: 12 });
+  const classroomsQuery = useTeacherClassroomsQuery({ page: classroomsPage, pageSize: 8 });
   const createClassroomMutation = useCreateClassroomMutation();
 
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
@@ -24,8 +30,8 @@ export const Students = () => {
   const [enrollmentDraft, setEnrollmentDraft] = useState<string[]>([]);
   const [singleEnrollmentStudentId, setSingleEnrollmentStudentId] = useState('');
 
-  const classrooms = useMemo(() => classroomsQuery.data ?? [], [classroomsQuery.data]);
-  const students = useMemo(() => studentsQuery.data ?? [], [studentsQuery.data]);
+  const classrooms = useMemo(() => classroomsQuery.data?.items ?? [], [classroomsQuery.data]);
+  const students = useMemo(() => studentsQuery.data?.items ?? [], [studentsQuery.data]);
 
   useEffect(() => {
     if (!selectedClassroomId && classrooms[0]) {
@@ -33,18 +39,28 @@ export const Students = () => {
     }
   }, [classrooms, selectedClassroomId]);
 
-  const classroomDetailQuery = useTeacherClassroomQuery(selectedClassroomId);
+  useEffect(() => {
+    setEnrollmentsPage(1);
+    setAssignmentsPage(1);
+    setAvailableStudentsPage(1);
+  }, [selectedClassroomId]);
+
+  const classroomDetailQuery = useTeacherClassroomQuery(selectedClassroomId, {
+    enrollmentsPage,
+    enrollmentsPageSize: 10,
+    assignmentsPage,
+    assignmentsPageSize: 10,
+  });
+  const classroomStudentsQuery = useTeacherStudentsQuery({
+    page: availableStudentsPage,
+    pageSize: 12,
+    classroomId: selectedClassroomId ?? undefined,
+  });
   const enrollStudentsMutation = useEnrollStudentsMutation(selectedClassroomId);
   const selectedClassroom = classroomDetailQuery.data?.classroom ?? null;
   const unenrolledStudents = useMemo(
-    () =>
-      students.filter(
-        (student) =>
-          !classroomDetailQuery.data?.enrollments.some(
-            (entry) => entry.student.id === student.id,
-          ),
-      ),
-    [classroomDetailQuery.data?.enrollments, students],
+    () => (classroomStudentsQuery.data?.items ?? []).filter((student) => !student.isEnrolledInClassroom),
+    [classroomStudentsQuery.data],
   );
 
   const submitClassroom = async () => {
@@ -53,6 +69,7 @@ export const Students = () => {
       studentIds: classroomForm.studentIds,
     });
     setSelectedClassroomId(classroom.id);
+    setClassroomsPage(1);
 
     setClassroomForm({
       name: '',
@@ -70,6 +87,7 @@ export const Students = () => {
 
     await enrollStudentsMutation.mutateAsync(enrollmentDraft);
     setEnrollmentDraft([]);
+    setEnrollmentsPage(1);
   };
 
   const submitSingleEnrollment = async () => {
@@ -79,18 +97,43 @@ export const Students = () => {
 
     await enrollStudentsMutation.mutateAsync([singleEnrollmentStudentId]);
     setSingleEnrollmentStudentId('');
+    setEnrollmentsPage(1);
   };
 
   return (
     <div className="space-y-6">
       <div>
         <p className="teacher-kicker text-sm font-semibold uppercase tracking-[0.3em]">Classroom Manager</p>
-        <h1 className="mt-2 font-display text-3xl font-bold">Create classrooms and keep roster work focused.</h1>
+        <h1 className="mt-2 font-display text-3xl font-bold">Create classrooms, manage roster, then launch level work.</h1>
         <p className="teacher-copy mt-3 max-w-3xl text-sm">
-          This page now stays on classroom setup and student enrollment. Level building and classroom gameplays live in
-          the builder so teachers are not managing the same workflow in two different places.
+          Use this page for classroom setup and enrollment only. Once the classroom is ready, jump into the builder to
+          create a playable room for that specific classroom.
         </p>
       </div>
+
+      <section className="grid gap-4 xl:grid-cols-3">
+        <article className="glass-panel p-5">
+          <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Step 1</p>
+          <h2 className="mt-3 font-display text-2xl font-bold">Create classroom</h2>
+          <p className="teacher-copy mt-3 text-sm">
+            Add the classroom name, lesson description, and optional initial students.
+          </p>
+        </article>
+        <article className="glass-panel p-5">
+          <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Step 2</p>
+          <h2 className="mt-3 font-display text-2xl font-bold">Enroll students</h2>
+          <p className="teacher-copy mt-3 text-sm">
+            Add one learner quickly or bulk-enroll the remaining students into the active room.
+          </p>
+        </article>
+        <article className="glass-panel p-5">
+          <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Step 3</p>
+          <h2 className="mt-3 font-display text-2xl font-bold">Build classroom level</h2>
+          <p className="teacher-copy mt-3 text-sm">
+            Open the room builder from the selected classroom when the roster is ready for gameplay.
+          </p>
+        </article>
+      </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
         <article className="glass-panel p-6">
@@ -175,6 +218,13 @@ export const Students = () => {
                   </div>
                 )}
               </div>
+              <PaginationControls
+                page={studentsQuery.data?.pagination.page ?? 1}
+                totalPages={studentsQuery.data?.pagination.totalPages ?? 1}
+                totalItems={studentsQuery.data?.pagination.totalItems ?? students.length}
+                pageSize={studentsQuery.data?.pagination.pageSize ?? 12}
+                onPageChange={setStudentsPage}
+              />
             </div>
 
             <button
@@ -196,7 +246,7 @@ export const Students = () => {
                 <h2 className="mt-2 font-display text-2xl font-bold">Pick an active classroom</h2>
               </div>
               <span className="teacher-chip">
-                {classrooms.length} total
+                {classroomsQuery.data?.pagination.totalItems ?? classrooms.length} total
               </span>
             </div>
             <div className="mt-5 grid gap-3 md:grid-cols-2">
@@ -234,34 +284,44 @@ export const Students = () => {
                 </div>
               )}
             </div>
+            <PaginationControls
+              page={classroomsQuery.data?.pagination.page ?? 1}
+              totalPages={classroomsQuery.data?.pagination.totalPages ?? 1}
+              totalItems={classroomsQuery.data?.pagination.totalItems ?? classrooms.length}
+              pageSize={classroomsQuery.data?.pagination.pageSize ?? 8}
+              onPageChange={setClassroomsPage}
+            />
           </div>
 
           {selectedClassroom ? (
-            <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+            <div className="space-y-4">
               <section className="glass-panel min-w-0 p-6">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Roster</p>
                     <h2 className="mt-2 font-display text-2xl font-bold">{selectedClassroom.name}</h2>
+                    <p className="teacher-copy mt-3 text-sm">
+                      Finish roster changes here before creating classroom gameplay for this room.
+                    </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <span className="teacher-chip">
-                      {classroomDetailQuery.data?.enrollments.length ?? 0} enrolled
+                      {classroomDetailQuery.data?.enrollments.pagination.totalItems ?? 0} enrolled
                     </span>
                     <span className="teacher-chip">{selectedClassroom.isPrivate ? 'Private' : 'Open'}</span>
                   </div>
                 </div>
-                <div className="mt-5 grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]">
+                <div className="mt-5 grid gap-4">
                   <div className="min-w-0 space-y-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <p className="teacher-label text-sm font-semibold">Current students</p>
                       <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">
-                        {classroomDetailQuery.data?.enrollments.length ?? 0} seats used
+                        {classroomDetailQuery.data?.enrollments.pagination.totalItems ?? 0} seats used
                       </span>
                     </div>
                     <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
-                      {classroomDetailQuery.data?.enrollments.length ? (
-                        classroomDetailQuery.data.enrollments.map((entry) => (
+                      {classroomDetailQuery.data?.enrollments.items.length ? (
+                        classroomDetailQuery.data.enrollments.items.map((entry) => (
                           <article key={entry.id} className="teacher-surface rounded-2xl px-4 py-3">
                             <p className="text-sm font-semibold text-[var(--text-0)]">{entry.student.username}</p>
                             <p className="mt-1 text-xs text-[var(--text-2)]">{entry.student.email}</p>
@@ -274,6 +334,13 @@ export const Students = () => {
                         </div>
                       )}
                     </div>
+                    <PaginationControls
+                      page={classroomDetailQuery.data?.enrollments.pagination.page ?? 1}
+                      totalPages={classroomDetailQuery.data?.enrollments.pagination.totalPages ?? 1}
+                      totalItems={classroomDetailQuery.data?.enrollments.pagination.totalItems ?? 0}
+                      pageSize={classroomDetailQuery.data?.enrollments.pagination.pageSize ?? 10}
+                      onPageChange={setEnrollmentsPage}
+                    />
                   </div>
 
                   <div className="teacher-surface min-w-0 rounded-3xl p-4">
@@ -363,93 +430,79 @@ export const Students = () => {
                         >
                           {enrollStudentsMutation.isPending ? 'Enrolling...' : 'Enroll selected students'}
                         </button>
+                        <PaginationControls
+                          page={classroomStudentsQuery.data?.pagination.page ?? 1}
+                          totalPages={classroomStudentsQuery.data?.pagination.totalPages ?? 1}
+                          totalItems={classroomStudentsQuery.data?.pagination.totalItems ?? unenrolledStudents.length}
+                          pageSize={classroomStudentsQuery.data?.pagination.pageSize ?? 12}
+                          onPageChange={setAvailableStudentsPage}
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
               </section>
 
-              <div className="min-w-0 space-y-4">
-                <section className="glass-panel min-w-0 p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Next Step</p>
-                      <h2 className="mt-2 font-display text-2xl font-bold">Build classroom gameplay</h2>
-                      <p className="teacher-copy mt-3 text-sm">
-                        Classroom levels and student-playable scheduling now happen in the room builder. This keeps
-                        roster work separate from lesson delivery.
-                      </p>
-                    </div>
-                    <span className="teacher-chip">One flow</span>
+              <section className="glass-panel min-w-0 p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Scheduled Gameplays</p>
+                    <h2 className="mt-2 font-display text-2xl font-bold">What students will see next</h2>
+                    <p className="teacher-copy mt-3 text-sm">
+                      Build and assign classroom gameplay from the room builder once this roster is ready.
+                    </p>
                   </div>
-                  <div className="mt-5 grid gap-3">
-                    <div className="teacher-surface rounded-2xl px-4 py-4">
-                      <p className="teacher-label text-xs font-semibold uppercase tracking-[0.22em]">Students</p>
-                      <p className="mt-2 text-2xl font-bold text-[var(--text-0)]">
-                        {classroomDetailQuery.data?.enrollments.length ?? 0}
-                      </p>
-                    </div>
-                    <div className="teacher-surface rounded-2xl px-4 py-4">
-                      <p className="teacher-label text-xs font-semibold uppercase tracking-[0.22em]">Gameplays</p>
-                      <p className="mt-2 text-2xl font-bold text-[var(--text-0)]">
-                        {classroomDetailQuery.data?.assignments.length ?? 0}
-                      </p>
-                    </div>
-                    <div className="teacher-surface rounded-2xl px-4 py-4">
-                      <p className="teacher-label text-xs font-semibold uppercase tracking-[0.22em]">Visibility</p>
-                      <p className="mt-2 text-lg font-bold text-[var(--text-0)]">
-                        {selectedClassroom.isPrivate ? 'Private room' : 'Open room'}
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    to={`/teacher/lessons?classroomId=${selectedClassroom.id}`}
-                    className="teacher-button-primary mt-5 w-full"
-                  >
-                    Build level for classroom
-                  </Link>
-                </section>
-
-                <section className="glass-panel min-w-0 p-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Scheduled Gameplays</p>
-                      <h2 className="mt-2 font-display text-2xl font-bold">What students will see next</h2>
-                    </div>
+                  <div className="flex flex-wrap gap-2">
                     <span className="teacher-chip">
-                      {classroomDetailQuery.data?.assignments.length ?? 0} live
+                      {classroomDetailQuery.data?.assignments.pagination.totalItems ?? 0} live
                     </span>
+                    <span className="teacher-chip">
+                      {selectedClassroom.isPrivate ? 'Private room' : 'Open room'}
+                    </span>
+                    <Link
+                      to={`/teacher/lessons?classroomId=${selectedClassroom.id}`}
+                      className="teacher-button-primary"
+                    >
+                      Build level for classroom
+                    </Link>
                   </div>
+                </div>
 
-                  <div className="mt-5 space-y-3">
-                    {(classroomDetailQuery.data?.assignments ?? []).length ? (
-                      classroomDetailQuery.data?.assignments.map((assignment) => (
-                        <article key={assignment.id} className="teacher-surface rounded-2xl px-4 py-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <h3 className="font-display text-xl font-bold text-[var(--color-ink)]">{assignment.title}</h3>
-                              <p className="teacher-copy mt-2 text-sm">{assignment.description ?? 'No extra note.'}</p>
-                            </div>
-                            <span className="teacher-tag">{assignment.targetType.replace('_', ' ')}</span>
+                <div className="mt-5 space-y-3">
+                  {(classroomDetailQuery.data?.assignments.items ?? []).length ? (
+                    classroomDetailQuery.data?.assignments.items.map((assignment) => (
+                      <article key={assignment.id} className="teacher-surface rounded-2xl px-4 py-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="font-display text-xl font-bold text-[var(--color-ink)]">{assignment.title}</h3>
+                            <p className="teacher-copy mt-2 text-sm">{assignment.description ?? 'No extra note.'}</p>
                           </div>
-                          <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">
-                            <span>{assignment.roomManifest.length} rooms</span>
-                            <span>Starts {new Date(assignment.startAt).toLocaleDateString()}</span>
-                            <span>
-                              Due {assignment.dueAt ? new Date(assignment.dueAt).toLocaleDateString() : 'none'}
-                            </span>
-                          </div>
-                        </article>
-                      ))
-                    ) : (
-                      <div className="teacher-surface teacher-copy rounded-3xl px-4 py-5 text-sm">
-                        No classroom gameplay is scheduled yet. Build a room and assign it from the lesson builder when
-                        this roster is ready.
-                      </div>
-                    )}
-                  </div>
-                </section>
-              </div>
+                          <span className="teacher-tag">{assignment.targetType.replace('_', ' ')}</span>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">
+                          <span>{assignment.roomManifest.length} rooms</span>
+                          <span>Starts {new Date(assignment.startAt).toLocaleDateString()}</span>
+                          <span>
+                            Due {assignment.dueAt ? new Date(assignment.dueAt).toLocaleDateString() : 'none'}
+                          </span>
+                        </div>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="teacher-surface teacher-copy rounded-3xl px-4 py-5 text-sm">
+                      No classroom gameplay is scheduled yet. Build a room and assign it from the lesson builder when
+                      this roster is ready.
+                    </div>
+                  )}
+                </div>
+                <PaginationControls
+                  page={classroomDetailQuery.data?.assignments.pagination.page ?? 1}
+                  totalPages={classroomDetailQuery.data?.assignments.pagination.totalPages ?? 1}
+                  totalItems={classroomDetailQuery.data?.assignments.pagination.totalItems ?? 0}
+                  pageSize={classroomDetailQuery.data?.assignments.pagination.pageSize ?? 10}
+                  onPageChange={setAssignmentsPage}
+                />
+              </section>
             </div>
           ) : (
             <div className="glass-panel teacher-copy p-6 text-sm">

@@ -3,6 +3,7 @@ import type { CompletionStatus } from '@shared/types/progress';
 import { prisma } from '@/config/database';
 import { AppError } from '@/middleware/errorHandler';
 import { calculateRoomScore, formatAssignment, formatAssignmentProgress, formatClassroom, formatRoomVersion } from '@/modules/teacher/teacher.utils';
+import { createPaginatedResult, normalizePagination } from '@/lib/pagination';
 
 type PrismaCompletionStatus = NonNullable<Prisma.PlayerProgressCreateInput['status']>;
 
@@ -178,53 +179,72 @@ export const progressService = {
     });
   },
 
-  async getMyAssignments(userId: string) {
-    const enrollments = await prisma.classroomEnrollment.findMany({
-      where: {
-        studentId: userId,
-      },
-      include: {
-        classroom: {
-          select: {
-            id: true,
-            teacherId: true,
-            name: true,
-            description: true,
-            isPrivate: true,
-            requiresApproval: true,
-            createdAt: true,
-            updatedAt: true,
-            assignments: {
-              orderBy: {
-                startAt: 'asc',
-              },
-              include: {
-                progressEntries: {
-                  where: {
-                    studentId: userId,
-                  },
+  async getMyAssignments(
+    userId: string,
+    query?: { page?: number; pageSize?: number },
+  ) {
+    const pagination = normalizePagination(query, { defaultPageSize: 6 });
+
+    const [totalEnrollments, enrollments] = await Promise.all([
+      prisma.classroomEnrollment.count({
+        where: {
+          studentId: userId,
+        },
+      }),
+      prisma.classroomEnrollment.findMany({
+        where: {
+          studentId: userId,
+        },
+        include: {
+          classroom: {
+            select: {
+              id: true,
+              teacherId: true,
+              name: true,
+              description: true,
+              isPrivate: true,
+              requiresApproval: true,
+              createdAt: true,
+              updatedAt: true,
+              assignments: {
+                orderBy: {
+                  startAt: 'asc',
                 },
-                customRoomVersion: true,
+                include: {
+                  progressEntries: {
+                    where: {
+                      studentId: userId,
+                    },
+                  },
+                  customRoomVersion: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
+        orderBy: {
+          createdAt: 'asc',
+        },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+    ]);
 
-    return enrollments.map((enrollment) => ({
-      classroom: formatClassroom(enrollment.classroom),
-      enrolledAt: enrollment.createdAt.toISOString(),
-      assignments: enrollment.classroom.assignments.map((assignment) => ({
-        assignment: formatAssignment(assignment),
-        progress: assignment.progressEntries.map(formatAssignmentProgress),
-        customRoom:
-          assignment.customRoomVersion ? formatRoomVersion(assignment.customRoomVersion) : null,
+    return createPaginatedResult(
+      enrollments.map((enrollment) => ({
+        classroom: formatClassroom(enrollment.classroom),
+        enrolledAt: enrollment.createdAt.toISOString(),
+        assignments: enrollment.classroom.assignments.map((assignment) => ({
+          assignment: formatAssignment(assignment),
+          progress: assignment.progressEntries.map(formatAssignmentProgress),
+          customRoom:
+            assignment.customRoomVersion ? formatRoomVersion(assignment.customRoomVersion) : null,
+        })),
       })),
-    }));
+      totalEnrollments,
+      pagination.page,
+      pagination.pageSize,
+    );
   },
 
   async getMyAssignmentById(userId: string, assignmentId: string) {

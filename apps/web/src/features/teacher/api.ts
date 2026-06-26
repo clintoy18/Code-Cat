@@ -1,3 +1,4 @@
+import type { IPaginatedResult, IPaginationQuery } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AssignmentTargetType,
@@ -27,12 +28,13 @@ type TeacherStudentRecord = {
   createdAt: string;
   classroomCount: number;
   assignmentRoomCount: number;
+  isEnrolledInClassroom?: boolean;
 };
 
 type ClassroomDetail = {
   classroom: IClassroom;
-  enrollments: IClassroomEnrollment[];
-  assignments: IClassroomAssignment[];
+  enrollments: IPaginatedResult<IClassroomEnrollment>;
+  assignments: IPaginatedResult<IClassroomAssignment>;
 };
 
 type TeacherOverview = {
@@ -52,7 +54,7 @@ type TeacherDashboard = {
     assignmentCount: number;
     roomCount: number;
   };
-  roster: Array<{
+  roster: IPaginatedResult<{
     student: TeacherStudentRecord;
     assignedRooms: number;
     solvedRooms: number;
@@ -70,7 +72,7 @@ type TeacherDashboard = {
   }>;
 };
 
-type StudentAssignmentsFeed = Array<{
+type StudentAssignmentsFeed = IPaginatedResult<{
   classroom: IClassroom;
   enrolledAt: string;
   assignments: Array<{
@@ -87,8 +89,8 @@ type StudentAssignmentDetail = {
   customRoom: ITeacherRoomVersion | null;
 };
 
-const getData = async <T>(url: string) => {
-  const response = await api.get<ApiResponse<T>>(url);
+const getData = async <T>(url: string, params?: object) => {
+  const response = await api.get<ApiResponse<T>>(url, { params });
   return response.data.data;
 };
 
@@ -109,36 +111,53 @@ export const useTeacherOverviewQuery = () =>
     queryFn: () => getData<TeacherOverview>('/teacher/overview'),
   });
 
-export const useTeacherStudentsQuery = () =>
+export const useTeacherStudentsQuery = (
+  params?: IPaginationQuery & { classroomId?: string },
+) =>
   useQuery({
-    queryKey: teacherQueryKeys.students,
-    queryFn: () => getData<TeacherStudentRecord[]>('/teacher/students'),
+    queryKey: [...teacherQueryKeys.students, params] as const,
+    queryFn: () => getData<IPaginatedResult<TeacherStudentRecord>>('/teacher/students', params),
   });
 
-export const useTeacherClassroomsQuery = () =>
+export const useTeacherClassroomsQuery = (params?: IPaginationQuery) =>
   useQuery({
-    queryKey: teacherQueryKeys.classrooms,
-    queryFn: () => getData<IClassroom[]>('/teacher/classrooms'),
+    queryKey: [...teacherQueryKeys.classrooms, params] as const,
+    queryFn: () => getData<IPaginatedResult<IClassroom>>('/teacher/classrooms', params),
   });
 
-export const useTeacherClassroomQuery = (classroomId: string | null) =>
+export const useTeacherClassroomQuery = (
+  classroomId: string | null,
+  params?: {
+    enrollmentsPage?: number;
+    enrollmentsPageSize?: number;
+    assignmentsPage?: number;
+    assignmentsPageSize?: number;
+  },
+) =>
   useQuery({
-    queryKey: classroomId ? teacherQueryKeys.classroom(classroomId) : ['teacher', 'classrooms', 'idle'],
-    queryFn: () => getData<ClassroomDetail>(`/teacher/classrooms/${classroomId}`),
+    queryKey: classroomId
+      ? [...teacherQueryKeys.classroom(classroomId), params]
+      : ['teacher', 'classrooms', 'idle'],
+    queryFn: () => getData<ClassroomDetail>(`/teacher/classrooms/${classroomId}`, params),
     enabled: Boolean(classroomId),
   });
 
-export const useTeacherClassroomDashboardQuery = (classroomId: string | null) =>
+export const useTeacherClassroomDashboardQuery = (
+  classroomId: string | null,
+  params?: { rosterPage?: number; rosterPageSize?: number },
+) =>
   useQuery({
-    queryKey: classroomId ? teacherQueryKeys.classroomDashboard(classroomId) : ['teacher', 'dashboard', 'idle'],
-    queryFn: () => getData<TeacherDashboard>(`/teacher/classrooms/${classroomId}/dashboard`),
+    queryKey: classroomId
+      ? [...teacherQueryKeys.classroomDashboard(classroomId), params]
+      : ['teacher', 'dashboard', 'idle'],
+    queryFn: () => getData<TeacherDashboard>(`/teacher/classrooms/${classroomId}/dashboard`, params),
     enabled: Boolean(classroomId),
   });
 
-export const useTeacherRoomsQuery = () =>
+export const useTeacherRoomsQuery = (params?: IPaginationQuery) =>
   useQuery({
-    queryKey: teacherQueryKeys.rooms,
-    queryFn: () => getData<ITeacherRoomVersion[]>('/teacher/rooms'),
+    queryKey: [...teacherQueryKeys.rooms, params] as const,
+    queryFn: () => getData<IPaginatedResult<ITeacherRoomVersion>>('/teacher/rooms', params),
   });
 
 export const useCreateClassroomMutation = () => {
@@ -246,10 +265,10 @@ export const useCreateAssignmentMutation = (classroomId: string | null) => {
   });
 };
 
-export const useStudentAssignmentsQuery = () =>
+export const useStudentAssignmentsQuery = (params?: IPaginationQuery) =>
   useQuery({
-    queryKey: teacherQueryKeys.studentAssignments,
-    queryFn: () => getData<StudentAssignmentsFeed>('/progress/assignments/me'),
+    queryKey: [...teacherQueryKeys.studentAssignments, params] as const,
+    queryFn: () => getData<StudentAssignmentsFeed>('/progress/assignments/me', params),
   });
 
 export const useStudentAssignmentQuery = (assignmentId: string | null) =>

@@ -22,7 +22,7 @@ export const getTeacherOverview = async (req: Request, res: Response, next: Next
 
 export const getStudents = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await teacherService.getStudents();
+    const result = await teacherService.getStudents(requireTeacherUserId(_req), _req.query);
     return sendSuccess(res, result);
   } catch (error) {
     return next(error);
@@ -40,7 +40,7 @@ export const getStudentProgress = async (req: Request, res: Response, next: Next
 
 export const getClassrooms = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await teacherService.getClassrooms(requireTeacherUserId(req));
+    const result = await teacherService.getClassrooms(requireTeacherUserId(req), req.query);
     return sendSuccess(res, result);
   } catch (error) {
     return next(error);
@@ -58,7 +58,7 @@ export const createClassroom = async (req: Request, res: Response, next: NextFun
 
 export const getClassroomById = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await teacherService.getClassroomById(requireTeacherUserId(req), req.params.id);
+    const result = await teacherService.getClassroomById(requireTeacherUserId(req), req.params.id, req.query);
     return sendSuccess(res, result);
   } catch (error) {
     return next(error);
@@ -76,7 +76,7 @@ export const enrollStudents = async (req: Request, res: Response, next: NextFunc
 
 export const getRoomVersions = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await teacherService.getRoomVersions(requireTeacherUserId(req));
+    const result = await teacherService.getRoomVersions(requireTeacherUserId(req), req.query);
     return sendSuccess(res, result);
   } catch (error) {
     return next(error);
@@ -103,7 +103,7 @@ export const createClassroomAssignment = async (req: Request, res: Response, nex
 
 export const getClassroomDashboard = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await teacherService.getClassroomDashboard(requireTeacherUserId(req), req.params.id);
+    const result = await teacherService.getClassroomDashboard(requireTeacherUserId(req), req.params.id, req.query);
     return sendSuccess(res, result);
   } catch (error) {
     return next(error);

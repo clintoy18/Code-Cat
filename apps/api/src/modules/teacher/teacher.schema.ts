@@ -63,6 +63,26 @@ const roomManifestItemSchema = z.object({
   customRoomVersionId: objectIdSchema.optional(),
 });
 
+const paginationFieldSchema = z.coerce.number().int().min(1).optional();
+
+export const teacherPaginationQuerySchema = z.object({
+  page: paginationFieldSchema,
+  pageSize: paginationFieldSchema,
+  classroomId: objectIdSchema.optional(),
+});
+
+export const classroomDetailPaginationQuerySchema = z.object({
+  enrollmentsPage: paginationFieldSchema,
+  enrollmentsPageSize: paginationFieldSchema,
+  assignmentsPage: paginationFieldSchema,
+  assignmentsPageSize: paginationFieldSchema,
+});
+
+export const classroomDashboardPaginationQuerySchema = z.object({
+  rosterPage: paginationFieldSchema,
+  rosterPageSize: paginationFieldSchema,
+});
+
 export const teacherStudentParamsSchema = z.object({
   id: objectIdSchema,
 });

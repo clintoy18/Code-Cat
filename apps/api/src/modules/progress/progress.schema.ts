@@ -2,6 +2,8 @@ import { CompletionStatus } from '@shared/types/progress';
 import { z } from 'zod';
 import { objectIdSchema } from '@/lib/objectId';
 
+const paginationFieldSchema = z.coerce.number().int().min(1).optional();
+
 export const createProgressSchema = z.object({
   levelId: objectIdSchema,
   puzzleId: objectIdSchema,
@@ -25,4 +27,9 @@ export const progressLevelParamsSchema = z.object({
 
 export const assignmentParamsSchema = z.object({
   id: objectIdSchema,
+});
+
+export const studentAssignmentsPaginationQuerySchema = z.object({
+  page: paginationFieldSchema,
+  pageSize: paginationFieldSchema,
 });

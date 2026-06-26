@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
+import { PaginationControls } from '@/components/shared';
 import { useTeacherClassroomDashboardQuery, useTeacherClassroomsQuery } from '@/features/teacher';
 
 export const Progress = () => {
-  const classroomsQuery = useTeacherClassroomsQuery();
-  const classrooms = useMemo(() => classroomsQuery.data ?? [], [classroomsQuery.data]);
+  const [classroomsPage, setClassroomsPage] = useState(1);
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null);
+  const [rosterPage, setRosterPage] = useState(1);
+  const classroomsQuery = useTeacherClassroomsQuery({ page: classroomsPage, pageSize: 12 });
+  const classrooms = useMemo(() => classroomsQuery.data?.items ?? [], [classroomsQuery.data]);
 
   useEffect(() => {
     if (!selectedClassroomId && classrooms[0]) {
@@ -12,7 +15,14 @@ export const Progress = () => {
     }
   }, [classrooms, selectedClassroomId]);
 
-  const dashboardQuery = useTeacherClassroomDashboardQuery(selectedClassroomId);
+  useEffect(() => {
+    setRosterPage(1);
+  }, [selectedClassroomId]);
+
+  const dashboardQuery = useTeacherClassroomDashboardQuery(selectedClassroomId, {
+    rosterPage,
+    rosterPageSize: 10,
+  });
   const dashboard = dashboardQuery.data;
 
   return (
@@ -41,6 +51,13 @@ export const Progress = () => {
             ))}
           </select>
         </label>
+        <PaginationControls
+          page={classroomsQuery.data?.pagination.page ?? 1}
+          totalPages={classroomsQuery.data?.pagination.totalPages ?? 1}
+          totalItems={classroomsQuery.data?.pagination.totalItems ?? classrooms.length}
+          pageSize={classroomsQuery.data?.pagination.pageSize ?? 12}
+          onPageChange={setClassroomsPage}
+        />
       </section>
 
       {dashboard ? (
@@ -67,12 +84,12 @@ export const Progress = () => {
                 <h2 className="mt-2 font-display text-2xl font-bold">{dashboard.classroom.name}</h2>
               </div>
               <span className="teacher-chip">
-                {dashboard.roster.length} rows
+                {dashboard.roster.pagination.totalItems} rows
               </span>
             </div>
 
             <div className="mt-5 space-y-4">
-              {dashboard.roster.map((entry) => (
+              {dashboard.roster.items.map((entry) => (
                 <article key={entry.student.id} className="teacher-surface rounded-3xl p-4">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
@@ -131,6 +148,13 @@ export const Progress = () => {
                 </article>
               ))}
             </div>
+            <PaginationControls
+              page={dashboard.roster.pagination.page}
+              totalPages={dashboard.roster.pagination.totalPages}
+              totalItems={dashboard.roster.pagination.totalItems}
+              pageSize={dashboard.roster.pagination.pageSize}
+              onPageChange={setRosterPage}
+            />
           </section>
         </>
       ) : null}

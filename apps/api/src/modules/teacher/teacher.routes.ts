@@ -17,11 +17,14 @@ import {
   getTeacherOverview,
 } from './teacher.controller';
 import {
+  classroomDashboardPaginationQuerySchema,
+  classroomDetailPaginationQuerySchema,
   classroomParamsSchema,
   createClassroomAssignmentSchema,
   createClassroomSchema,
   createTeacherRoomVersionSchema,
   enrollStudentsSchema,
+  teacherPaginationQuerySchema,
   teacherStudentParamsSchema,
 } from './teacher.schema';
 
@@ -29,12 +32,20 @@ export const teacherRouter = Router();
 
 teacherRouter.use(authenticate, authorize(Role.TEACHER, Role.ADMIN));
 teacherRouter.get('/overview', getTeacherOverview);
-teacherRouter.get('/students', getStudents);
+teacherRouter.get('/students', validate({ query: teacherPaginationQuerySchema }), getStudents);
 teacherRouter.get('/students/:id/progress', validate({ params: teacherStudentParamsSchema }), getStudentProgress);
-teacherRouter.get('/classrooms', getClassrooms);
+teacherRouter.get('/classrooms', validate({ query: teacherPaginationQuerySchema }), getClassrooms);
 teacherRouter.post('/classrooms', validate({ body: createClassroomSchema }), createClassroom);
-teacherRouter.get('/classrooms/:id', validate({ params: classroomParamsSchema }), getClassroomById);
-teacherRouter.get('/classrooms/:id/dashboard', validate({ params: classroomParamsSchema }), getClassroomDashboard);
+teacherRouter.get(
+  '/classrooms/:id',
+  validate({ params: classroomParamsSchema, query: classroomDetailPaginationQuerySchema }),
+  getClassroomById,
+);
+teacherRouter.get(
+  '/classrooms/:id/dashboard',
+  validate({ params: classroomParamsSchema, query: classroomDashboardPaginationQuerySchema }),
+  getClassroomDashboard,
+);
 teacherRouter.post(
   '/classrooms/:id/enrollments',
   validate({ params: classroomParamsSchema, body: enrollStudentsSchema }),
@@ -45,5 +56,5 @@ teacherRouter.post(
   validate({ params: classroomParamsSchema, body: createClassroomAssignmentSchema }),
   createClassroomAssignment,
 );
-teacherRouter.get('/rooms', getRoomVersions);
+teacherRouter.get('/rooms', validate({ query: teacherPaginationQuerySchema }), getRoomVersions);
 teacherRouter.post('/rooms', validate({ body: createTeacherRoomVersionSchema }), createRoomVersion);

@@ -48,7 +48,7 @@ export const getMyAssignments = async (req: Request, res: Response, next: NextFu
       throw new AppError('UNAUTHORIZED', 'Authentication is required.', 401);
     }
 
-    const result = await progressService.getMyAssignments(req.user.id);
+    const result = await progressService.getMyAssignments(req.user.id, req.query);
     return sendSuccess(res, result);
   } catch (error) {
     return next(error);
