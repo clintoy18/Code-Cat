@@ -7,16 +7,22 @@ import codeCatLogo from '@/assets/codecat-logo.png';
 
 const cards = [
   {
-    title: 'Foundations World',
-    body: 'Start with sequencing, debugging, and efficiency before the cat enters richer logic rooms.',
+    title: 'Normal gameplay',
+    body: 'Follow the built-in Code Cat path world by world and keep your official progression moving.',
+    to: '/levels',
+    action: 'Open progression',
   },
   {
-    title: 'Decision World',
-    body: 'Move beyond straight-line routes and teach the cat to react to true and false checks.',
+    title: 'Classroom gameplay',
+    body: 'Play only the rooms your teacher assigned to the classrooms you joined.',
+    to: '/classroom-gameplays',
+    action: 'Open assignments',
   },
   {
-    title: 'Strategy World',
-    body: 'The live student path now reaches loops, functions, variables, and strategy, where working routes get tightened into stronger ones.',
+    title: 'Achievements',
+    body: 'Review unlocked milestones, replay momentum, and recent wins across both tracks.',
+    to: '/achievements',
+    action: 'View achievements',
   },
 ];
 
@@ -38,12 +44,12 @@ export const MainMenu = () => {
         <div>
           <img src={codeCatLogo} alt="Code Cat" className="hero-logo" />
           <h1 className="pixel-hero__title">
-            Mission control for every playable room.
+            One place to continue your next coding room.
           </h1>
           <p className="pixel-hero__body">
-            Students learn logic through short playable rooms, clear one level
-            at a time, and return here to continue the next mission or review
-            overall progress across the live worlds.
+            Move between the built-in Code Cat journey and teacher-assigned
+            classrooms without mixing progress. This menu keeps the next room,
+            your live worlds, and your classroom work easy to find.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to="/levels">
@@ -74,7 +80,7 @@ export const MainMenu = () => {
           <div className="pixel-progress mt-5">
             <div className="pixel-progress__bar" style={{ width: `${completionPercent}%` }} />
           </div>
-          <p className="mt-3 text-sm text-brand-100">
+          <p className="mt-3 text-sm text-[var(--text-1)]">
             {completedPuzzleIds.length} of {puzzles.length} playable rooms
             completed across {playableWorldCount} live worlds. {scaffoldedWorldCount}{' '}
             future worlds remain outside the student path.
@@ -91,9 +97,16 @@ export const MainMenu = () => {
             transition={{ delay: index * 0.08 }}
             className="pixel-panel"
           >
-            <p className="pixel-kicker">Game Loop</p>
+            <p className="pixel-kicker">Workspace</p>
             <h3 className="pixel-panel__title">{card.title}</h3>
             <p className="pixel-panel__body">{card.body}</p>
+            <div className="mt-5">
+              <Link to={card.to}>
+                <Button variant="ghost" className="pixel-button pixel-button--ghost">
+                  {card.action}
+                </Button>
+              </Link>
+            </div>
           </motion.article>
         ))}
       </section>

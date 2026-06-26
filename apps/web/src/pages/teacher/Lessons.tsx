@@ -221,7 +221,7 @@ export const Lessons = () => {
   return (
     <div className="space-y-6">
       <div>
-        <p className="teacher-kicker text-sm font-semibold uppercase tracking-[0.3em]">Room Builder</p>
+        <p className="teacher-kicker">Room Builder</p>
         <h1 className="mt-2 font-display text-3xl font-bold">Create classroom levels for the rooms you already manage.</h1>
         <p className="teacher-copy mt-3 max-w-3xl text-sm">
           This page is the level-creation step of the teacher flow: pick a classroom, build the level, then publish it
@@ -246,7 +246,7 @@ export const Lessons = () => {
         <article className="glass-panel space-y-6 p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Classroom Level Builder</p>
+              <p className="teacher-kicker">Classroom Level Builder</p>
               <h2 className="mt-2 font-display text-2xl font-bold">Create or version a classroom level</h2>
             </div>
             <span className="teacher-chip">
@@ -257,7 +257,7 @@ export const Lessons = () => {
           <div className="grid gap-4 xl:grid-cols-3">
             <section className="teacher-sectionCard">
               <div className="teacher-sectionCard__header">
-                <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Step 1</p>
+                <p className="teacher-kicker">Step 1</p>
                 <h3 className="mt-2 font-display text-xl font-bold">Target and version source</h3>
                 <p className="teacher-copy mt-2 text-sm">
                   Start with the classroom target, then decide whether to build from a blank slate or a saved version.
@@ -319,7 +319,7 @@ export const Lessons = () => {
 
             <section className="teacher-sectionCard xl:col-span-2">
               <div className="teacher-sectionCard__header">
-                <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Step 2</p>
+                <p className="teacher-kicker">Step 2</p>
                 <h3 className="mt-2 font-display text-xl font-bold">Room brief</h3>
                 <p className="teacher-copy mt-2 text-sm">
                   Set the player-facing lesson framing before editing the grid so the room has a clear purpose.
@@ -358,7 +358,7 @@ export const Lessons = () => {
 
             <section className="teacher-sectionCard xl:col-span-3">
               <div className="teacher-sectionCard__header">
-                <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Step 3</p>
+                <p className="teacher-kicker">Step 3</p>
                 <h3 className="mt-2 font-display text-xl font-bold">Scoring and publish rules</h3>
                 <p className="teacher-copy mt-2 text-sm">
                   Set lesson topic, difficulty, and the performance budget students will be scored against.
@@ -446,7 +446,7 @@ export const Lessons = () => {
 
           <section className="teacher-sectionCard">
             <div className="teacher-sectionCard__header">
-              <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Step 4</p>
+              <p className="teacher-kicker">Step 4</p>
               <h3 className="mt-2 font-display text-xl font-bold">Build the room layout</h3>
               <p className="teacher-copy mt-2 text-sm">
                 Place the start, exit, walls, and key logic directly on the board so the puzzle is easy to reason
@@ -470,7 +470,7 @@ export const Lessons = () => {
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.82fr)]">
             <section className="teacher-sectionCard">
               <div className="teacher-sectionCard__header">
-                <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Step 5</p>
+                <p className="teacher-kicker">Step 5</p>
                 <h3 className="mt-2 font-display text-xl font-bold">Allowed blocks</h3>
                 <p className="teacher-copy mt-2 text-sm">
                   Limit the commands available to students so the room matches the intended lesson.
@@ -506,7 +506,7 @@ export const Lessons = () => {
 
             <section className="teacher-sectionCard">
               <div className="teacher-sectionCard__header">
-                <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Tuning</p>
+                <p className="teacher-kicker">Tuning</p>
                 <h3 className="mt-2 font-display text-xl font-bold">Control defaults</h3>
                 <p className="teacher-copy mt-2 text-sm">
                   Adjust the helper naming and loop defaults that appear when those block types are enabled.
@@ -558,7 +558,7 @@ export const Lessons = () => {
           <section className="teacher-sectionCard">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Step 6</p>
+                <p className="teacher-kicker">Step 6</p>
                 <h3 className="mt-2 font-display text-2xl font-bold">
                   Make this level playable for students
                 </h3>

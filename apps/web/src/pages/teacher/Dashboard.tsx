@@ -3,23 +3,23 @@ import { useTeacherClassroomsQuery, useTeacherOverviewQuery } from '@/features/t
 
 const teacherWorkflow = [
   {
-    step: '01',
-    title: 'Create classroom',
-    description: 'Set the classroom name, lesson focus, and initial roster.',
+    step: 'Create',
+    title: 'Set up the classroom',
+    description: 'Name the classroom, define the lesson focus, and seed the first roster.',
     to: '/teacher/students',
     action: 'Open classrooms',
   },
   {
-    step: '02',
-    title: 'Enroll students',
-    description: 'Add one student or bulk-enroll an existing roster into the room.',
+    step: 'Enroll',
+    title: 'Manage the roster',
+    description: 'Handle one-off adds or bulk enrollment without leaving the classroom flow.',
     to: '/teacher/students',
     action: 'Manage roster',
   },
   {
-    step: '03',
-    title: 'Build classroom level',
-    description: 'Create a room for that classroom and publish it into student gameplay.',
+    step: 'Build',
+    title: 'Publish classroom gameplay',
+    description: 'Create a custom room, version it, then deliver it directly into student play.',
     to: '/teacher/lessons',
     action: 'Open builder',
   },
@@ -59,15 +59,16 @@ export const Dashboard = () => {
   return (
     <div className="space-y-6">
       <section className="glass-panel p-6">
-        <p className="teacher-kicker text-sm font-semibold uppercase tracking-[0.3em]">
+        <p className="teacher-kicker">
           Teacher Operations
         </p>
         <h1 className="mt-2 font-display text-3xl font-bold">
-          Create the classroom, enroll students, then build gameplay for that room.
+          Build classrooms in the same order teachers already think.
         </h1>
         <p className="teacher-copy mt-3 max-w-3xl text-sm">
-          The teacher experience is now centered on three actions only: make a classroom, manage its roster, and build
-          classroom levels that students can immediately play.
+          Classroom setup, roster management, room building, and progress
+          review now live in one product flow. The goal is simple: less UI
+          hunting, faster lesson delivery.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
@@ -94,7 +95,7 @@ export const Dashboard = () => {
       <section className="grid gap-4 xl:grid-cols-3">
         {teacherWorkflow.map((item) => (
           <article key={item.step} className="glass-panel p-5">
-            <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Step {item.step}</p>
+            <p className="teacher-kicker">{item.step}</p>
             <h2 className="mt-3 font-display text-2xl font-bold">{item.title}</h2>
             <p className="teacher-copy mt-3 text-sm">{item.description}</p>
             <Link to={item.to} className="teacher-button-secondary mt-5">
@@ -107,7 +108,7 @@ export const Dashboard = () => {
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {statCards.map((card) => (
           <article key={card.key} className="glass-panel p-5">
-            <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">{card.label}</p>
+            <p className="teacher-kicker">{card.label}</p>
             <p className="mt-4 font-display text-3xl font-bold text-[var(--color-ink)]">
               {overviewQuery.isLoading ? '...' : overview?.[card.key] ?? 0}
             </p>
@@ -120,7 +121,7 @@ export const Dashboard = () => {
         <article className="glass-panel p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Live Classrooms</p>
+              <p className="teacher-kicker">Live Classrooms</p>
               <h2 className="mt-2 font-display text-2xl font-bold">Current teaching load</h2>
             </div>
             <span className="teacher-chip">
@@ -166,7 +167,7 @@ export const Dashboard = () => {
         </article>
 
         <article className="glass-panel p-6">
-          <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Working Rules</p>
+          <p className="teacher-kicker">Working Rules</p>
           <h2 className="mt-2 font-display text-2xl font-bold">How this teacher workflow behaves today</h2>
           <ul className="teacher-copy mt-5 space-y-3 text-sm">
             <li className="teacher-surface rounded-2xl px-4 py-3">

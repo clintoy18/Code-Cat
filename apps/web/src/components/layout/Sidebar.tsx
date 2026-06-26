@@ -22,22 +22,44 @@ const linksByRole: Record<Role, Array<{ to: string; label: string }>> = {
   ],
 };
 
+const roleHeadings: Record<Role, { title: string; copy: string }> = {
+  [Role.STUDENT]: {
+    title: 'Student workspace',
+    copy: 'Move between built-in progression, classroom assignments, and rewards.',
+  },
+  [Role.TEACHER]: {
+    title: 'Teacher workspace',
+    copy: 'Manage classrooms, build rooms, and review outcomes in one flow.',
+  },
+  [Role.ADMIN]: {
+    title: 'Admin workspace',
+    copy: 'Track rollout, content readiness, and player reporting.',
+  },
+};
+
 export const Sidebar = () => {
   const { role } = useAuth();
   const links = role ? linksByRole[role] : [];
+  const heading = role ? roleHeadings[role] : null;
 
   return (
-    <aside className="glass-panel flex h-full flex-col p-4 lg:sticky lg:top-6 lg:h-[calc(100dvh-7.5rem)] lg:overflow-y-auto">
+    <aside className="glass-panel flex h-full flex-col gap-6 p-4 lg:sticky lg:top-4 lg:h-[calc(100dvh-2rem)] lg:overflow-y-auto">
+      {heading ? (
+        <div className="rounded-[14px] border border-white/5 bg-black/10 px-4 py-4">
+          <p className="text-sm font-semibold text-[var(--text-0)]">{heading.title}</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">{heading.copy}</p>
+        </div>
+      ) : null}
       <nav className="flex flex-col gap-2">
         {links.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}
             className={({ isActive }) =>
-              `rounded-2xl px-4 py-3 text-sm font-medium transition ${
+              `rounded-[14px] px-4 py-3 text-sm font-medium transition ${
                 isActive
-                  ? 'bg-white/14 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]'
-                  : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                  ? 'bg-[rgba(108,143,255,0.14)] text-white shadow-[inset_0_0_0_1px_rgba(108,143,255,0.16)]'
+                  : 'text-[var(--text-1)] hover:bg-white/6 hover:text-white'
               }`
             }
           >

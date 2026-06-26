@@ -28,11 +28,12 @@ export const Progress = () => {
   return (
     <div className="space-y-6">
       <div>
-        <p className="teacher-kicker text-sm font-semibold uppercase tracking-[0.3em]">Progress Review</p>
-        <h1 className="mt-2 font-display text-3xl font-bold">Audit progress by classroom, not by loose student snapshots.</h1>
+        <p className="teacher-kicker">Progress Review</p>
+        <h1 className="mt-2 font-display text-3xl font-bold">Review outcomes in the same classroom context they were assigned.</h1>
         <p className="teacher-copy mt-3 max-w-3xl text-sm">
-          This view keeps attempts, failures, completion timestamps, and grade summaries tied to the assigned gameplay
-          context so a teacher can evaluate how a student performed in one classroom without mixing unrelated runs.
+          Attempts, failures, timestamps, and grades stay tied to the
+          classroom that assigned them, so teachers can evaluate real lesson
+          performance instead of mixed global snapshots.
         </p>
       </div>
 
@@ -64,15 +65,15 @@ export const Progress = () => {
         <>
           <section className="grid gap-4 md:grid-cols-3">
             <article className="glass-panel p-5">
-              <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Students</p>
+              <p className="teacher-kicker">Students</p>
               <p className="mt-4 font-display text-3xl font-bold">{dashboard.summary.studentCount}</p>
             </article>
             <article className="glass-panel p-5">
-              <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Assignments</p>
+              <p className="teacher-kicker">Assignments</p>
               <p className="mt-4 font-display text-3xl font-bold">{dashboard.summary.assignmentCount}</p>
             </article>
             <article className="glass-panel p-5">
-              <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Assigned Rooms</p>
+              <p className="teacher-kicker">Assigned Rooms</p>
               <p className="mt-4 font-display text-3xl font-bold">{dashboard.summary.roomCount}</p>
             </article>
           </section>
@@ -80,7 +81,7 @@ export const Progress = () => {
           <section className="glass-panel p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Roster Outcomes</p>
+                <p className="teacher-kicker">Roster Outcomes</p>
                 <h2 className="mt-2 font-display text-2xl font-bold">{dashboard.classroom.name}</h2>
               </div>
               <span className="teacher-chip">

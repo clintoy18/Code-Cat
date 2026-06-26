@@ -13,20 +13,43 @@ const roleLabelMap: Record<Role, string> = {
 
 export const Navbar = () => {
   const { user, role, logout } = useAuth();
+  const roleLabel = role ? roleLabelMap[role] : 'Guest';
 
   return (
-    <header className="glass-panel flex items-center justify-between px-6 py-4">
-      <Link to="/" className="brand-mark">
+    <header className="glass-panel flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <Link to="/" className="brand-mark gap-3">
         <img src={codeCatLogo} alt="Code Cat" className="brand-mark__logo" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[var(--text-0)]">Code Cat</p>
+          <p className="text-sm text-[var(--text-2)]">
+            {role === Role.TEACHER
+              ? 'Classroom builder'
+              : role === Role.ADMIN
+                ? 'System oversight'
+                : 'Playable coding rooms'}
+          </p>
+        </div>
       </Link>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         {role ? (
-          <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-            {roleLabelMap[role]}
+          <span className="teacher-tag">
+            {roleLabel}
           </span>
         ) : null}
-        <span className="text-sm text-slate-200">{user?.username ?? 'Guest'}</span>
-        <Button variant="ghost" size="sm" onClick={logout}>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[var(--text-0)]">
+            {user?.username ?? 'Guest'}
+          </p>
+          <p className="text-xs text-[var(--text-2)]">
+            Signed in as {roleLabel.toLowerCase()}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={logout}
+          className="teacher-button-secondary min-h-[2.75rem] px-4"
+        >
           <LogOut className="h-4 w-4" />
           Sign out
         </Button>

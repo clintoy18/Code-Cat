@@ -103,32 +103,33 @@ export const Students = () => {
   return (
     <div className="space-y-6">
       <div>
-        <p className="teacher-kicker text-sm font-semibold uppercase tracking-[0.3em]">Classroom Manager</p>
-        <h1 className="mt-2 font-display text-3xl font-bold">Create classrooms, manage roster, then launch level work.</h1>
+        <p className="teacher-kicker">Classroom Manager</p>
+        <h1 className="mt-2 font-display text-3xl font-bold">Create the room, fill the roster, then hand off to gameplay.</h1>
         <p className="teacher-copy mt-3 max-w-3xl text-sm">
-          Use this page for classroom setup and enrollment only. Once the classroom is ready, jump into the builder to
-          create a playable room for that specific classroom.
+          This page is intentionally narrow: classroom setup first, enrollment
+          second. Once the room is ready, the builder takes over for actual
+          student gameplay.
         </p>
       </div>
 
       <section className="grid gap-4 xl:grid-cols-3">
         <article className="glass-panel p-5">
-          <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Step 1</p>
-          <h2 className="mt-3 font-display text-2xl font-bold">Create classroom</h2>
+          <p className="teacher-kicker">Create</p>
+          <h2 className="mt-3 font-display text-2xl font-bold">Set up the classroom</h2>
           <p className="teacher-copy mt-3 text-sm">
             Add the classroom name, lesson description, and optional initial students.
           </p>
         </article>
         <article className="glass-panel p-5">
-          <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Step 2</p>
-          <h2 className="mt-3 font-display text-2xl font-bold">Enroll students</h2>
+          <p className="teacher-kicker">Enroll</p>
+          <h2 className="mt-3 font-display text-2xl font-bold">Manage the roster</h2>
           <p className="teacher-copy mt-3 text-sm">
             Add one learner quickly or bulk-enroll the remaining students into the active room.
           </p>
         </article>
         <article className="glass-panel p-5">
-          <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Step 3</p>
-          <h2 className="mt-3 font-display text-2xl font-bold">Build classroom level</h2>
+          <p className="teacher-kicker">Build</p>
+          <h2 className="mt-3 font-display text-2xl font-bold">Open the builder</h2>
           <p className="teacher-copy mt-3 text-sm">
             Open the room builder from the selected classroom when the roster is ready for gameplay.
           </p>
@@ -139,7 +140,7 @@ export const Students = () => {
         <article className="glass-panel p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">New Classroom</p>
+              <p className="teacher-kicker">New Classroom</p>
               <h2 className="mt-2 font-display text-2xl font-bold">Seed the roster at creation time</h2>
             </div>
             <span className="teacher-chip">
@@ -242,7 +243,7 @@ export const Students = () => {
           <div className="glass-panel p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Classrooms</p>
+                <p className="teacher-kicker">Classrooms</p>
                 <h2 className="mt-2 font-display text-2xl font-bold">Pick an active classroom</h2>
               </div>
               <span className="teacher-chip">
@@ -298,7 +299,7 @@ export const Students = () => {
               <section className="glass-panel min-w-0 p-6">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Roster</p>
+                    <p className="teacher-kicker">Roster</p>
                     <h2 className="mt-2 font-display text-2xl font-bold">{selectedClassroom.name}</h2>
                     <p className="teacher-copy mt-3 text-sm">
                       Finish roster changes here before creating classroom gameplay for this room.
@@ -346,7 +347,7 @@ export const Students = () => {
                   <div className="teacher-surface min-w-0 rounded-3xl p-4">
                     <div className="space-y-4">
                       <div>
-                        <p className="teacher-kicker text-xs uppercase tracking-[0.24em]">Add Students</p>
+                        <p className="teacher-kicker">Add Students</p>
                         <h3 className="mt-2 font-display text-xl font-bold">Single or bulk enrollment</h3>
                         <p className="teacher-copy mt-2 text-sm">
                           Use the quick selector for one-off adds, or mark a batch when you already know the full room
@@ -446,7 +447,7 @@ export const Students = () => {
               <section className="glass-panel min-w-0 p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="teacher-kicker text-sm uppercase tracking-[0.28em]">Scheduled Gameplays</p>
+                    <p className="teacher-kicker">Scheduled Gameplays</p>
                     <h2 className="mt-2 font-display text-2xl font-bold">What students will see next</h2>
                     <p className="teacher-copy mt-3 text-sm">
                       Build and assign classroom gameplay from the room builder once this roster is ready.
