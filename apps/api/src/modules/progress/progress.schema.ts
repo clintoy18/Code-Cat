@@ -32,4 +32,5 @@ export const assignmentParamsSchema = z.object({
 export const studentAssignmentsPaginationQuerySchema = z.object({
   page: paginationFieldSchema,
   pageSize: paginationFieldSchema,
+  classroomId: objectIdSchema.optional(),
 });

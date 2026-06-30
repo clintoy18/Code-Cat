@@ -308,7 +308,9 @@ export const useCreateAssignmentMutation = (classroomId: string | null) => {
   });
 };
 
-export const useStudentAssignmentsQuery = (params?: IPaginationQuery) => {
+export const useStudentAssignmentsQuery = (
+  params?: IPaginationQuery & { classroomId?: string },
+) => {
   const actorId = useActorId();
 
   return useQuery({

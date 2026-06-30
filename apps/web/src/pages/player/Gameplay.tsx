@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CompletionStatus } from '@shared/types';
+import { PlayerBackLink } from '@/components/shared';
 import { Cat, Grid } from '@/components/game';
 import { Button } from '@/components/ui';
 import { gameAudio } from '@/features/game/audio/gameAudio';
@@ -315,6 +316,14 @@ export const Gameplay = () => {
     idle: 'No puzzle selected',
   } as const;
   const displayStatus = isPlaybackRunning ? 'running' : status;
+  const gameplayBackHref = assignmentId
+    ? assignmentQuery.data?.classroom
+      ? `/classroom-gameplays/${assignmentQuery.data.classroom.id}`
+      : '/classroom-gameplays'
+    : '/levels';
+  const gameplayBackLabel = assignmentId
+    ? 'Back to classroom'
+    : 'Back to levels';
 
   const clearPlaybackTimers = () => {
     playbackTimeoutsRef.current.forEach((timeoutId) =>
@@ -1056,6 +1065,7 @@ export const Gameplay = () => {
     >
       <header className="gameplay-focus__header">
         <div className="gameplay-focus__titleBlock">
+          <PlayerBackLink to={gameplayBackHref} label={gameplayBackLabel} />
           <p className="gameplay-focus__eyebrow">Live Puzzle</p>
           <h1 className="gameplay-focus__title">
             Level {currentLevelNumber}: {puzzle.title}
@@ -1076,9 +1086,9 @@ export const Gameplay = () => {
           <Button
             variant="ghost"
             className="pixel-button pixel-button--ghost"
-            onClick={() => navigate('/levels')}
+            onClick={() => navigate(gameplayBackHref)}
           >
-            Level Map
+            {assignmentId ? 'Classroom queue' : 'Level map'}
           </Button>
           <Button
             variant="secondary"

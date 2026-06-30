@@ -181,20 +181,20 @@ export const progressService = {
 
   async getMyAssignments(
     userId: string,
-    query?: { page?: number; pageSize?: number },
+    query?: { page?: number; pageSize?: number; classroomId?: string },
   ) {
     const pagination = normalizePagination(query, { defaultPageSize: 6 });
+    const enrollmentWhere = {
+      studentId: userId,
+      ...(query?.classroomId ? { classroomId: query.classroomId } : {}),
+    };
 
     const [totalEnrollments, enrollments] = await Promise.all([
       prisma.classroomEnrollment.count({
-        where: {
-          studentId: userId,
-        },
+        where: enrollmentWhere,
       }),
       prisma.classroomEnrollment.findMany({
-        where: {
-          studentId: userId,
-        },
+        where: enrollmentWhere,
         include: {
           classroom: {
             select: {

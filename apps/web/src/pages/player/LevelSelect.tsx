@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { PlayerBackLink } from '@/components/shared';
 import { Button } from '@/components/ui';
 import {
   curriculumWorlds,
@@ -115,6 +116,7 @@ export const LevelSelect = () => {
     <div className="pixel-page space-y-6">
       <section className="mission-brief">
         <div className="mission-brief__copy">
+          <PlayerBackLink to="/" label="Back to main menu" />
           <p className="mission-brief__eyebrow">Normal Gameplay</p>
           <h1 className="mission-brief__title">
             Pick the next room and keep climbing.

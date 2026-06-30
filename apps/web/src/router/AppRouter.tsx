@@ -52,6 +52,7 @@ export const AppRouter = () => (
           <Route path="/" element={<MainMenu />} />
           <Route path="/levels" element={<LevelSelect />} />
           <Route path="/classroom-gameplays" element={<ClassroomGameplays />} />
+          <Route path="/classroom-gameplays/:classroomId" element={<ClassroomGameplays />} />
           <Route path="/gameplay" element={<GameplayRedirect />} />
           <Route path="/gameplay/:puzzleId" element={<Gameplay />} />
           <Route path="/achievements" element={<Achievements />} />

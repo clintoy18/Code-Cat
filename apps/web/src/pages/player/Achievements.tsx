@@ -1,3 +1,4 @@
+import { PlayerBackLink } from '@/components/shared';
 import { curriculumWorlds } from '@/features/game/data/curriculumRoadmap';
 import { useGame } from '@/hooks/useGame';
 
@@ -108,6 +109,7 @@ export const Achievements = () => {
     <div className="pixel-page space-y-6">
       <section className="mission-brief">
         <div className="mission-brief__copy">
+          <PlayerBackLink to="/" label="Back to main menu" />
           <p className="mission-brief__eyebrow">Achievements</p>
           <h1 className="mission-brief__title">
             Track what the player has mastered.

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { useAuthStore } from '@/store/authStore';
 
 const api = axios.create({
@@ -32,3 +32,11 @@ api.interceptors.response.use(
 );
 
 export { api };
+
+export const getApiErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof AxiosError) {
+    return error.response?.data?.error?.message ?? fallback;
+  }
+
+  return fallback;
+};

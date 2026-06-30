@@ -8,6 +8,8 @@ import {
   useTeacherClassroomsQuery,
   useTeacherStudentsQuery,
 } from '@/features/teacher';
+import { getApiErrorMessage } from '@/lib/api';
+import { useToastStore } from '@/store/toastStore';
 
 export const Students = () => {
   const [studentsPage, setStudentsPage] = useState(1);
@@ -29,6 +31,7 @@ export const Students = () => {
   });
   const [enrollmentDraft, setEnrollmentDraft] = useState<string[]>([]);
   const [singleEnrollmentStudentId, setSingleEnrollmentStudentId] = useState('');
+  const showToast = useToastStore((state) => state.showToast);
 
   const classrooms = useMemo(() => classroomsQuery.data?.items ?? [], [classroomsQuery.data]);
   const students = useMemo(() => studentsQuery.data?.items ?? [], [studentsQuery.data]);
@@ -64,20 +67,34 @@ export const Students = () => {
   );
 
   const submitClassroom = async () => {
-    const classroom = await createClassroomMutation.mutateAsync({
-      ...classroomForm,
-      studentIds: classroomForm.studentIds,
-    });
-    setSelectedClassroomId(classroom.id);
-    setClassroomsPage(1);
+    try {
+      const classroom = await createClassroomMutation.mutateAsync({
+        ...classroomForm,
+        studentIds: classroomForm.studentIds,
+      });
+      setSelectedClassroomId(classroom.id);
+      setClassroomsPage(1);
 
-    setClassroomForm({
-      name: '',
-      description: '',
-      isPrivate: true,
-      requiresApproval: false,
-      studentIds: [],
-    });
+      setClassroomForm({
+        name: '',
+        description: '',
+        isPrivate: true,
+        requiresApproval: false,
+        studentIds: [],
+      });
+
+      showToast({
+        tone: 'success',
+        title: 'Classroom created',
+        description: `${classroom.name} is ready for roster setup and classroom gameplay.`,
+      });
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        title: 'Classroom not created',
+        description: getApiErrorMessage(error, 'The classroom setup failed. Check the form and try again.'),
+      });
+    }
   };
 
   const submitEnrollment = async () => {
@@ -85,9 +102,25 @@ export const Students = () => {
       return;
     }
 
-    await enrollStudentsMutation.mutateAsync(enrollmentDraft);
-    setEnrollmentDraft([]);
-    setEnrollmentsPage(1);
+    try {
+      await enrollStudentsMutation.mutateAsync(enrollmentDraft);
+      setEnrollmentDraft([]);
+      setEnrollmentsPage(1);
+
+      showToast({
+        tone: 'success',
+        title: 'Roster updated',
+        description: `${enrollmentDraft.length} student${enrollmentDraft.length === 1 ? '' : 's'} added to ${
+          selectedClassroom?.name ?? 'the classroom'
+        }.`,
+      });
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        title: 'Roster update failed',
+        description: getApiErrorMessage(error, 'The selected students could not be enrolled right now.'),
+      });
+    }
   };
 
   const submitSingleEnrollment = async () => {
@@ -95,9 +128,26 @@ export const Students = () => {
       return;
     }
 
-    await enrollStudentsMutation.mutateAsync([singleEnrollmentStudentId]);
-    setSingleEnrollmentStudentId('');
-    setEnrollmentsPage(1);
+    const studentLabel =
+      unenrolledStudents.find((student) => student.id === singleEnrollmentStudentId)?.username ?? 'Student';
+
+    try {
+      await enrollStudentsMutation.mutateAsync([singleEnrollmentStudentId]);
+      setSingleEnrollmentStudentId('');
+      setEnrollmentsPage(1);
+
+      showToast({
+        tone: 'success',
+        title: 'Student enrolled',
+        description: `${studentLabel} can now access gameplay from ${selectedClassroom?.name ?? 'this classroom'}.`,
+      });
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        title: 'Enrollment failed',
+        description: getApiErrorMessage(error, 'That student could not be enrolled right now.'),
+      });
+    }
   };
 
   return (

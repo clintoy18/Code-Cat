@@ -445,6 +445,86 @@ body {
     opacity: 0.6;
   }
 
+  .app-toastViewport {
+    position: fixed;
+    right: 16px;
+    top: 16px;
+    z-index: 60;
+    width: min(360px, calc(100vw - 32px));
+    pointer-events: none;
+  }
+
+  .app-toast {
+    display: grid;
+    gap: 14px;
+    pointer-events: auto;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background:
+      linear-gradient(180deg, rgba(22, 33, 55, 0.98), rgba(13, 21, 37, 0.97)),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0));
+    padding: 16px;
+    box-shadow:
+      0 18px 32px rgba(2, 6, 23, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .app-toast--success {
+    border-color: rgba(78, 169, 120, 0.24);
+  }
+
+  .app-toast--error {
+    border-color: rgba(214, 122, 122, 0.24);
+  }
+
+  .app-toast__copy {
+    display: grid;
+    gap: 6px;
+  }
+
+  .app-toast__eyebrow {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--color-ice);
+  }
+
+  .app-toast__title {
+    margin: 0;
+    font-family: 'Sora', sans-serif;
+    font-size: 1.125rem;
+    line-height: 1.15;
+    color: var(--text-0);
+  }
+
+  .app-toast__body {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--text-1);
+  }
+
+  .app-toast__dismiss {
+    justify-self: start;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0.45rem 0.8rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-1);
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      transform 140ms ease;
+  }
+
+  .app-toast__dismiss:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+  }
+
   .teacher-surface {
     border: 1px solid rgba(148, 163, 184, 0.12);
     background: rgba(255, 255, 255, 0.035);
@@ -527,6 +607,122 @@ body {
 
   .teacher-sectionCard__header {
     max-width: 52rem;
+  }
+
+  .teacher-wizardShell {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .teacher-wizardStepper {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .teacher-wizardStepper__step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 14px;
+    text-align: left;
+    color: var(--text-1);
+    transition:
+      border-color 140ms ease,
+      background-color 140ms ease,
+      transform 140ms ease;
+  }
+
+  .teacher-wizardStepper__step:hover {
+    border-color: rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-1px);
+  }
+
+  .teacher-wizardStepper__step--active {
+    border-color: rgba(108, 143, 255, 0.3);
+    background: rgba(108, 143, 255, 0.12);
+  }
+
+  .teacher-wizardStepper__step--complete {
+    border-color: rgba(78, 169, 120, 0.22);
+    background: rgba(78, 169, 120, 0.1);
+  }
+
+  .teacher-wizardStepper__index {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text-0);
+  }
+
+  .teacher-wizardStepper__step--active .teacher-wizardStepper__index {
+    background: linear-gradient(180deg, #6c8fff 0%, #4f6fd6 100%);
+  }
+
+  .teacher-wizardStepper__step--complete .teacher-wizardStepper__index {
+    background: rgba(78, 169, 120, 0.24);
+  }
+
+  .teacher-wizardStepper__copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .teacher-wizardStepper__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-0);
+  }
+
+  .teacher-wizardStepper__description {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-2);
+  }
+
+  .teacher-wizardContent {
+    display: grid;
+    gap: 18px;
+    min-width: 0;
+  }
+
+  .teacher-wizardShell--builder .teacher-wizardContent {
+    gap: 22px;
+  }
+
+  .teacher-wizardStage {
+    display: grid;
+    gap: 0;
+  }
+
+  .teacher-wizardStage__header {
+    max-width: 56rem;
+    display: grid;
+    gap: 10px;
+  }
+
+  .teacher-wizardFooter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+    padding-top: 18px;
   }
 
   .teacher-layoutEditor {
@@ -724,6 +920,10 @@ body {
     .teacher-flow {
       grid-template-columns: minmax(0, 1fr);
     }
+
+    .teacher-wizardStepper {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 
   .pixel-kicker {
@@ -777,6 +977,27 @@ body {
     line-height: 1.65;
     color: inherit;
     opacity: 0.94;
+  }
+
+  .pixel-backLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-1);
+    text-decoration: none;
+    transition:
+      color 140ms ease,
+      transform 140ms ease;
+  }
+
+  .pixel-backLink:hover,
+  .pixel-backLink:focus-visible {
+    color: var(--text-0);
+    transform: translateX(-1px);
+    outline: none;
   }
 
   .pixel-hero {
@@ -2782,6 +3003,29 @@ body {
     gap: 16px;
   }
 
+  .classroom-gameplayHub {
+    display: grid;
+    gap: 24px;
+  }
+
+  .classroom-gameplayHub__grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  .classroom-gameplayCard {
+    width: 100%;
+    text-align: left;
+  }
+
+  .classroom-gameplayCard--active {
+    border-color: rgba(108, 143, 255, 0.28);
+    box-shadow:
+      0 16px 30px rgba(25, 57, 148, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
   .level-card__track {
     display: inline-flex;
     align-items: center;
@@ -3001,6 +3245,15 @@ body {
   }
 
   .teacher-layoutEditor__stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .teacher-wizardFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .teacher-wizardStepper {
     grid-template-columns: minmax(0, 1fr);
   }
 
