@@ -807,13 +807,13 @@ const createCustomAssignment = async (input: {
 const seed = async () => {
   if (teacherUsers.length !== DEMO_TEACHER_COUNT) {
     throw new Error(
-      `Expected ${DEMO_TEACHER_COUNT} teacher users, received ${teacherUsers.length}.`,
+      `Expected ${DEMO_TEACHER_COUNT} teacher accounts, received ${teacherUsers.length}.`,
     );
   }
 
   if (studentUsers.length !== DEMO_STUDENT_COUNT) {
     throw new Error(
-      `Expected ${DEMO_STUDENT_COUNT} student users, received ${studentUsers.length}.`,
+      `Expected ${DEMO_STUDENT_COUNT} student accounts, received ${studentUsers.length}.`,
     );
   }
 
@@ -1109,12 +1109,12 @@ const seed = async () => {
   // eslint-disable-next-line no-console
   console.table([
     { role: 'ADMIN', email: 'admin@codecat.dev', password: 'admin12345' },
-    { role: 'TEACHER', email: 'elena.cruz@codecat.dev', password: 'teacher12345' },
-    { role: 'TEACHER', email: 'ada.lim@codecat.dev', password: 'teacher12345' },
-    { role: 'TEACHER', email: 'grace.navarro@codecat.dev', password: 'teacher12345' },
-    { role: 'STUDENT', email: 'alyssa.ramos@codecat.dev', password: 'student12345' },
-    { role: 'STUDENT', email: 'ethan.garcia@codecat.dev', password: 'student12345' },
-    { role: 'STUDENT', email: 'bianca.torres@codecat.dev', password: 'student12345' },
+    { role: 'TEACHER', email: 'teacher@codecat.dev', password: 'teacher12345' },
+    { role: 'TEACHER', email: 'ada@codecat.dev', password: 'teacher12345' },
+    { role: 'TEACHER', email: 'grace@codecat.dev', password: 'teacher12345' },
+    { role: 'STUDENT', email: 'student01@codecat.dev', password: 'student12345' },
+    { role: 'STUDENT', email: 'student02@codecat.dev', password: 'student12345' },
+    { role: 'STUDENT', email: 'student03@codecat.dev', password: 'student12345' },
   ]);
 };
 

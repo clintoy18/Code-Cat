@@ -194,6 +194,7 @@ model Classroom {
   requiresApproval Boolean               @default(false) @map("requires_approval")
   createdAt        DateTime              @default(now()) @map("created_at")
   updatedAt        DateTime              @updatedAt @map("updated_at")
+  deletedAt        DateTime?             @map("deleted_at")
   teacher          User                  @relation("TeacherClassrooms", fields: [teacherId], references: [id])
   enrollments      ClassroomEnrollment[]
   assignments      ClassroomAssignment[]
@@ -207,6 +208,7 @@ model ClassroomEnrollment {
   classroomId String    @map("classroom_id") @db.ObjectId
   studentId   String    @map("student_id") @db.ObjectId
   createdAt   DateTime  @default(now()) @map("created_at")
+  deletedAt   DateTime? @map("deleted_at")
   classroom   Classroom @relation(fields: [classroomId], references: [id])
   student     User      @relation("StudentClassroomEnrollments", fields: [studentId], references: [id])
 
@@ -254,6 +256,7 @@ model ClassroomAssignment {
   roomManifest        Json                  @map("room_manifest")
   createdAt           DateTime              @default(now()) @map("created_at")
   updatedAt           DateTime              @updatedAt @map("updated_at")
+  deletedAt           DateTime?             @map("deleted_at")
   classroom           Classroom             @relation(fields: [classroomId], references: [id])
   teacher             User                  @relation("TeacherAssignments", fields: [teacherId], references: [id])
   customRoomVersion   TeacherRoomVersion?   @relation(fields: [customRoomVersionId], references: [id])

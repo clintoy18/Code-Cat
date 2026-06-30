@@ -94,11 +94,67 @@ const ensureStudentIdsBelongToStudents = async (studentIds: string[]) => {
   }
 };
 
+async function attachActiveClassroomCounts<
+  T extends {
+    id: string;
+    _count?: {
+      enrollments?: number;
+      assignments?: number;
+    };
+  },
+>(
+  classrooms: T[],
+) {
+  if (!classrooms.length) {
+    return classrooms;
+  }
+
+  const classroomIds = classrooms.map((classroom) => classroom.id);
+  const [enrollments, assignments] = await Promise.all([
+    prisma.classroomEnrollment.findMany({
+      where: {
+        classroomId: { in: classroomIds },
+        deletedAt: null,
+      },
+      select: {
+        classroomId: true,
+      },
+    }),
+    prisma.classroomAssignment.findMany({
+      where: {
+        classroomId: { in: classroomIds },
+        deletedAt: null,
+      },
+      select: {
+        classroomId: true,
+      },
+    }),
+  ]);
+
+  const enrollmentCounts = enrollments.reduce<Record<string, number>>((counts, entry) => {
+    counts[entry.classroomId] = (counts[entry.classroomId] ?? 0) + 1;
+    return counts;
+  }, {});
+  const assignmentCounts = assignments.reduce<Record<string, number>>((counts, entry) => {
+    counts[entry.classroomId] = (counts[entry.classroomId] ?? 0) + 1;
+    return counts;
+  }, {});
+
+  return classrooms.map((classroom) => ({
+    ...classroom,
+    _count: {
+      enrollments: enrollmentCounts[classroom.id] ?? 0,
+      assignments: assignmentCounts[classroom.id] ?? 0,
+    },
+  }));
+}
+
 const getTeacherClassroomOrThrow = async (teacherId: string, classroomId: string) => {
   const classroom = await prisma.classroom.findFirst({
     where: {
       id: classroomId,
       teacherId,
+      deletedAt: null,
     },
     select: {
       id: true,
@@ -122,8 +178,49 @@ const getTeacherClassroomOrThrow = async (teacherId: string, classroomId: string
     throw new AppError('NOT_FOUND', 'Classroom not found.', 404);
   }
 
-  return classroom;
+  return (await attachActiveClassroomCounts([classroom]))[0];
 };
+
+const getTeacherAssignmentOrThrow = async (
+  teacherId: string,
+  classroomId: string,
+  assignmentId: string,
+) => {
+  const assignment = await prisma.classroomAssignment.findFirst({
+    where: {
+      id: assignmentId,
+      classroomId,
+      teacherId,
+      deletedAt: null,
+    },
+  });
+
+  if (!assignment) {
+    throw new AppError('NOT_FOUND', 'Assignment not found.', 404);
+  }
+
+  return assignment;
+};
+
+const getTeacherRoomVersionOrThrow = async (
+  teacherId: string,
+  roomVersionId: string,
+) => {
+  const roomVersion = await prisma.teacherRoomVersion.findFirst({
+    where: {
+      id: roomVersionId,
+      teacherId,
+      isLatest: true,
+    },
+  });
+
+  if (!roomVersion) {
+    throw new AppError('NOT_FOUND', 'Room version not found.', 404);
+  }
+
+  return roomVersion;
+};
+
 
 export const teacherService = {
   async getStudents(
@@ -164,6 +261,7 @@ export const teacherService = {
             await prisma.classroomEnrollment.findMany({
               where: {
                 classroomId: query.classroomId,
+                deletedAt: null,
                 studentId: {
                   in: students.map((student) => student.id),
                 },
@@ -233,7 +331,7 @@ export const teacherService = {
 
     const [classrooms, rooms, assignments, enrollments] = await Promise.all([
       prisma.classroom.count({
-        where: { teacherId },
+        where: { teacherId, deletedAt: null },
       }),
       prisma.teacherRoomVersion.count({
         where: {
@@ -245,12 +343,15 @@ export const teacherService = {
       prisma.classroomAssignment.count({
         where: {
           teacherId,
+          deletedAt: null,
         },
       }),
       prisma.classroomEnrollment.findMany({
         where: {
+          deletedAt: null,
           classroom: {
             teacherId,
+            deletedAt: null,
           },
         },
         select: {
@@ -262,6 +363,7 @@ export const teacherService = {
     const dueSoonCount = await prisma.classroomAssignment.count({
       where: {
         teacherId,
+        deletedAt: null,
         dueAt: {
           gte: now,
           lte: dueSoonDate,
@@ -286,10 +388,10 @@ export const teacherService = {
     const pagination = normalizePagination(query, { defaultPageSize: 12 });
     const [totalClassrooms, classrooms] = await Promise.all([
       prisma.classroom.count({
-        where: { teacherId },
+        where: { teacherId, deletedAt: null },
       }),
       prisma.classroom.findMany({
-        where: { teacherId },
+        where: { teacherId, deletedAt: null },
         select: {
           id: true,
           teacherId: true,
@@ -312,8 +414,10 @@ export const teacherService = {
       }),
     ]);
 
+    const classroomsWithCounts = await attachActiveClassroomCounts(classrooms);
+
     return createPaginatedResult(
-      classrooms.map(formatClassroom),
+      classroomsWithCounts.map(formatClassroom),
       totalClassrooms,
       pagination.page,
       pagination.pageSize,
@@ -346,6 +450,7 @@ export const teacherService = {
           ? {
               create: studentIds.map((studentId) => ({
                 studentId,
+                deletedAt: null,
               })),
             }
           : undefined,
@@ -368,7 +473,78 @@ export const teacherService = {
       },
     });
 
-    return formatClassroom(classroom);
+    return formatClassroom((await attachActiveClassroomCounts([classroom]))[0]);
+  },
+
+  async updateClassroom(
+    teacherIdInput: string | undefined,
+    classroomId: string,
+    payload: {
+      name: string;
+      description: string;
+      isPrivate: boolean;
+      requiresApproval: boolean;
+    },
+  ) {
+    const teacherId = requireTeacherId(teacherIdInput);
+    await getTeacherClassroomOrThrow(teacherId, classroomId);
+
+    const classroom = await prisma.classroom.update({
+      where: { id: classroomId },
+      data: {
+        name: payload.name,
+        description: payload.description,
+        isPrivate: payload.isPrivate,
+        requiresApproval: payload.requiresApproval,
+      },
+      select: {
+        id: true,
+        teacherId: true,
+        name: true,
+        description: true,
+        isPrivate: true,
+        requiresApproval: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            enrollments: true,
+            assignments: true,
+          },
+        },
+      },
+    });
+
+    return formatClassroom((await attachActiveClassroomCounts([classroom]))[0]);
+  },
+
+  async deleteClassroom(
+    teacherIdInput: string | undefined,
+    classroomId: string,
+  ) {
+    const teacherId = requireTeacherId(teacherIdInput);
+    const classroom = await getTeacherClassroomOrThrow(teacherId, classroomId);
+    const deletedAt = new Date();
+
+    await prisma.$transaction([
+      prisma.classroomAssignment.updateMany({
+        where: { classroomId, teacherId },
+        data: { deletedAt },
+      }),
+      prisma.classroomEnrollment.updateMany({
+        where: { classroomId },
+        data: { deletedAt },
+      }),
+      prisma.classroom.update({
+        where: { id: classroomId },
+        data: { deletedAt },
+      }),
+    ]);
+
+    return {
+      id: classroom.id,
+      name: classroom.name,
+    };
   },
 
   async getClassroomById(
@@ -400,10 +576,10 @@ export const teacherService = {
 
     const [totalEnrollments, enrollments, totalAssignments, assignments] = await Promise.all([
       prisma.classroomEnrollment.count({
-        where: { classroomId },
+        where: { classroomId, deletedAt: null },
       }),
       prisma.classroomEnrollment.findMany({
-        where: { classroomId },
+        where: { classroomId, deletedAt: null },
         select: {
           id: true,
           classroomId: true,
@@ -422,12 +598,14 @@ export const teacherService = {
         where: {
           classroomId,
           teacherId,
+          deletedAt: null,
         },
       }),
       prisma.classroomAssignment.findMany({
         where: {
           classroomId,
           teacherId,
+          deletedAt: null,
         },
         orderBy: {
           startAt: 'asc',
@@ -478,7 +656,9 @@ export const teacherService = {
               studentId,
             },
           },
-          update: {},
+          update: {
+            deletedAt: null,
+          },
           create: {
             classroomId,
             studentId,
@@ -490,6 +670,7 @@ export const teacherService = {
     const enrollments = await prisma.classroomEnrollment.findMany({
       where: {
         classroomId,
+        deletedAt: null,
         studentId: {
           in: studentIds,
         },
@@ -508,6 +689,44 @@ export const teacherService = {
     });
 
     return enrollments.map(formatEnrollment);
+  },
+
+  async removeEnrollment(
+    teacherIdInput: string | undefined,
+    classroomId: string,
+    enrollmentId: string,
+  ) {
+    const teacherId = requireTeacherId(teacherIdInput);
+    await getTeacherClassroomOrThrow(teacherId, classroomId);
+
+    const enrollment = await prisma.classroomEnrollment.findFirst({
+      where: {
+        id: enrollmentId,
+        classroomId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        classroomId: true,
+        createdAt: true,
+        student: {
+          select: studentSelection,
+        },
+      },
+    });
+
+    if (!enrollment) {
+      throw new AppError('NOT_FOUND', 'Enrollment not found.', 404);
+    }
+
+    await prisma.classroomEnrollment.update({
+      where: { id: enrollmentId },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    return formatEnrollment(enrollment);
   },
 
   async getRoomVersions(
@@ -631,6 +850,30 @@ export const teacherService = {
     return formatRoomVersion(roomVersion);
   },
 
+  async updateRoomLifecycle(
+    teacherIdInput: string | undefined,
+    roomVersionId: string,
+    lifecycleStatus: RoomLifecycleStatus,
+  ) {
+    const teacherId = requireTeacherId(teacherIdInput);
+    const roomVersion = await getTeacherRoomVersionOrThrow(teacherId, roomVersionId);
+
+    const updatedRoomVersion = await prisma.teacherRoomVersion.update({
+      where: { id: roomVersion.id },
+      data: {
+        lifecycleStatus: lifecycleStatus as PrismaLifecycleStatus,
+        publishedAt:
+          lifecycleStatus === RoomLifecycleStatus.PUBLISHED
+            ? roomVersion.publishedAt ?? new Date()
+            : lifecycleStatus === RoomLifecycleStatus.ARCHIVED
+              ? roomVersion.publishedAt
+              : null,
+      },
+    });
+
+    return formatRoomVersion(updatedRoomVersion);
+  },
+
   async createClassroomAssignment(
     teacherIdInput: string | undefined,
     classroomId: string,
@@ -684,6 +927,7 @@ export const teacherService = {
         where: {
           id: payload.customRoomVersionId,
           teacherId,
+          isLatest: true,
           lifecycleStatus: RoomLifecycleStatus.PUBLISHED as PrismaLifecycleStatus,
         },
       });
@@ -728,6 +972,70 @@ export const teacherService = {
     return formatAssignment(assignment);
   },
 
+  async updateClassroomAssignment(
+    teacherIdInput: string | undefined,
+    classroomId: string,
+    assignmentId: string,
+    payload: {
+      title: string;
+      description?: string | null;
+      startAt: string;
+      dueAt?: string | null;
+    },
+  ) {
+    const teacherId = requireTeacherId(teacherIdInput);
+    await getTeacherClassroomOrThrow(teacherId, classroomId);
+    await getTeacherAssignmentOrThrow(teacherId, classroomId, assignmentId);
+
+    const startAt = new Date(payload.startAt);
+    const dueAt = payload.dueAt ? new Date(payload.dueAt) : null;
+
+    if (Number.isNaN(startAt.getTime()) || (dueAt && Number.isNaN(dueAt.getTime()))) {
+      throw new AppError('BAD_REQUEST', 'Assignment dates are invalid.', 400);
+    }
+
+    if (dueAt && dueAt < startAt) {
+      throw new AppError('BAD_REQUEST', 'Due date must be after the start date.', 400);
+    }
+
+    const assignment = await prisma.classroomAssignment.update({
+      where: { id: assignmentId },
+      data: {
+        title: payload.title,
+        description: payload.description ?? null,
+        startAt,
+        dueAt,
+      },
+    });
+
+    return formatAssignment(assignment);
+  },
+
+  async deleteClassroomAssignment(
+    teacherIdInput: string | undefined,
+    classroomId: string,
+    assignmentId: string,
+  ) {
+    const teacherId = requireTeacherId(teacherIdInput);
+    const assignment = await getTeacherAssignmentOrThrow(
+      teacherId,
+      classroomId,
+      assignmentId,
+    );
+
+    await prisma.classroomAssignment.update({
+      where: { id: assignment.id },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    return {
+      id: assignment.id,
+      title: assignment.title,
+    };
+  },
+
   async getClassroomDashboard(
     teacherIdInput: string | undefined,
     classroomId: string,
@@ -745,10 +1053,10 @@ export const teacherService = {
 
     const [totalRoster, enrollments, assignments] = await Promise.all([
       prisma.classroomEnrollment.count({
-        where: { classroomId },
+        where: { classroomId, deletedAt: null },
       }),
       prisma.classroomEnrollment.findMany({
-        where: { classroomId },
+        where: { classroomId, deletedAt: null },
         select: {
           id: true,
           classroomId: true,
@@ -764,7 +1072,7 @@ export const teacherService = {
         take: rosterPagination.take,
       }),
       prisma.classroomAssignment.findMany({
-        where: { classroomId, teacherId },
+        where: { classroomId, teacherId, deletedAt: null },
         orderBy: {
           startAt: 'asc',
         },

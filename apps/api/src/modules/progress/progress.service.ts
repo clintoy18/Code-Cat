@@ -56,10 +56,13 @@ export const progressService = {
     const assignment = await prisma.classroomAssignment.findFirst({
       where: {
         id: payload.assignmentId,
+        deletedAt: null,
         classroom: {
+          deletedAt: null,
           enrollments: {
             some: {
               studentId: userId,
+              deletedAt: null,
             },
           },
         },
@@ -186,6 +189,10 @@ export const progressService = {
     const pagination = normalizePagination(query, { defaultPageSize: 6 });
     const enrollmentWhere = {
       studentId: userId,
+      deletedAt: null,
+      classroom: {
+        deletedAt: null,
+      },
       ...(query?.classroomId ? { classroomId: query.classroomId } : {}),
     };
 
@@ -207,6 +214,9 @@ export const progressService = {
               createdAt: true,
               updatedAt: true,
               assignments: {
+                where: {
+                  deletedAt: null,
+                },
                 orderBy: {
                   startAt: 'asc',
                 },
@@ -251,10 +261,13 @@ export const progressService = {
     const assignment = await prisma.classroomAssignment.findFirst({
       where: {
         id: assignmentId,
+        deletedAt: null,
         classroom: {
+          deletedAt: null,
           enrollments: {
             some: {
               studentId: userId,
+              deletedAt: null,
             },
           },
         },

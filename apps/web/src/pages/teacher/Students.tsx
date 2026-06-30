@@ -3,13 +3,21 @@ import { Link } from 'react-router-dom';
 import { EmptyState, PaginationControls } from '@/components/shared';
 import {
   useCreateClassroomMutation,
+  useDeleteAssignmentMutation,
+  useDeleteClassroomMutation,
   useEnrollStudentsMutation,
+  useRemoveEnrollmentMutation,
   useTeacherClassroomQuery,
   useTeacherClassroomsQuery,
   useTeacherStudentsQuery,
+  useUpdateAssignmentMutation,
+  useUpdateClassroomMutation,
 } from '@/features/teacher';
 import { getApiErrorMessage } from '@/lib/api';
 import { useToastStore } from '@/store/toastStore';
+
+const toDateTimeLocalValue = (value: string | null) =>
+  value ? new Date(value).toISOString().slice(0, 16) : '';
 
 export const Students = () => {
   const [studentsPage, setStudentsPage] = useState(1);
@@ -29,8 +37,21 @@ export const Students = () => {
     requiresApproval: false,
     studentIds: [] as string[],
   });
+  const [classroomEditForm, setClassroomEditForm] = useState({
+    name: '',
+    description: '',
+    isPrivate: true,
+    requiresApproval: false,
+  });
   const [enrollmentDraft, setEnrollmentDraft] = useState<string[]>([]);
   const [singleEnrollmentStudentId, setSingleEnrollmentStudentId] = useState('');
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
+  const [assignmentEditForm, setAssignmentEditForm] = useState({
+    title: '',
+    description: '',
+    startAt: '',
+    dueAt: '',
+  });
   const showToast = useToastStore((state) => state.showToast);
 
   const classrooms = useMemo(() => classroomsQuery.data?.items ?? [], [classroomsQuery.data]);
@@ -60,11 +81,29 @@ export const Students = () => {
     classroomId: selectedClassroomId ?? undefined,
   });
   const enrollStudentsMutation = useEnrollStudentsMutation(selectedClassroomId);
+  const removeEnrollmentMutation = useRemoveEnrollmentMutation(selectedClassroomId);
+  const updateClassroomMutation = useUpdateClassroomMutation(selectedClassroomId);
+  const deleteClassroomMutation = useDeleteClassroomMutation();
+  const updateAssignmentMutation = useUpdateAssignmentMutation(selectedClassroomId);
+  const deleteAssignmentMutation = useDeleteAssignmentMutation(selectedClassroomId);
   const selectedClassroom = classroomDetailQuery.data?.classroom ?? null;
   const unenrolledStudents = useMemo(
     () => (classroomStudentsQuery.data?.items ?? []).filter((student) => !student.isEnrolledInClassroom),
     [classroomStudentsQuery.data],
   );
+
+  useEffect(() => {
+    if (!selectedClassroom) {
+      return;
+    }
+
+    setClassroomEditForm({
+      name: selectedClassroom.name,
+      description: selectedClassroom.description,
+      isPrivate: selectedClassroom.isPrivate,
+      requiresApproval: selectedClassroom.requiresApproval,
+    });
+  }, [selectedClassroom]);
 
   const submitClassroom = async () => {
     try {
@@ -146,6 +185,141 @@ export const Students = () => {
         tone: 'error',
         title: 'Enrollment failed',
         description: getApiErrorMessage(error, 'That student could not be enrolled right now.'),
+      });
+    }
+  };
+
+  const submitClassroomUpdate = async () => {
+    if (!selectedClassroomId) {
+      return;
+    }
+
+    try {
+      const classroom = await updateClassroomMutation.mutateAsync(classroomEditForm);
+      showToast({
+        tone: 'success',
+        title: 'Classroom updated',
+        description: `${classroom.name} now reflects the latest classroom setup.`,
+      });
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        title: 'Classroom update failed',
+        description: getApiErrorMessage(error, 'The classroom details could not be updated right now.'),
+      });
+    }
+  };
+
+  const handleDeleteClassroom = async () => {
+    if (!selectedClassroomId || !selectedClassroom) {
+      return;
+    }
+
+    if (!window.confirm(`Soft delete ${selectedClassroom.name}? The classroom will be hidden from active teacher and student views.`)) {
+      return;
+    }
+
+    try {
+      await deleteClassroomMutation.mutateAsync(selectedClassroomId);
+      setSelectedClassroomId(null);
+      setEditingAssignmentId(null);
+      showToast({
+        tone: 'success',
+        title: 'Classroom archived',
+        description: `${selectedClassroom.name} was removed from the active classroom list.`,
+      });
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        title: 'Classroom not removed',
+        description: getApiErrorMessage(error, 'The classroom could not be removed right now.'),
+      });
+    }
+  };
+
+  const handleRemoveEnrollment = async (enrollmentId: string, studentLabel: string) => {
+    if (!selectedClassroom) {
+      return;
+    }
+
+    if (!window.confirm(`Remove ${studentLabel} from ${selectedClassroom.name}?`)) {
+      return;
+    }
+
+    try {
+      await removeEnrollmentMutation.mutateAsync(enrollmentId);
+      showToast({
+        tone: 'success',
+        title: 'Student removed',
+        description: `${studentLabel} no longer has classroom access for ${selectedClassroom.name}.`,
+      });
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        title: 'Student not removed',
+        description: getApiErrorMessage(error, 'The student could not be removed from this classroom right now.'),
+      });
+    }
+  };
+
+  const startAssignmentEdit = (assignment: NonNullable<typeof classroomDetailQuery.data>['assignments']['items'][number]) => {
+    setEditingAssignmentId(assignment.id);
+    setAssignmentEditForm({
+      title: assignment.title,
+      description: assignment.description ?? '',
+      startAt: toDateTimeLocalValue(assignment.startAt),
+      dueAt: toDateTimeLocalValue(assignment.dueAt),
+    });
+  };
+
+  const submitAssignmentUpdate = async () => {
+    if (!editingAssignmentId) {
+      return;
+    }
+
+    try {
+      const assignment = await updateAssignmentMutation.mutateAsync({
+        assignmentId: editingAssignmentId,
+        title: assignmentEditForm.title,
+        description: assignmentEditForm.description || null,
+        startAt: new Date(assignmentEditForm.startAt).toISOString(),
+        dueAt: assignmentEditForm.dueAt ? new Date(assignmentEditForm.dueAt).toISOString() : null,
+      });
+      setEditingAssignmentId(null);
+      showToast({
+        tone: 'success',
+        title: 'Assignment updated',
+        description: `${assignment.title} now uses the latest title and schedule.`,
+      });
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        title: 'Assignment update failed',
+        description: getApiErrorMessage(error, 'The classroom assignment could not be updated right now.'),
+      });
+    }
+  };
+
+  const handleDeleteAssignment = async (assignmentId: string, assignmentTitle: string) => {
+    if (!window.confirm(`Soft delete ${assignmentTitle}? Students will no longer see it in active classroom gameplay.`)) {
+      return;
+    }
+
+    try {
+      await deleteAssignmentMutation.mutateAsync(assignmentId);
+      if (editingAssignmentId === assignmentId) {
+        setEditingAssignmentId(null);
+      }
+      showToast({
+        tone: 'success',
+        title: 'Assignment removed',
+        description: `${assignmentTitle} was removed from active classroom gameplay.`,
+      });
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        title: 'Assignment not removed',
+        description: getApiErrorMessage(error, 'The classroom assignment could not be removed right now.'),
       });
     }
   };
@@ -363,6 +537,74 @@ export const Students = () => {
                     <span className="teacher-chip">{selectedClassroom.isPrivate ? 'Private' : 'Open'}</span>
                   </div>
                 </div>
+                <div className="mt-5 rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="teacher-kicker">Classroom details</p>
+                      <h3 className="mt-2 font-display text-xl font-bold">Edit metadata</h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleDeleteClassroom}
+                      disabled={deleteClassroomMutation.isPending}
+                      className="teacher-button-secondary"
+                    >
+                      {deleteClassroomMutation.isPending ? 'Removing classroom...' : 'Soft delete classroom'}
+                    </button>
+                  </div>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <label className="block md:col-span-2">
+                      <span className="teacher-label text-sm font-semibold">Classroom name</span>
+                      <input
+                        value={classroomEditForm.name}
+                        onChange={(event) =>
+                          setClassroomEditForm((current) => ({ ...current, name: event.target.value }))
+                        }
+                        className="teacher-field mt-2"
+                      />
+                    </label>
+                    <label className="block md:col-span-2">
+                      <span className="teacher-label text-sm font-semibold">Description</span>
+                      <textarea
+                        value={classroomEditForm.description}
+                        onChange={(event) =>
+                          setClassroomEditForm((current) => ({ ...current, description: event.target.value }))
+                        }
+                        className="teacher-field mt-2 min-h-24"
+                      />
+                    </label>
+                    <label className="teacher-surface teacher-copy flex items-center gap-3 rounded-2xl px-4 py-3 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={classroomEditForm.isPrivate}
+                        onChange={(event) =>
+                          setClassroomEditForm((current) => ({ ...current, isPrivate: event.target.checked }))
+                        }
+                      />
+                      Private to teacher
+                    </label>
+                    <label className="teacher-surface teacher-copy flex items-center gap-3 rounded-2xl px-4 py-3 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={classroomEditForm.requiresApproval}
+                        onChange={(event) =>
+                          setClassroomEditForm((current) => ({ ...current, requiresApproval: event.target.checked }))
+                        }
+                      />
+                      Approval-capable
+                    </label>
+                  </div>
+                  <div className="mt-4 flex flex-wrap justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={submitClassroomUpdate}
+                      disabled={updateClassroomMutation.isPending}
+                      className="teacher-button-primary"
+                    >
+                      {updateClassroomMutation.isPending ? 'Saving details...' : 'Save classroom details'}
+                    </button>
+                  </div>
+                </div>
                 <div className="mt-5 grid gap-4">
                   <div className="min-w-0 space-y-3">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -375,8 +617,20 @@ export const Students = () => {
                       {classroomDetailQuery.data?.enrollments.items.length ? (
                         classroomDetailQuery.data.enrollments.items.map((entry) => (
                           <article key={entry.id} className="teacher-surface rounded-2xl px-4 py-3">
-                            <p className="text-sm font-semibold text-[var(--text-0)]">{entry.student.username}</p>
-                            <p className="mt-1 text-xs text-[var(--text-2)]">{entry.student.email}</p>
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-[var(--text-0)]">{entry.student.username}</p>
+                                <p className="mt-1 text-xs text-[var(--text-2)]">{entry.student.email}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveEnrollment(entry.id, entry.student.username)}
+                                disabled={removeEnrollmentMutation.isPending}
+                                className="teacher-button-secondary"
+                              >
+                                Remove
+                              </button>
+                            </div>
                           </article>
                         ))
                       ) : (
@@ -536,7 +790,24 @@ export const Students = () => {
                             <h3 className="font-display text-xl font-bold text-[var(--color-ink)]">{assignment.title}</h3>
                             <p className="teacher-copy mt-2 text-sm">{assignment.description ?? 'No extra note.'}</p>
                           </div>
-                          <span className="teacher-tag">{assignment.targetType.replace('_', ' ')}</span>
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <span className="teacher-tag">{assignment.targetType.replace('_', ' ')}</span>
+                            <button
+                              type="button"
+                              onClick={() => startAssignmentEdit(assignment)}
+                              className="teacher-button-secondary"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAssignment(assignment.id, assignment.title)}
+                              disabled={deleteAssignmentMutation.isPending}
+                              className="teacher-button-secondary"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
                         <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">
                           <span>{assignment.roomManifest.length} rooms</span>
@@ -545,6 +816,69 @@ export const Students = () => {
                             Due {assignment.dueAt ? new Date(assignment.dueAt).toLocaleDateString() : 'none'}
                           </span>
                         </div>
+                        {editingAssignmentId === assignment.id ? (
+                          <div className="mt-4 grid gap-4 rounded-2xl border border-white/8 bg-white/[0.03] p-4 md:grid-cols-2">
+                            <label className="block md:col-span-2">
+                              <span className="teacher-label text-sm font-semibold">Assignment title</span>
+                              <input
+                                value={assignmentEditForm.title}
+                                onChange={(event) =>
+                                  setAssignmentEditForm((current) => ({ ...current, title: event.target.value }))
+                                }
+                                className="teacher-field mt-2"
+                              />
+                            </label>
+                            <label className="block md:col-span-2">
+                              <span className="teacher-label text-sm font-semibold">Teacher note</span>
+                              <textarea
+                                value={assignmentEditForm.description}
+                                onChange={(event) =>
+                                  setAssignmentEditForm((current) => ({ ...current, description: event.target.value }))
+                                }
+                                className="teacher-field mt-2 min-h-24"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="teacher-label text-sm font-semibold">Start at</span>
+                              <input
+                                type="datetime-local"
+                                value={assignmentEditForm.startAt}
+                                onChange={(event) =>
+                                  setAssignmentEditForm((current) => ({ ...current, startAt: event.target.value }))
+                                }
+                                className="teacher-field mt-2"
+                              />
+                            </label>
+                            <label className="block">
+                              <span className="teacher-label text-sm font-semibold">Due at</span>
+                              <input
+                                type="datetime-local"
+                                value={assignmentEditForm.dueAt}
+                                onChange={(event) =>
+                                  setAssignmentEditForm((current) => ({ ...current, dueAt: event.target.value }))
+                                }
+                                className="teacher-field mt-2"
+                              />
+                            </label>
+                            <div className="md:col-span-2 flex flex-wrap justify-end gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setEditingAssignmentId(null)}
+                                className="teacher-button-secondary"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={submitAssignmentUpdate}
+                                disabled={updateAssignmentMutation.isPending}
+                                className="teacher-button-primary"
+                              >
+                                {updateAssignmentMutation.isPending ? 'Saving assignment...' : 'Save assignment'}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
                       </article>
                     ))
                   ) : (

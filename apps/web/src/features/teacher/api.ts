@@ -217,6 +217,57 @@ export const useCreateClassroomMutation = () => {
   });
 };
 
+export const useUpdateClassroomMutation = (classroomId: string | null) => {
+  const queryClient = useQueryClient();
+  const actorId = useActorId();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      name: string;
+      description: string;
+      isPrivate: boolean;
+      requiresApproval: boolean;
+    }) => {
+      const response = await api.patch<ApiResponse<IClassroom>>(
+        `/teacher/classrooms/${classroomId}`,
+        payload,
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      if (!classroomId) {
+        return;
+      }
+
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classroom(actorId, classroomId) });
+      void queryClient.invalidateQueries({
+        queryKey: teacherQueryKeys.classroomDashboard(actorId, classroomId),
+      });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classrooms(actorId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview(actorId) });
+    },
+  });
+};
+
+export const useDeleteClassroomMutation = () => {
+  const queryClient = useQueryClient();
+  const actorId = useActorId();
+
+  return useMutation({
+    mutationFn: async (classroomId: string) => {
+      const response = await api.delete<ApiResponse<{ id: string; name: string }>>(
+        `/teacher/classrooms/${classroomId}`,
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classrooms(actorId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview(actorId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.teacherRoot(actorId) });
+    },
+  });
+};
+
 export const useEnrollStudentsMutation = (classroomId: string | null) => {
   const queryClient = useQueryClient();
   const actorId = useActorId();
@@ -226,6 +277,32 @@ export const useEnrollStudentsMutation = (classroomId: string | null) => {
       const response = await api.post<ApiResponse<IClassroomEnrollment[]>>(
         `/teacher/classrooms/${classroomId}/enrollments`,
         { studentIds },
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      if (!classroomId) {
+        return;
+      }
+
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classroom(actorId, classroomId) });
+      void queryClient.invalidateQueries({
+        queryKey: teacherQueryKeys.classroomDashboard(actorId, classroomId),
+      });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classrooms(actorId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview(actorId) });
+    },
+  });
+};
+
+export const useRemoveEnrollmentMutation = (classroomId: string | null) => {
+  const queryClient = useQueryClient();
+  const actorId = useActorId();
+
+  return useMutation({
+    mutationFn: async (enrollmentId: string) => {
+      const response = await api.delete<ApiResponse<IClassroomEnrollment>>(
+        `/teacher/classrooms/${classroomId}/enrollments/${enrollmentId}`,
       );
       return response.data.data;
     },
@@ -271,6 +348,25 @@ export const useCreateRoomMutation = () => {
   });
 };
 
+export const useUpdateRoomLifecycleMutation = () => {
+  const queryClient = useQueryClient();
+  const actorId = useActorId();
+
+  return useMutation({
+    mutationFn: async (payload: { roomId: string; lifecycleStatus: RoomLifecycleStatus }) => {
+      const response = await api.patch<ApiResponse<ITeacherRoomVersion>>(
+        `/teacher/rooms/${payload.roomId}/lifecycle`,
+        { lifecycleStatus: payload.lifecycleStatus },
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.rooms(actorId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview(actorId) });
+    },
+  });
+};
+
 export const useCreateAssignmentMutation = (classroomId: string | null) => {
   const queryClient = useQueryClient();
   const actorId = useActorId();
@@ -290,6 +386,65 @@ export const useCreateAssignmentMutation = (classroomId: string | null) => {
       const response = await api.post<ApiResponse<IClassroomAssignment>>(
         `/teacher/classrooms/${classroomId}/assignments`,
         payload,
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      if (!classroomId) {
+        return;
+      }
+
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classroom(actorId, classroomId) });
+      void queryClient.invalidateQueries({
+        queryKey: teacherQueryKeys.classroomDashboard(actorId, classroomId),
+      });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classrooms(actorId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview(actorId) });
+    },
+  });
+};
+
+export const useUpdateAssignmentMutation = (classroomId: string | null) => {
+  const queryClient = useQueryClient();
+  const actorId = useActorId();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      assignmentId: string;
+      title: string;
+      description?: string | null;
+      startAt: string;
+      dueAt?: string | null;
+    }) => {
+      const response = await api.patch<ApiResponse<IClassroomAssignment>>(
+        `/teacher/classrooms/${classroomId}/assignments/${payload.assignmentId}`,
+        payload,
+      );
+      return response.data.data;
+    },
+    onSuccess: () => {
+      if (!classroomId) {
+        return;
+      }
+
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classroom(actorId, classroomId) });
+      void queryClient.invalidateQueries({
+        queryKey: teacherQueryKeys.classroomDashboard(actorId, classroomId),
+      });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classrooms(actorId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview(actorId) });
+    },
+  });
+};
+
+export const useDeleteAssignmentMutation = (classroomId: string | null) => {
+  const queryClient = useQueryClient();
+  const actorId = useActorId();
+
+  return useMutation({
+    mutationFn: async (assignmentId: string) => {
+      const response = await api.delete<ApiResponse<{ id: string; title: string }>>(
+        `/teacher/classrooms/${classroomId}/assignments/${assignmentId}`,
       );
       return response.data.data;
     },

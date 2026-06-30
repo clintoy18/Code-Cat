@@ -16,6 +16,7 @@ import {
   useCreateRoomMutation,
   useTeacherClassroomsQuery,
   useTeacherRoomsQuery,
+  useUpdateRoomLifecycleMutation,
 } from '@/features/teacher';
 import { getApiErrorMessage } from '@/lib/api';
 import { useToastStore } from '@/store/toastStore';
@@ -137,6 +138,7 @@ export const Lessons = () => {
   const classroomsQuery = useTeacherClassroomsQuery({ page: classroomsPage, pageSize: 12 });
   const roomsQuery = useTeacherRoomsQuery({ page: roomVersionsPage, pageSize: 12 });
   const createRoomMutation = useCreateRoomMutation();
+  const updateRoomLifecycleMutation = useUpdateRoomLifecycleMutation();
   const createAssignmentMutation = useCreateAssignmentMutation(
     selectedClassroomId || null,
   );
@@ -332,6 +334,39 @@ export const Lessons = () => {
     setSelectedOfficialWorldId('');
     setSelectedOfficialPuzzleId('');
     setAssignmentDraft(createInitialAssignmentDraft());
+  };
+
+  const loadRoomIntoBuilder = (roomId: string) => {
+    hydrateFromRoom(roomId);
+    setDeliveryMode('custom');
+    setCurrentStep(2);
+    setSubmitError(null);
+  };
+
+  const updateRoomStatus = async (roomId: string, lifecycleStatus: RoomLifecycleStatus) => {
+    const targetRoom = roomVersions.find((room) => room.id === roomId);
+
+    if (!targetRoom) {
+      return;
+    }
+
+    try {
+      const roomVersion = await updateRoomLifecycleMutation.mutateAsync({
+        roomId,
+        lifecycleStatus,
+      });
+      showToast({
+        tone: 'success',
+        title: 'Room status updated',
+        description: `${roomVersion.title} is now ${roomVersion.lifecycleStatus.toLowerCase()}.`,
+      });
+    } catch (error) {
+      showToast({
+        tone: 'error',
+        title: 'Room status update failed',
+        description: getApiErrorMessage(error, 'The room status could not be changed right now.'),
+      });
+    }
   };
 
   const submitAssignment = async () => {
@@ -781,10 +816,70 @@ export const Lessons = () => {
                   {roomVersions.map((room) => (
                     <option key={room.id} value={room.id}>
                       {room.title} / v{room.versionNumber}
-                    </option>
-                  ))}
-                </select>
+                  </option>
+                ))}
+              </select>
               </label>
+              {roomVersions.length ? (
+                <div className="grid gap-3">
+                  {roomVersions.map((room) => (
+                    <article key={room.id} className="teacher-surface rounded-2xl px-4 py-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="font-display text-lg font-bold text-[var(--text-0)]">
+                            {room.title}
+                          </h4>
+                          <p className="teacher-copy mt-2 text-sm">
+                            {room.objective}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="teacher-tag">
+                            {room.lifecycleStatus.toLowerCase()}
+                          </span>
+                          <span className="teacher-tag">
+                            v{room.versionNumber}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-2)]">
+                        <span>{room.lessonTag}</span>
+                        <span>{room.difficulty}</span>
+                        <span>Par {room.parMoves}</span>
+                        <span>Budget {room.codeBudget}</span>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() => loadRoomIntoBuilder(room.id)}
+                          className="teacher-button-secondary"
+                        >
+                          Continue in builder
+                        </button>
+                        {room.lifecycleStatus !== RoomLifecycleStatus.ARCHIVED ? (
+                          <button
+                            type="button"
+                            onClick={() => updateRoomStatus(room.id, RoomLifecycleStatus.ARCHIVED)}
+                            disabled={updateRoomLifecycleMutation.isPending}
+                            className="teacher-button-secondary"
+                          >
+                            Archive
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => updateRoomStatus(room.id, RoomLifecycleStatus.DRAFT)}
+                            disabled={updateRoomLifecycleMutation.isPending}
+                            className="teacher-button-secondary"
+                          >
+                            Restore to draft
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
               {!roomVersions.length ? (
                 <EmptyState
                   className="teacher-surface teacher-surface--muted"

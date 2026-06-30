@@ -56,6 +56,28 @@ export const createClassroom = async (req: Request, res: Response, next: NextFun
   }
 };
 
+export const updateClassroom = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await teacherService.updateClassroom(
+      requireTeacherUserId(req),
+      req.params.id,
+      req.body,
+    );
+    return sendSuccess(res, result, 200, 'Classroom updated.');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const deleteClassroom = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await teacherService.deleteClassroom(requireTeacherUserId(req), req.params.id);
+    return sendSuccess(res, result, 200, 'Classroom deleted.');
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const getClassroomById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await teacherService.getClassroomById(requireTeacherUserId(req), req.params.id, req.query);
@@ -69,6 +91,19 @@ export const enrollStudents = async (req: Request, res: Response, next: NextFunc
   try {
     const result = await teacherService.enrollStudents(requireTeacherUserId(req), req.params.id, req.body.studentIds);
     return sendSuccess(res, result, 201, 'Students enrolled.');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const removeEnrollment = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await teacherService.removeEnrollment(
+      requireTeacherUserId(req),
+      req.params.id,
+      req.params.enrollmentId,
+    );
+    return sendSuccess(res, result, 200, 'Student removed from classroom.');
   } catch (error) {
     return next(error);
   }
@@ -92,10 +127,50 @@ export const createRoomVersion = async (req: Request, res: Response, next: NextF
   }
 };
 
+export const updateRoomLifecycle = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await teacherService.updateRoomLifecycle(
+      requireTeacherUserId(req),
+      req.params.id,
+      req.body.lifecycleStatus,
+    );
+    return sendSuccess(res, result, 200, 'Room status updated.');
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const createClassroomAssignment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await teacherService.createClassroomAssignment(requireTeacherUserId(req), req.params.id, req.body);
     return sendSuccess(res, result, 201, 'Assignment created.');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const updateClassroomAssignment = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await teacherService.updateClassroomAssignment(
+      requireTeacherUserId(req),
+      req.params.id,
+      req.params.assignmentId,
+      req.body,
+    );
+    return sendSuccess(res, result, 200, 'Assignment updated.');
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const deleteClassroomAssignment = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await teacherService.deleteClassroomAssignment(
+      requireTeacherUserId(req),
+      req.params.id,
+      req.params.assignmentId,
+    );
+    return sendSuccess(res, result, 200, 'Assignment deleted.');
   } catch (error) {
     return next(error);
   }

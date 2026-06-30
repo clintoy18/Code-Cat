@@ -91,12 +91,33 @@ export const classroomParamsSchema = z.object({
   id: objectIdSchema,
 });
 
+export const classroomEnrollmentParamsSchema = z.object({
+  id: objectIdSchema,
+  enrollmentId: objectIdSchema,
+});
+
+export const classroomAssignmentParamsSchema = z.object({
+  id: objectIdSchema,
+  assignmentId: objectIdSchema,
+});
+
+export const roomVersionParamsSchema = z.object({
+  id: objectIdSchema,
+});
+
 export const createClassroomSchema = z.object({
   name: z.string().trim().min(2).max(80),
   description: z.string().trim().min(10).max(600),
   isPrivate: z.boolean().default(true),
   requiresApproval: z.boolean().default(false),
   studentIds: z.array(objectIdSchema).max(200).optional(),
+});
+
+export const updateClassroomSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  description: z.string().trim().min(10).max(600),
+  isPrivate: z.boolean().default(true),
+  requiresApproval: z.boolean().default(false),
 });
 
 export const enrollStudentsSchema = z.object({
@@ -126,4 +147,15 @@ export const createClassroomAssignmentSchema = z.object({
   officialPuzzleId: z.string().trim().min(1).optional(),
   customRoomVersionId: objectIdSchema.optional(),
   roomManifest: z.array(roomManifestItemSchema).max(30).optional(),
+});
+
+export const updateClassroomAssignmentSchema = z.object({
+  title: z.string().trim().min(2).max(80),
+  description: z.string().trim().max(400).nullish(),
+  startAt: z.string().datetime(),
+  dueAt: z.string().datetime().nullish(),
+});
+
+export const updateRoomLifecycleSchema = z.object({
+  lifecycleStatus: z.nativeEnum(RoomLifecycleStatus),
 });
