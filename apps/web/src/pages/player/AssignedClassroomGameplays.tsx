@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PaginationControls, PlayerBackLink } from '@/components/shared';
+import { EmptyState, PaginationControls, PlayerBackLink } from '@/components/shared';
 import { Button } from '@/components/ui';
 import { useStudentAssignmentsQuery } from '@/features/teacher';
 
@@ -77,10 +77,7 @@ export const AssignedClassroomGameplays = ({
             </div>
           </section>
           <section className="pixel-panel">
-            <p className="pixel-panel__body">
-              No classroom gameplay is assigned right now. Check back after
-              your teacher schedules a room for your class.
-            </p>
+            <EmptyState description="Classroom gameplay will appear here after your teacher schedules a room for one of your classes." />
           </section>
         </div>
       );
@@ -105,9 +102,14 @@ export const AssignedClassroomGameplays = ({
             </p>
           </div>
           <div className="mt-6">
-            <Link to="/classroom-gameplays" className="pixel-button pixel-button--ghost">
-              Back to classrooms
-            </Link>
+            <EmptyState
+              description="Playable classroom rooms will appear here after this class has live assignments again."
+              action={(
+                <Link to="/classroom-gameplays" className="pixel-button pixel-button--ghost">
+                  Back to classrooms
+                </Link>
+              )}
+            />
           </div>
         </section>
       </div>

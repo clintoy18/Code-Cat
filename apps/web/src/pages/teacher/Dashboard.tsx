@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { EmptyState } from '@/components/shared';
 import { useTeacherClassroomsQuery, useTeacherOverviewQuery } from '@/features/teacher';
 
 const teacherWorkflow = [
@@ -159,9 +160,15 @@ export const Dashboard = () => {
                 </article>
               ))
             ) : (
-              <div className="teacher-surface teacher-surface--muted rounded-3xl border-dashed p-5 text-sm">
-                No classrooms yet. Start in the classroom manager and seed your first roster there.
-              </div>
+              <EmptyState
+                className="teacher-surface teacher-surface--muted"
+                description="Classrooms will appear here after you create one in the classroom manager and start building your roster."
+                action={(
+                  <Link to="/teacher/students" className="teacher-button-secondary">
+                    Open classroom manager
+                  </Link>
+                )}
+              />
             )}
           </div>
         </article>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { PaginationControls } from '@/components/shared';
+import { Link } from 'react-router-dom';
+import { EmptyState, PaginationControls } from '@/components/shared';
 import { useTeacherClassroomDashboardQuery, useTeacherClassroomsQuery } from '@/features/teacher';
 
 export const Progress = () => {
@@ -24,6 +25,33 @@ export const Progress = () => {
     rosterPageSize: 10,
   });
   const dashboard = dashboardQuery.data;
+
+  if (!classrooms.length && !classroomsQuery.isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="teacher-kicker">Progress Review</p>
+          <h1 className="mt-2 font-display text-3xl font-bold">Review outcomes in the same classroom context they were assigned.</h1>
+          <p className="teacher-copy mt-3 max-w-3xl text-sm">
+            Attempts, failures, timestamps, and grades stay tied to the
+            classroom that assigned them, so teachers can evaluate real lesson
+            performance instead of mixed global snapshots.
+          </p>
+        </div>
+
+        <section className="glass-panel p-6">
+          <EmptyState
+            description="Classroom progress will appear here after you create a classroom and enroll students into it."
+            action={(
+              <Link to="/teacher/students" className="teacher-button-primary">
+                Open classroom manager
+              </Link>
+            )}
+          />
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -90,64 +118,78 @@ export const Progress = () => {
             </div>
 
             <div className="mt-5 space-y-4">
-              {dashboard.roster.items.map((entry) => (
-                <article key={entry.student.id} className="teacher-surface rounded-3xl p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-display text-xl font-bold text-[var(--color-ink)]">{entry.student.username}</h3>
-                      <p className="mt-1 text-sm text-[var(--text-2)]">{entry.student.email}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">
-                      <span>{entry.solvedRooms}/{entry.assignedRooms} solved</span>
-                      <span>{entry.totalAttempts} attempts</span>
-                      <span>{entry.totalFailures} failures</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-3 md:grid-cols-4">
-                    <div className="teacher-surface teacher-surface--active rounded-2xl px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">Average</p>
-                      <p className="mt-2 font-display text-2xl font-bold">{entry.averageScore ?? '-'}</p>
-                    </div>
-                    <div className="teacher-surface teacher-surface--active rounded-2xl px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">Letter</p>
-                      <p className="mt-2 font-display text-2xl font-bold">{entry.letterGrade ?? '-'}</p>
-                    </div>
-                    <div className="teacher-surface teacher-surface--active rounded-2xl px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">High Scores</p>
-                      <p className="mt-2 font-display text-2xl font-bold">{entry.achievements.highScores}</p>
-                    </div>
-                    <div className="teacher-surface teacher-surface--active rounded-2xl px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">Last Played</p>
-                      <p className="teacher-copy mt-2 text-sm font-semibold">
-                        {entry.lastPlayedAt ? new Date(entry.lastPlayedAt).toLocaleString() : 'Not yet'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    {entry.roomProgress.map((room) => (
-                      <div
-                        key={room.id}
-                        className="teacher-surface teacher-surface--active flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm"
-                      >
-                        <div>
-                          <p className="font-semibold text-[var(--text-0)]">{room.roomTitle}</p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--text-2)]">
-                            {room.roomSource} / {room.status}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">
-                          <span>Best {room.bestScore ?? '-'}</span>
-                          <span>Latest {room.latestScore ?? '-'}</span>
-                          <span>Attempts {room.attempts}</span>
-                          <span>Solved {room.solvedAt ? new Date(room.solvedAt).toLocaleDateString() : 'No'}</span>
-                        </div>
+              {dashboard.roster.items.length ? (
+                dashboard.roster.items.map((entry) => (
+                  <article key={entry.student.id} className="teacher-surface rounded-3xl p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <h3 className="font-display text-xl font-bold text-[var(--color-ink)]">{entry.student.username}</h3>
+                        <p className="mt-1 text-sm text-[var(--text-2)]">{entry.student.email}</p>
                       </div>
-                    ))}
-                  </div>
-                </article>
-              ))}
+                      <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">
+                        <span>{entry.solvedRooms}/{entry.assignedRooms} solved</span>
+                        <span>{entry.totalAttempts} attempts</span>
+                        <span>{entry.totalFailures} failures</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-4">
+                      <div className="teacher-surface teacher-surface--active rounded-2xl px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">Average</p>
+                        <p className="mt-2 font-display text-2xl font-bold">{entry.averageScore ?? '-'}</p>
+                      </div>
+                      <div className="teacher-surface teacher-surface--active rounded-2xl px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">Letter</p>
+                        <p className="mt-2 font-display text-2xl font-bold">{entry.letterGrade ?? '-'}</p>
+                      </div>
+                      <div className="teacher-surface teacher-surface--active rounded-2xl px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">High Scores</p>
+                        <p className="mt-2 font-display text-2xl font-bold">{entry.achievements.highScores}</p>
+                      </div>
+                      <div className="teacher-surface teacher-surface--active rounded-2xl px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">Last Played</p>
+                        <p className="teacher-copy mt-2 text-sm font-semibold">
+                          {entry.lastPlayedAt ? new Date(entry.lastPlayedAt).toLocaleString() : 'Not yet'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      {entry.roomProgress.length ? (
+                        entry.roomProgress.map((room) => (
+                          <div
+                            key={room.id}
+                            className="teacher-surface teacher-surface--active flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm"
+                          >
+                            <div>
+                              <p className="font-semibold text-[var(--text-0)]">{room.roomTitle}</p>
+                              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--text-2)]">
+                                {room.roomSource} / {room.status}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-2)]">
+                              <span>Best {room.bestScore ?? '-'}</span>
+                              <span>Latest {room.latestScore ?? '-'}</span>
+                              <span>Attempts {room.attempts}</span>
+                              <span>Solved {room.solvedAt ? new Date(room.solvedAt).toLocaleDateString() : 'No'}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <EmptyState
+                          className="teacher-surface teacher-surface--muted"
+                          description="Room-by-room progress will appear here after this student starts playing assigned classroom gameplay."
+                        />
+                      )}
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <EmptyState
+                  className="teacher-surface teacher-surface--muted"
+                  description="Roster progress will appear here after students are enrolled and start playing classroom assignments."
+                />
+              )}
             </div>
             <PaginationControls
               page={dashboard.roster.pagination.page}
@@ -158,7 +200,11 @@ export const Progress = () => {
             />
           </section>
         </>
-      ) : null}
+      ) : (
+        <section className="glass-panel p-6">
+          <EmptyState description="Classroom progress will appear here after the selected classroom has students and assigned gameplay." />
+        </section>
+      )}
     </div>
   );
 };

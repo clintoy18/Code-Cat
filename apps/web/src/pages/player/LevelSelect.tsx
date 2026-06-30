@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { PlayerBackLink } from '@/components/shared';
+import { EmptyState, PlayerBackLink } from '@/components/shared';
 import { Button } from '@/components/ui';
 import {
   curriculumWorlds,
@@ -42,6 +42,30 @@ export const LevelSelect = () => {
     loadPuzzle(puzzleId);
     navigate(`/gameplay/${puzzleId}`);
   };
+
+  if (!officialPuzzles.length || !playableWorlds.length) {
+    return (
+      <div className="pixel-page space-y-6">
+        <section className="mission-brief">
+          <div className="mission-brief__copy">
+            <PlayerBackLink to="/" label="Back to main menu" />
+            <p className="mission-brief__eyebrow">Normal Gameplay</p>
+            <h1 className="mission-brief__title">
+              Built-in gameplay is not ready yet.
+            </h1>
+            <p className="mission-brief__objective">
+              This page only shows the official Code Cat progression. Once the
+              built-in level catalog is available, the worlds and rooms will
+              appear here automatically.
+            </p>
+          </div>
+        </section>
+        <section className="pixel-panel">
+          <EmptyState description="Official gameplay will appear here after the built-in world catalog finishes loading." />
+        </section>
+      </div>
+    );
+  }
 
   const renderLevelCard = (puzzle: IPuzzleDefinition) => {
     const isUnlocked = unlockedPuzzleIds.includes(puzzle.id);
@@ -210,9 +234,13 @@ export const LevelSelect = () => {
                 </div>
               </div>
 
-              <section className="level-map">
-                {worldPuzzles.map((puzzle) => renderLevelCard(puzzle))}
-              </section>
+              {worldPuzzles.length ? (
+                <section className="level-map">
+                  {worldPuzzles.map((puzzle) => renderLevelCard(puzzle))}
+                </section>
+              ) : (
+                <EmptyState description="Built-in rooms for this world will appear here after the official level catalog syncs with the current curriculum." />
+              )}
             </section>
           );
         })}

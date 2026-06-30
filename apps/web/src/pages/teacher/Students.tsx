@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { PaginationControls } from '@/components/shared';
+import { EmptyState, PaginationControls } from '@/components/shared';
 import {
   useCreateClassroomMutation,
   useEnrollStudentsMutation,
@@ -265,9 +265,9 @@ export const Students = () => {
                     </label>
                   ))
                 ) : (
-                  <div className="teacher-copy rounded-2xl border border-dashed border-white/10 px-3 py-4 text-sm">
-                    No student accounts exist yet. Create students first, then you can seed the classroom roster here.
-                  </div>
+                  <EmptyState
+                    description="Student accounts will appear here after they are created, then you can add them to the initial classroom roster."
+                  />
                 )}
               </div>
               <PaginationControls
@@ -330,10 +330,10 @@ export const Students = () => {
                   </button>
                 ))
               ) : (
-                <div className="teacher-surface teacher-copy rounded-3xl px-4 py-5 text-sm md:col-span-2">
-                  No classrooms yet. Create the first classroom on the left to unlock roster management and classroom
-                  gameplay delivery.
-                </div>
+                <EmptyState
+                  className="teacher-surface teacher-surface--muted md:col-span-2"
+                  description="Classrooms will appear here after you create the first one on the left. Roster management and classroom gameplay delivery unlock after that."
+                />
               )}
             </div>
             <PaginationControls
@@ -380,10 +380,10 @@ export const Students = () => {
                           </article>
                         ))
                       ) : (
-                        <div className="teacher-surface teacher-copy rounded-3xl px-4 py-5 text-sm">
-                          No students enrolled yet. Add one student for a quick start or use bulk enroll for the full
-                          roster.
-                        </div>
+                        <EmptyState
+                          className="teacher-surface teacher-surface--muted"
+                          description="Enrolled students will appear here after you add them to this classroom. Use single enroll for a quick start or bulk enroll for the full roster."
+                        />
                       )}
                     </div>
                     <PaginationControls
@@ -423,6 +423,12 @@ export const Students = () => {
                               </option>
                             ))}
                           </select>
+                          {!unenrolledStudents.length ? (
+                            <EmptyState
+                              className="teacher-surface teacher-surface--muted"
+                              description="Students available for quick enrollment will appear here after you create more accounts or choose a classroom with open seats."
+                            />
+                          ) : null}
                           <button
                             type="button"
                             onClick={submitSingleEnrollment}
@@ -469,9 +475,9 @@ export const Students = () => {
                               </label>
                             ))
                           ) : (
-                            <div className="teacher-copy rounded-2xl border border-dashed border-white/10 px-3 py-4 text-sm">
-                              Every known student is already part of this classroom.
-                            </div>
+                            <EmptyState
+                              description="Students available for bulk enrollment will appear here once this classroom has open seats."
+                            />
                           )}
                         </div>
                         <button
@@ -542,10 +548,10 @@ export const Students = () => {
                       </article>
                     ))
                   ) : (
-                    <div className="teacher-surface teacher-copy rounded-3xl px-4 py-5 text-sm">
-                      No classroom gameplay is scheduled yet. Open the builder to assign official gameplay or create a
-                      custom classroom level for this roster.
-                    </div>
+                    <EmptyState
+                      className="teacher-surface teacher-surface--muted"
+                      description="Classroom gameplay will appear here after you assign an official level or publish a custom classroom room for this roster."
+                    />
                   )}
                 </div>
                 <PaginationControls
@@ -558,9 +564,8 @@ export const Students = () => {
               </section>
             </div>
           ) : (
-            <div className="glass-panel teacher-copy p-6 text-sm">
-              Create a classroom first, then this page becomes the control center for roster updates and handoff into
-              the room builder.
+            <div className="glass-panel p-6">
+              <EmptyState description="Create a classroom first. Roster management and the handoff into the room builder will appear here after that." />
             </div>
           )}
         </article>

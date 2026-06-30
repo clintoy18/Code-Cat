@@ -7,7 +7,7 @@ import {
   type RoomDifficulty,
 } from '@shared/types/teacher';
 import { Link, useSearchParams } from 'react-router-dom';
-import { PaginationControls } from '@/components/shared';
+import { EmptyState, PaginationControls } from '@/components/shared';
 import {
   blockPresetCatalog,
   buildOfficialAssignmentOptions,
@@ -49,6 +49,13 @@ const todayDateValue = new Date().toISOString().slice(0, 16);
 const nextWeekDateValue = new Date(
   Date.now() + 7 * 24 * 60 * 60 * 1000,
 ).toISOString().slice(0, 16);
+
+const createInitialAssignmentDraft = () => ({
+  title: '',
+  description: '',
+  startAt: todayDateValue,
+  dueAt: nextWeekDateValue,
+});
 
 const wizardSteps: Array<{
   id: WizardStepId;
@@ -165,12 +172,9 @@ export const Lessons = () => {
     repeatCount: 2,
     whileCondition: 'PATH_UP_CLEAR',
   });
-  const [assignmentDraft, setAssignmentDraft] = useState({
-    title: '',
-    description: '',
-    startAt: todayDateValue,
-    dueAt: nextWeekDateValue,
-  });
+  const [assignmentDraft, setAssignmentDraft] = useState(
+    createInitialAssignmentDraft(),
+  );
 
   const selectedClassroom =
     classrooms.find((classroom) => classroom.id === selectedClassroomId) ?? null;
@@ -321,6 +325,15 @@ export const Lessons = () => {
     setCurrentStep((step) => Math.max(step - 1, 0));
   };
 
+  const resetOfficialAssignmentFlow = () => {
+    setSubmitError(null);
+    setCurrentStep(0);
+    setOfficialScope('world');
+    setSelectedOfficialWorldId('');
+    setSelectedOfficialPuzzleId('');
+    setAssignmentDraft(createInitialAssignmentDraft());
+  };
+
   const submitAssignment = async () => {
     setSubmitError(null);
 
@@ -359,6 +372,7 @@ export const Lessons = () => {
             title: 'Official world assigned',
             description: `${selectedOfficialWorld.worldTitle} is now scheduled for ${selectedClassroom?.name ?? 'this classroom'}.`,
           });
+          resetOfficialAssignmentFlow();
           return;
         }
 
@@ -384,6 +398,7 @@ export const Lessons = () => {
           title: 'Official level assigned',
           description: `${selectedOfficialPuzzle.title} is now ready for ${selectedClassroom?.name ?? 'this classroom'}.`,
         });
+        resetOfficialAssignmentFlow();
         return;
       } catch (error) {
         const message = getApiErrorMessage(
@@ -703,24 +718,31 @@ export const Lessons = () => {
           </div>
 
           <div className="mt-5 space-y-3">
-            {officialManifestPreview.map((item) => (
-              <article key={item.roomKey} className="teacher-surface rounded-3xl px-4 py-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h4 className="font-display text-lg font-bold text-[var(--text-0)]">
-                      {item.title}
-                    </h4>
-                    <p className="teacher-copy mt-2 text-sm">{item.objective}</p>
+            {officialManifestPreview.length ? (
+              officialManifestPreview.map((item) => (
+                <article key={item.roomKey} className="teacher-surface rounded-3xl px-4 py-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h4 className="font-display text-lg font-bold text-[var(--text-0)]">
+                        {item.title}
+                      </h4>
+                      <p className="teacher-copy mt-2 text-sm">{item.objective}</p>
+                    </div>
+                    <span className="teacher-tag">{item.difficulty}</span>
                   </div>
-                  <span className="teacher-tag">{item.difficulty}</span>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-2)]">
-                  <span>{item.lesson}</span>
-                  <span>{item.parMoves} par moves</span>
-                  <span>{item.codeBudget} code budget</span>
-                </div>
-              </article>
-            ))}
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-2)]">
+                    <span>{item.lesson}</span>
+                    <span>{item.parMoves} par moves</span>
+                    <span>{item.codeBudget} code budget</span>
+                  </div>
+                </article>
+              ))
+            ) : (
+              <EmptyState
+                className="teacher-surface teacher-surface--muted"
+                description="Official gameplay preview will appear here after you choose a built-in world or level."
+              />
+            )}
           </div>
         </section>
       </div>
@@ -763,6 +785,12 @@ export const Lessons = () => {
                   ))}
                 </select>
               </label>
+              {!roomVersions.length ? (
+                <EmptyState
+                  className="teacher-surface teacher-surface--muted"
+                  description="Saved room versions will appear here after you publish a custom classroom room."
+                />
+              ) : null}
               <PaginationControls
                 page={roomsQuery.data?.pagination.page ?? 1}
                 totalPages={roomsQuery.data?.pagination.totalPages ?? 1}
