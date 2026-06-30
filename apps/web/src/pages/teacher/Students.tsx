@@ -104,11 +104,10 @@ export const Students = () => {
     <div className="space-y-6">
       <div>
         <p className="teacher-kicker">Classroom Manager</p>
-        <h1 className="mt-2 font-display text-3xl font-bold">Create the room, fill the roster, then hand off to gameplay.</h1>
+        <h1 className="mt-2 font-display text-3xl font-bold">Create the classroom, then hand it off to classroom gameplay.</h1>
         <p className="teacher-copy mt-3 max-w-3xl text-sm">
-          This page is intentionally narrow: classroom setup first, enrollment
-          second. Once the room is ready, the builder takes over for actual
-          student gameplay.
+          This page owns classroom setup and roster management. Once a classroom exists, the builder page is where the
+          teacher either assigns built-in gameplay or creates a custom classroom level for enrolled students.
         </p>
       </div>
 
@@ -121,17 +120,19 @@ export const Students = () => {
           </p>
         </article>
         <article className="glass-panel p-5">
-          <p className="teacher-kicker">Enroll</p>
-          <h2 className="mt-3 font-display text-2xl font-bold">Manage the roster</h2>
+          <p className="teacher-kicker">Build</p>
+          <h2 className="mt-3 font-display text-2xl font-bold">Create or assign gameplay</h2>
           <p className="teacher-copy mt-3 text-sm">
-            Add one learner quickly or bulk-enroll the remaining students into the active room.
+            Use the classroom builder to assign an existing official level or publish a custom room into that
+            classroom.
           </p>
         </article>
         <article className="glass-panel p-5">
-          <p className="teacher-kicker">Build</p>
-          <h2 className="mt-3 font-display text-2xl font-bold">Open the builder</h2>
+          <p className="teacher-kicker">Enroll</p>
+          <h2 className="mt-3 font-display text-2xl font-bold">Manage the roster</h2>
           <p className="teacher-copy mt-3 text-sm">
-            Open the room builder from the selected classroom when the roster is ready for gameplay.
+            Add one learner quickly or bulk-enroll the remaining students so they can automatically see classroom
+            gameplay.
           </p>
         </article>
       </section>
@@ -450,7 +451,8 @@ export const Students = () => {
                     <p className="teacher-kicker">Scheduled Gameplays</p>
                     <h2 className="mt-2 font-display text-2xl font-bold">What students will see next</h2>
                     <p className="teacher-copy mt-3 text-sm">
-                      Build and assign classroom gameplay from the room builder once this roster is ready.
+                      Use the builder to either assign official gameplay or publish a custom classroom level for this
+                      roster.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -464,7 +466,7 @@ export const Students = () => {
                       to={`/teacher/lessons?classroomId=${selectedClassroom.id}`}
                       className="teacher-button-primary"
                     >
-                      Build level for classroom
+                      Create or assign level
                     </Link>
                   </div>
                 </div>
@@ -491,8 +493,8 @@ export const Students = () => {
                     ))
                   ) : (
                     <div className="teacher-surface teacher-copy rounded-3xl px-4 py-5 text-sm">
-                      No classroom gameplay is scheduled yet. Build a room and assign it from the lesson builder when
-                      this roster is ready.
+                      No classroom gameplay is scheduled yet. Open the builder to assign official gameplay or create a
+                      custom classroom level for this roster.
                     </div>
                   )}
                 </div>

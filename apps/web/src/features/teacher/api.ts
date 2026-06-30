@@ -13,6 +13,7 @@ import type {
 } from '@shared/types/teacher';
 import type { CompletionStatus } from '@shared/types/progress';
 import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 
 type ApiResponse<T> = {
   success: true;
@@ -94,36 +95,60 @@ const getData = async <T>(url: string, params?: object) => {
   return response.data.data;
 };
 
+const getActorScope = (actorId?: string | null) => actorId ?? 'anonymous';
+const useActorId = () => useAuthStore((state) => state.user?.id ?? null);
+
 export const teacherQueryKeys = {
-  overview: ['teacher', 'overview'] as const,
-  students: ['teacher', 'students'] as const,
-  classrooms: ['teacher', 'classrooms'] as const,
-  classroom: (classroomId: string) => ['teacher', 'classrooms', classroomId] as const,
-  classroomDashboard: (classroomId: string) => ['teacher', 'classrooms', classroomId, 'dashboard'] as const,
-  rooms: ['teacher', 'rooms'] as const,
-  studentAssignments: ['student', 'assignments'] as const,
-  studentAssignment: (assignmentId: string) => ['student', 'assignments', assignmentId] as const,
+  teacherRoot: (actorId?: string | null) => ['teacher', getActorScope(actorId)] as const,
+  overview: (actorId?: string | null) =>
+    [...teacherQueryKeys.teacherRoot(actorId), 'overview'] as const,
+  students: (actorId?: string | null) =>
+    [...teacherQueryKeys.teacherRoot(actorId), 'students'] as const,
+  classrooms: (actorId?: string | null) =>
+    [...teacherQueryKeys.teacherRoot(actorId), 'classrooms'] as const,
+  classroom: (actorId: string | null | undefined, classroomId: string) =>
+    [...teacherQueryKeys.classrooms(actorId), classroomId] as const,
+  classroomDashboard: (actorId: string | null | undefined, classroomId: string) =>
+    [...teacherQueryKeys.classroom(actorId, classroomId), 'dashboard'] as const,
+  rooms: (actorId?: string | null) =>
+    [...teacherQueryKeys.teacherRoot(actorId), 'rooms'] as const,
+  studentAssignments: (actorId?: string | null) =>
+    ['student', getActorScope(actorId), 'assignments'] as const,
+  studentAssignment: (actorId: string | null | undefined, assignmentId: string) =>
+    [...teacherQueryKeys.studentAssignments(actorId), assignmentId] as const,
 };
 
-export const useTeacherOverviewQuery = () =>
-  useQuery({
-    queryKey: teacherQueryKeys.overview,
+export const useTeacherOverviewQuery = () => {
+  const actorId = useActorId();
+
+  return useQuery({
+    queryKey: teacherQueryKeys.overview(actorId),
     queryFn: () => getData<TeacherOverview>('/teacher/overview'),
+    enabled: Boolean(actorId),
   });
+};
 
 export const useTeacherStudentsQuery = (
   params?: IPaginationQuery & { classroomId?: string },
-) =>
-  useQuery({
-    queryKey: [...teacherQueryKeys.students, params] as const,
-    queryFn: () => getData<IPaginatedResult<TeacherStudentRecord>>('/teacher/students', params),
-  });
+) => {
+  const actorId = useActorId();
 
-export const useTeacherClassroomsQuery = (params?: IPaginationQuery) =>
-  useQuery({
-    queryKey: [...teacherQueryKeys.classrooms, params] as const,
-    queryFn: () => getData<IPaginatedResult<IClassroom>>('/teacher/classrooms', params),
+  return useQuery({
+    queryKey: [...teacherQueryKeys.students(actorId), params] as const,
+    queryFn: () => getData<IPaginatedResult<TeacherStudentRecord>>('/teacher/students', params),
+    enabled: Boolean(actorId),
   });
+};
+
+export const useTeacherClassroomsQuery = (params?: IPaginationQuery) => {
+  const actorId = useActorId();
+
+  return useQuery({
+    queryKey: [...teacherQueryKeys.classrooms(actorId), params] as const,
+    queryFn: () => getData<IPaginatedResult<IClassroom>>('/teacher/classrooms', params),
+    enabled: Boolean(actorId),
+  });
+};
 
 export const useTeacherClassroomQuery = (
   classroomId: string | null,
@@ -133,35 +158,46 @@ export const useTeacherClassroomQuery = (
     assignmentsPage?: number;
     assignmentsPageSize?: number;
   },
-) =>
-  useQuery({
+) => {
+  const actorId = useActorId();
+
+  return useQuery({
     queryKey: classroomId
-      ? [...teacherQueryKeys.classroom(classroomId), params]
-      : ['teacher', 'classrooms', 'idle'],
+      ? [...teacherQueryKeys.classroom(actorId, classroomId), params]
+      : [...teacherQueryKeys.classrooms(actorId), 'idle'],
     queryFn: () => getData<ClassroomDetail>(`/teacher/classrooms/${classroomId}`, params),
-    enabled: Boolean(classroomId),
+    enabled: Boolean(actorId && classroomId),
   });
+};
 
 export const useTeacherClassroomDashboardQuery = (
   classroomId: string | null,
   params?: { rosterPage?: number; rosterPageSize?: number },
-) =>
-  useQuery({
-    queryKey: classroomId
-      ? [...teacherQueryKeys.classroomDashboard(classroomId), params]
-      : ['teacher', 'dashboard', 'idle'],
-    queryFn: () => getData<TeacherDashboard>(`/teacher/classrooms/${classroomId}/dashboard`, params),
-    enabled: Boolean(classroomId),
-  });
+) => {
+  const actorId = useActorId();
 
-export const useTeacherRoomsQuery = (params?: IPaginationQuery) =>
-  useQuery({
-    queryKey: [...teacherQueryKeys.rooms, params] as const,
-    queryFn: () => getData<IPaginatedResult<ITeacherRoomVersion>>('/teacher/rooms', params),
+  return useQuery({
+    queryKey: classroomId
+      ? [...teacherQueryKeys.classroomDashboard(actorId, classroomId), params]
+      : [...teacherQueryKeys.teacherRoot(actorId), 'dashboard', 'idle'],
+    queryFn: () => getData<TeacherDashboard>(`/teacher/classrooms/${classroomId}/dashboard`, params),
+    enabled: Boolean(actorId && classroomId),
   });
+};
+
+export const useTeacherRoomsQuery = (params?: IPaginationQuery) => {
+  const actorId = useActorId();
+
+  return useQuery({
+    queryKey: [...teacherQueryKeys.rooms(actorId), params] as const,
+    queryFn: () => getData<IPaginatedResult<ITeacherRoomVersion>>('/teacher/rooms', params),
+    enabled: Boolean(actorId),
+  });
+};
 
 export const useCreateClassroomMutation = () => {
   const queryClient = useQueryClient();
+  const actorId = useActorId();
 
   return useMutation({
     mutationFn: async (payload: {
@@ -175,14 +211,15 @@ export const useCreateClassroomMutation = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classrooms });
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classrooms(actorId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview(actorId) });
     },
   });
 };
 
 export const useEnrollStudentsMutation = (classroomId: string | null) => {
   const queryClient = useQueryClient();
+  const actorId = useActorId();
 
   return useMutation({
     mutationFn: async (studentIds: string[]) => {
@@ -197,16 +234,19 @@ export const useEnrollStudentsMutation = (classroomId: string | null) => {
         return;
       }
 
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classroom(classroomId) });
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classroomDashboard(classroomId) });
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classrooms });
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classroom(actorId, classroomId) });
+      void queryClient.invalidateQueries({
+        queryKey: teacherQueryKeys.classroomDashboard(actorId, classroomId),
+      });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classrooms(actorId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview(actorId) });
     },
   });
 };
 
 export const useCreateRoomMutation = () => {
   const queryClient = useQueryClient();
+  const actorId = useActorId();
 
   return useMutation({
     mutationFn: async (payload: {
@@ -225,14 +265,15 @@ export const useCreateRoomMutation = () => {
       return response.data.data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.rooms });
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.rooms(actorId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview(actorId) });
     },
   });
 };
 
 export const useCreateAssignmentMutation = (classroomId: string | null) => {
   const queryClient = useQueryClient();
+  const actorId = useActorId();
 
   return useMutation({
     mutationFn: async (payload: {
@@ -257,29 +298,41 @@ export const useCreateAssignmentMutation = (classroomId: string | null) => {
         return;
       }
 
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classroom(classroomId) });
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classroomDashboard(classroomId) });
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classrooms });
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classroom(actorId, classroomId) });
+      void queryClient.invalidateQueries({
+        queryKey: teacherQueryKeys.classroomDashboard(actorId, classroomId),
+      });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.classrooms(actorId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.overview(actorId) });
     },
   });
 };
 
-export const useStudentAssignmentsQuery = (params?: IPaginationQuery) =>
-  useQuery({
-    queryKey: [...teacherQueryKeys.studentAssignments, params] as const,
-    queryFn: () => getData<StudentAssignmentsFeed>('/progress/assignments/me', params),
-  });
+export const useStudentAssignmentsQuery = (params?: IPaginationQuery) => {
+  const actorId = useActorId();
 
-export const useStudentAssignmentQuery = (assignmentId: string | null) =>
-  useQuery({
-    queryKey: assignmentId ? teacherQueryKeys.studentAssignment(assignmentId) : ['student', 'assignments', 'idle'],
-    queryFn: () => getData<StudentAssignmentDetail>(`/progress/assignments/me/${assignmentId}`),
-    enabled: Boolean(assignmentId),
+  return useQuery({
+    queryKey: [...teacherQueryKeys.studentAssignments(actorId), params] as const,
+    queryFn: () => getData<StudentAssignmentsFeed>('/progress/assignments/me', params),
+    enabled: Boolean(actorId),
   });
+};
+
+export const useStudentAssignmentQuery = (assignmentId: string | null) => {
+  const actorId = useActorId();
+
+  return useQuery({
+    queryKey: assignmentId
+      ? teacherQueryKeys.studentAssignment(actorId, assignmentId)
+      : [...teacherQueryKeys.studentAssignments(actorId), 'idle'],
+    queryFn: () => getData<StudentAssignmentDetail>(`/progress/assignments/me/${assignmentId}`),
+    enabled: Boolean(actorId && assignmentId),
+  });
+};
 
 export const useCreateAssignmentRoomProgressMutation = () => {
   const queryClient = useQueryClient();
+  const actorId = useActorId();
 
   return useMutation({
     mutationFn: async (payload: {
@@ -294,8 +347,10 @@ export const useCreateAssignmentRoomProgressMutation = () => {
       return response.data.data;
     },
     onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.studentAssignments });
-      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.studentAssignment(variables.assignmentId) });
+      void queryClient.invalidateQueries({ queryKey: teacherQueryKeys.studentAssignments(actorId) });
+      void queryClient.invalidateQueries({
+        queryKey: teacherQueryKeys.studentAssignment(actorId, variables.assignmentId),
+      });
     },
   });
 };

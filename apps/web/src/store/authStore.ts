@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Role, IUser } from '@shared/types';
+import { queryClient } from '@/lib/queryClient';
 
 interface IAuthState {
   token: string | null;
@@ -21,20 +22,24 @@ export const useAuthStore = create<IAuthState>()(
       role: null,
       isAuthenticated: false,
       hasHydrated: true,
-      setSession: ({ token, user }) =>
+      setSession: ({ token, user }) => {
+        queryClient.clear();
         set({
           token,
           user,
           role: user.role,
           isAuthenticated: true,
-        }),
-      logout: () =>
+        });
+      },
+      logout: () => {
+        queryClient.clear();
         set({
           token: null,
           user: null,
           role: null,
           isAuthenticated: false,
-        }),
+        });
+      },
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
     {
