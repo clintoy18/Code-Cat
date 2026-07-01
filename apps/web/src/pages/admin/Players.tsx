@@ -54,6 +54,7 @@ export const Users = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<Role | ''>('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const deferredSearch = useDeferredValue(search);
@@ -92,6 +93,7 @@ export const Users = () => {
         });
       }
 
+      setIsFormOpen(false);
       setEditingId(null);
       setForm(emptyForm);
     } catch (error) {
@@ -138,6 +140,34 @@ export const Users = () => {
     }
   };
 
+  const openCreateModal = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setIsFormOpen(true);
+  };
+
+  const openEditModal = (user: {
+    id: string;
+    username: string;
+    email: string;
+    role: Role;
+  }) => {
+    setEditingId(user.id);
+    setForm({
+      username: user.username,
+      email: user.email,
+      password: '',
+      role: user.role,
+    });
+    setIsFormOpen(true);
+  };
+
+  const closeFormModal = () => {
+    setIsFormOpen(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  };
+
   return (
     <div className="space-y-6">
       <section className="glass-panel p-6">
@@ -149,240 +179,246 @@ export const Users = () => {
         </p>
       </section>
 
-      <section className="grid gap-4 2xl:grid-cols-[minmax(0,1.12fr)_minmax(360px,0.88fr)]">
+      <section>
         <article className="glass-panel p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="teacher-kicker">Directory</p>
-            <h2 className="mt-2 font-display text-2xl font-bold">User records</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="teacher-kicker">Directory</p>
+              <h2 className="mt-2 font-display text-2xl font-bold">User records</h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="teacher-chip">
+                {usersQuery.data?.pagination.totalItems ?? 0} total users
+              </span>
+              <button type="button" className="teacher-button-primary" onClick={openCreateModal}>
+                Create user
+              </button>
+            </div>
           </div>
-          <span className="teacher-chip">
-            {usersQuery.data?.pagination.totalItems ?? 0} total users
-          </span>
-        </div>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
-          <label className="grid gap-2">
-            <span className="teacher-label text-sm font-semibold">Search users</span>
-            <input
-              value={search}
-              onChange={(event) => {
-                setPage(1);
-                setSearch(event.target.value);
-              }}
-              className="teacher-field"
-              placeholder="Search by account name or email"
-            />
-          </label>
-          <label className="grid gap-2">
-            <span className="teacher-label text-sm font-semibold">Role</span>
-            <select
-              value={roleFilter}
-              onChange={(event) => {
-                setPage(1);
-                setRoleFilter(event.target.value as Role | '');
-              }}
-              className="teacher-field"
-            >
-              <option value="">All roles</option>
-              {Object.values(Role).map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        {usersQuery.isLoading ? <LoadingSpinner /> : null}
-
-        {usersQuery.isError ? (
-          <EmptyState
-            title="Could not load users"
-            description="The account directory is not available right now. Refresh the page or try again after the API settles."
-            className="mt-5"
-          />
-        ) : null}
-
-        {!usersQuery.isLoading && !usersQuery.isError ? (
-          <>
-            {users.length ? (
-              <div className="admin-list mt-5">
-                <div className="admin-list__header admin-list__header--users">
-                  <span>Account</span>
-                  <span>Created</span>
-                  <span>Role activity</span>
-                  <span>Performance</span>
-                  <span>Coverage</span>
-                  <span>Actions</span>
-                </div>
-                <div className="space-y-3">
-                  {users.map((user) => {
-                    const metrics = getUserMetrics(user);
-
-                    return (
-                      <article key={user.id} className="admin-list__row admin-list__row--users">
-                        <div className="admin-list__identity">
-                          <div className="min-w-0">
-                            <h3 className="admin-list__title">{user.username}</h3>
-                            <p className="admin-list__subtitle">{user.email}</p>
-                          </div>
-                          <span className="teacher-tag">{user.role}</span>
-                        </div>
-
-                        <div className="admin-list__cell">
-                          <span className="admin-list__mobileLabel">Created</span>
-                          <p className="admin-list__value">{new Date(user.createdAt).toLocaleDateString()}</p>
-                        </div>
-
-                        {metrics.map((metric) => (
-                          <div key={metric.label} className="admin-list__cell">
-                            <span className="admin-list__mobileLabel">{metric.label}</span>
-                            <p className="admin-list__value">{metric.value}</p>
-                            <p className="admin-list__caption">{metric.label}</p>
-                          </div>
-                        ))}
-
-                        <details className="admin-list__menu">
-                          <summary className="admin-list__menuTrigger" aria-label={`Open actions for ${user.username}`}>
-                            <MoreHorizontal size={18} strokeWidth={2.2} />
-                          </summary>
-                          <div className="admin-list__menuPanel">
-                            <button
-                              type="button"
-                              className="admin-list__menuItem"
-                              onClick={(event) => {
-                                closeActionMenu(event.currentTarget);
-                                setEditingId(user.id);
-                                setForm({
-                                  username: user.username,
-                                  email: user.email,
-                                  password: '',
-                                  role: user.role,
-                                });
-                              }}
-                            >
-                              Edit account
-                            </button>
-                            <button
-                              type="button"
-                              className="admin-list__menuItem admin-list__menuItem--danger"
-                              disabled={!user.canDelete}
-                              onClick={(event) => {
-                                closeActionMenu(event.currentTarget);
-                                void handleDelete(user.id);
-                              }}
-                            >
-                              Delete account
-                            </button>
-                          </div>
-                        </details>
-                      </article>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <EmptyState
-                className="mt-5"
-                description={
-                  deferredSearch.trim() || roleFilter
-                    ? 'No user accounts matched the current filters.'
-                    : 'User accounts will appear here once accounts have been seeded or created.'
-                }
+          <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+            <label className="grid gap-2">
+              <span className="teacher-label text-sm font-semibold">Search users</span>
+              <input
+                value={search}
+                onChange={(event) => {
+                  setPage(1);
+                  setSearch(event.target.value);
+                }}
+                className="teacher-field"
+                placeholder="Search by account name or email"
               />
-            )}
+            </label>
+            <label className="grid gap-2">
+              <span className="teacher-label text-sm font-semibold">Role</span>
+              <select
+                value={roleFilter}
+                onChange={(event) => {
+                  setPage(1);
+                  setRoleFilter(event.target.value as Role | '');
+                }}
+                className="teacher-field"
+              >
+                <option value="">All roles</option>
+                {Object.values(Role).map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
-            <PaginationControls
-              page={usersQuery.data?.pagination.page ?? 1}
-              totalPages={usersQuery.data?.pagination.totalPages ?? 1}
-              totalItems={usersQuery.data?.pagination.totalItems ?? users.length}
-              pageSize={usersQuery.data?.pagination.pageSize ?? 12}
-              onPageChange={setPage}
-            />
-          </>
-        ) : null}
-      </article>
+          {usersQuery.isLoading ? <LoadingSpinner /> : null}
 
-      <article className="glass-panel p-6">
-        <p className="teacher-kicker">{editingId ? 'Update Account' : 'Create Account'}</p>
-        <h2 className="mt-2 font-display text-2xl font-bold">
-          {editingId ? 'Edit user account' : 'Create a new user account'}
-        </h2>
-        <div className="mt-5 grid gap-4">
-          <label className="grid gap-2">
-            <span className="teacher-label text-sm font-semibold">Username</span>
-            <input
-              value={form.username}
-              onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
-              className="teacher-field"
-              placeholder="Enter display name"
+          {usersQuery.isError ? (
+            <EmptyState
+              title="Could not load users"
+              description="The account directory is not available right now. Refresh the page or try again after the API settles."
+              className="mt-5"
             />
-          </label>
-          <label className="grid gap-2">
-            <span className="teacher-label text-sm font-semibold">Email</span>
-            <input
-              value={form.email}
-              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-              className="teacher-field"
-              placeholder="account@codecat.dev"
-            />
-          </label>
-          <label className="grid gap-2">
-            <span className="teacher-label text-sm font-semibold">Role</span>
-            <select
-              value={form.role}
-              onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as Role }))}
-              className="teacher-field"
-            >
-              {Object.values(Role).map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-2">
-            <span className="teacher-label text-sm font-semibold">
-              {editingId ? 'Password reset' : 'Password'}
-            </span>
-            <input
-              type="password"
-              value={form.password}
-              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-              className="teacher-field"
-              placeholder={editingId ? 'Leave blank to keep current password' : 'Minimum 8 characters'}
-            />
-          </label>
-        </div>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <button
-            type="button"
-            className="teacher-button-primary"
-            onClick={handleSubmit}
-            disabled={
-              createUserMutation.isPending ||
-              updateUserMutation.isPending ||
-              form.username.trim().length < 3 ||
-              form.email.trim().length < 5 ||
-              (!editingId && form.password.trim().length < 8)
-            }
-          >
-            {editingId ? 'Save account' : 'Create account'}
-          </button>
-          <button
-            type="button"
-            className="teacher-button-secondary"
-            onClick={() => {
-              setEditingId(null);
-              setForm(emptyForm);
-            }}
-          >
-            Reset form
-          </button>
-        </div>
-      </article>
+          ) : null}
+
+          {!usersQuery.isLoading && !usersQuery.isError ? (
+            <>
+              {users.length ? (
+                <div className="admin-list mt-5">
+                  <div className="admin-list__header admin-list__header--users">
+                    <span>Account</span>
+                    <span>Created</span>
+                    <span>Role activity</span>
+                    <span>Performance</span>
+                    <span>Coverage</span>
+                    <span>Actions</span>
+                  </div>
+                  <div className="space-y-3">
+                    {users.map((user) => {
+                      const metrics = getUserMetrics(user);
+
+                      return (
+                        <article key={user.id} className="admin-list__row admin-list__row--users">
+                          <div className="admin-list__identity">
+                            <div className="min-w-0">
+                              <h3 className="admin-list__title">{user.username}</h3>
+                              <p className="admin-list__subtitle">{user.email}</p>
+                            </div>
+                            <span className="teacher-tag">{user.role}</span>
+                          </div>
+
+                          <div className="admin-list__cell">
+                            <span className="admin-list__mobileLabel">Created</span>
+                            <p className="admin-list__value">{new Date(user.createdAt).toLocaleDateString()}</p>
+                          </div>
+
+                          {metrics.map((metric) => (
+                            <div key={metric.label} className="admin-list__cell">
+                              <span className="admin-list__mobileLabel">{metric.label}</span>
+                              <p className="admin-list__value">{metric.value}</p>
+                              <p className="admin-list__caption">{metric.label}</p>
+                            </div>
+                          ))}
+
+                          <details className="admin-list__menu">
+                            <summary className="admin-list__menuTrigger" aria-label={`Open actions for ${user.username}`}>
+                              <MoreHorizontal size={18} strokeWidth={2.2} />
+                            </summary>
+                            <div className="admin-list__menuPanel">
+                              <button
+                                type="button"
+                                className="admin-list__menuItem"
+                                onClick={(event) => {
+                                  closeActionMenu(event.currentTarget);
+                                  openEditModal(user);
+                                }}
+                              >
+                                Edit account
+                              </button>
+                              <button
+                                type="button"
+                                className="admin-list__menuItem admin-list__menuItem--danger"
+                                disabled={!user.canDelete}
+                                onClick={(event) => {
+                                  closeActionMenu(event.currentTarget);
+                                  void handleDelete(user.id);
+                                }}
+                              >
+                                Delete account
+                              </button>
+                            </div>
+                          </details>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <EmptyState
+                  className="mt-5"
+                  description={
+                    deferredSearch.trim() || roleFilter
+                      ? 'No user accounts matched the current filters.'
+                      : 'User accounts will appear here once accounts have been seeded or created.'
+                  }
+                />
+              )}
+
+              <PaginationControls
+                page={usersQuery.data?.pagination.page ?? 1}
+                totalPages={usersQuery.data?.pagination.totalPages ?? 1}
+                totalItems={usersQuery.data?.pagination.totalItems ?? users.length}
+                pageSize={usersQuery.data?.pagination.pageSize ?? 12}
+                onPageChange={setPage}
+              />
+            </>
+          ) : null}
+        </article>
       </section>
+
+      {isFormOpen ? (
+        <div className="admin-modal" role="dialog" aria-modal="true" aria-labelledby="admin-user-modal-title">
+          <button type="button" className="admin-modal__backdrop" aria-label="Close account form" onClick={closeFormModal} />
+          <article className="admin-modal__panel glass-panel">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="teacher-kicker">{editingId ? 'Update Account' : 'Create Account'}</p>
+                <h2 id="admin-user-modal-title" className="mt-2 font-display text-2xl font-bold">
+                  {editingId ? 'Edit user account' : 'Create a new user account'}
+                </h2>
+              </div>
+              <button type="button" className="teacher-button-secondary" onClick={closeFormModal}>
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4">
+              <label className="grid gap-2">
+                <span className="teacher-label text-sm font-semibold">Username</span>
+                <input
+                  value={form.username}
+                  onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
+                  className="teacher-field"
+                  placeholder="Enter display name"
+                />
+              </label>
+              <label className="grid gap-2">
+                <span className="teacher-label text-sm font-semibold">Email</span>
+                <input
+                  value={form.email}
+                  onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                  className="teacher-field"
+                  placeholder="account@codecat.dev"
+                />
+              </label>
+              <label className="grid gap-2">
+                <span className="teacher-label text-sm font-semibold">Role</span>
+                <select
+                  value={form.role}
+                  onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as Role }))}
+                  className="teacher-field"
+                >
+                  {Object.values(Role).map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-2">
+                <span className="teacher-label text-sm font-semibold">
+                  {editingId ? 'Password reset' : 'Password'}
+                </span>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                  className="teacher-field"
+                  placeholder={editingId ? 'Leave blank to keep current password' : 'Minimum 8 characters'}
+                />
+              </label>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="teacher-button-primary"
+                onClick={handleSubmit}
+                disabled={
+                  createUserMutation.isPending ||
+                  updateUserMutation.isPending ||
+                  form.username.trim().length < 3 ||
+                  form.email.trim().length < 5 ||
+                  (!editingId && form.password.trim().length < 8)
+                }
+              >
+                {editingId ? 'Save account' : 'Create account'}
+              </button>
+              <button type="button" className="teacher-button-secondary" onClick={closeFormModal}>
+                Cancel
+              </button>
+            </div>
+          </article>
+        </div>
+      ) : null}
     </div>
   );
 };

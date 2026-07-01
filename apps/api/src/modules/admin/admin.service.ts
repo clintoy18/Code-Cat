@@ -411,14 +411,8 @@ export const adminService = {
         await tx.studentAssignmentProgress.deleteMany({
           where: { studentId: id },
         });
-        await tx.classroomEnrollment.updateMany({
-          where: {
-            studentId: id,
-            deletedAt: null,
-          },
-          data: {
-            deletedAt: new Date(),
-          },
+        await tx.classroomEnrollment.deleteMany({
+          where: { studentId: id },
         });
         await tx.playerProgress.deleteMany({
           where: { userId: id },

@@ -713,6 +713,30 @@ body {
     color: #f4c0c0;
   }
 
+  .admin-modal {
+    inset: 0;
+    position: fixed;
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+  }
+
+  .admin-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgba(3, 8, 18, 0.72);
+    backdrop-filter: blur(10px);
+  }
+
+  .admin-modal__panel {
+    position: relative;
+    z-index: 1;
+    width: min(560px, 100%);
+    padding: 24px;
+  }
+
   input[type='checkbox'] {
     width: 1rem;
     height: 1rem;
