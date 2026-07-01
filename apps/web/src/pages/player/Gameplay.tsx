@@ -1487,7 +1487,7 @@ export const Gameplay = () => {
                       spellCheck={false}
                       placeholder={codeModePlaceholder}
                     />
-                    <div className="gameplay-focus__codeHelp">
+                    {/* <div className="gameplay-focus__codeHelp">
                       <p>
                         Use braces for multi-line loop or helper bodies. When
                         available, helper definitions use
@@ -1502,7 +1502,7 @@ export const Gameplay = () => {
                       >
                         Apply Code
                       </Button>
-                    </div>
+                    </div> */}
                     {codeErrors.length ? (
                       <div className="gameplay-focus__codeErrors" role="alert">
                         {codeErrors.map((error) => (

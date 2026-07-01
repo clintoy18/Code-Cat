@@ -1886,7 +1886,7 @@ body {
 
   .gameplay-focus__codeInput {
     width: 100%;
-    min-height: 0;
+    min-height: 170px;
     height: 100%;
     resize: none;
     border: 1px solid rgba(148, 163, 184, 0.14);
