@@ -630,6 +630,89 @@ body {
     gap: 8px;
   }
 
+  .admin-list__menu {
+    position: relative;
+    justify-self: start;
+  }
+
+  .admin-list__menu[open] {
+    z-index: 10;
+  }
+
+  .admin-list__menuTrigger {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 12px;
+    color: var(--text-1);
+    cursor: pointer;
+    display: inline-flex;
+    height: 40px;
+    justify-content: center;
+    list-style: none;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      transform 140ms ease;
+    width: 40px;
+  }
+
+  .admin-list__menuTrigger::-webkit-details-marker {
+    display: none;
+  }
+
+  .admin-list__menuTrigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(148, 163, 184, 0.22);
+    transform: translateY(-1px);
+  }
+
+  .admin-list__menuPanel {
+    background:
+      linear-gradient(180deg, rgba(22, 33, 55, 0.98), rgba(13, 21, 37, 0.97)),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 14px;
+    box-shadow: 0 18px 30px rgba(2, 6, 23, 0.26);
+    display: grid;
+    gap: 4px;
+    min-width: 180px;
+    padding: 8px;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+  }
+
+  .admin-list__menuItem {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 10px;
+    color: var(--text-0);
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 0.875rem;
+    font-weight: 600;
+    justify-content: flex-start;
+    padding: 10px 12px;
+    text-align: left;
+    transition: background-color 140ms ease;
+    width: 100%;
+  }
+
+  .admin-list__menuItem:hover {
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .admin-list__menuItem:disabled {
+    color: var(--text-2);
+    cursor: not-allowed;
+  }
+
+  .admin-list__menuItem--danger {
+    color: #f4c0c0;
+  }
+
   input[type='checkbox'] {
     width: 1rem;
     height: 1rem;
@@ -3450,5 +3533,9 @@ body {
 
   .admin-list__actions {
     justify-content: flex-end;
+  }
+
+  .admin-list__menu {
+    justify-self: end;
   }
 }

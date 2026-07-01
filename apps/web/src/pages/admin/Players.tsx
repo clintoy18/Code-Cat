@@ -1,5 +1,6 @@
 import { useDeferredValue, useState } from 'react';
 import { Role } from '@shared/types';
+import { MoreHorizontal } from 'lucide-react';
 import { EmptyState, LoadingSpinner, PaginationControls } from '@/components/shared';
 import {
   useAdminUsersQuery,
@@ -129,6 +130,14 @@ export const Users = () => {
     }
   };
 
+  const closeActionMenu = (element: HTMLElement | null) => {
+    const details = element?.closest('details');
+
+    if (details instanceof HTMLDetailsElement) {
+      details.open = false;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <section className="glass-panel p-6">
@@ -140,7 +149,7 @@ export const Users = () => {
         </p>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+      <section className="grid gap-4 2xl:grid-cols-[minmax(0,1.12fr)_minmax(360px,0.88fr)]">
         <article className="glass-panel p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -234,31 +243,40 @@ export const Users = () => {
                           </div>
                         ))}
 
-                        <div className="admin-list__actions">
-                          <button
-                            type="button"
-                            className="teacher-button-secondary"
-                            onClick={() => {
-                              setEditingId(user.id);
-                              setForm({
-                                username: user.username,
-                                email: user.email,
-                                password: '',
-                                role: user.role,
-                              });
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="teacher-button-secondary"
-                            disabled={!user.canDelete}
-                            onClick={() => handleDelete(user.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        <details className="admin-list__menu">
+                          <summary className="admin-list__menuTrigger" aria-label={`Open actions for ${user.username}`}>
+                            <MoreHorizontal size={18} strokeWidth={2.2} />
+                          </summary>
+                          <div className="admin-list__menuPanel">
+                            <button
+                              type="button"
+                              className="admin-list__menuItem"
+                              onClick={(event) => {
+                                closeActionMenu(event.currentTarget);
+                                setEditingId(user.id);
+                                setForm({
+                                  username: user.username,
+                                  email: user.email,
+                                  password: '',
+                                  role: user.role,
+                                });
+                              }}
+                            >
+                              Edit account
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-list__menuItem admin-list__menuItem--danger"
+                              disabled={!user.canDelete}
+                              onClick={(event) => {
+                                closeActionMenu(event.currentTarget);
+                                void handleDelete(user.id);
+                              }}
+                            >
+                              Delete account
+                            </button>
+                          </div>
+                        </details>
                       </article>
                     );
                   })}
