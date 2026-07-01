@@ -207,6 +207,7 @@ export const Gameplay = () => {
   const [isPlaybackRunning, setIsPlaybackRunning] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editorMode, setEditorMode] = useState<'blocks' | 'code'>('blocks');
+  const [isSyntaxHelpOpen, setIsSyntaxHelpOpen] = useState(false);
   const [codeDraft, setCodeDraft] = useState('');
   const [codeErrors, setCodeErrors] = useState<string[]>([]);
   const [insertPath, setInsertPath] = useState<TBlockPath>([]);
@@ -265,17 +266,25 @@ export const Gameplay = () => {
   const nextPuzzleUnlocked = nextPuzzle
     ? unlockedPuzzleIds.includes(nextPuzzle.id)
     : false;
-  const actionBlocks =
-    puzzle?.availableBlocks.filter(
-      (block) => block.kind === 'MOVE' || block.kind === 'CONDITIONAL',
-    ) ?? [];
-  const helperDefinitionBlocks =
-    puzzle?.availableBlocks.filter(isFunctionDefinitionBlock) ?? [];
-  const helperCallBlocks =
-    puzzle?.availableBlocks.filter(
-      (block): block is Extract<IBlockTemplate, { kind: 'FUNCTION_CALL' }> =>
-        block.kind === 'FUNCTION_CALL',
-    ) ?? [];
+  const actionBlocks = useMemo(
+    () =>
+      puzzle?.availableBlocks.filter(
+        (block) => block.kind === 'MOVE' || block.kind === 'CONDITIONAL',
+      ) ?? [],
+    [puzzle],
+  );
+  const helperDefinitionBlocks = useMemo(
+    () => puzzle?.availableBlocks.filter(isFunctionDefinitionBlock) ?? [],
+    [puzzle],
+  );
+  const helperCallBlocks = useMemo(
+    () =>
+      puzzle?.availableBlocks.filter(
+        (block): block is Extract<IBlockTemplate, { kind: 'FUNCTION_CALL' }> =>
+          block.kind === 'FUNCTION_CALL',
+      ) ?? [],
+    [puzzle],
+  );
   const repeatEnabled =
     puzzle?.availableBlocks.some((block) => block.kind === 'REPEAT') ?? false;
   const whileEnabled =
@@ -308,6 +317,56 @@ export const Gameplay = () => {
   const codeModePlaceholder = helperDefinitionBlocks.length
     ? `function ${helperDefinitionBlocks[0].functionName}() {\n  moveUp()\n  moveRight()\n}\n\n${helperDefinitionBlocks[0].functionName}()`
     : `repeat(2) {\n  moveUp()\n  moveRight()\n}\nwhile (pathUpClear) {\n  moveUp()\n}`;
+  const syntaxSections = useMemo(() => {
+    const sections: Array<{ title: string; lines: string[] }> = [];
+
+    if (actionBlocks.length) {
+      sections.push({
+        title: 'Commands',
+        lines: actionBlocks.map((block) => block.label),
+      });
+    }
+
+    if (helperDefinitionBlocks.length) {
+      sections.push({
+        title: 'Helper definitions',
+        lines: helperDefinitionBlocks.map(
+          (block) => `function ${block.functionName}() {\n  // add allowed commands here\n}`,
+        ),
+      });
+    }
+
+    if (helperCallBlocks.length) {
+      sections.push({
+        title: 'Helper calls',
+        lines: helperCallBlocks.map((block) => block.label),
+      });
+    }
+
+    if (repeatEnabled) {
+      sections.push({
+        title: 'Repeat loops',
+        lines: ['repeat(2) {\n  moveUp()\n}', 'repeat(3) {\n  moveRight()\n}'],
+      });
+    }
+
+    if (whileConditions.length) {
+      sections.push({
+        title: 'While loops',
+        lines: whileConditions.map(
+          (condition) => `while (${formatConditionToken(condition)}) {\n  moveUp()\n}`,
+        ),
+      });
+    }
+
+    return sections;
+  }, [
+    actionBlocks,
+    helperCallBlocks,
+    helperDefinitionBlocks,
+    repeatEnabled,
+    whileConditions,
+  ]);
   const statusLabelMap = {
     ready: 'Awaiting run',
     running: 'Executing route',
@@ -501,6 +560,7 @@ export const Gameplay = () => {
   useEffect(() => {
     if (puzzle?.id) {
       setResultPopup(null);
+      setIsSyntaxHelpOpen(false);
     }
   }, [puzzle?.id]);
 
@@ -1203,9 +1263,20 @@ export const Gameplay = () => {
                   <span>
                     {editorMode === 'blocks' ? 'route.cat' : 'route.cat.ts'}
                   </span>
-                  <span>
-                    {commandCount ? `${commandCount} blocks` : 'empty'}
-                  </span>
+                  <div className="gameplay-focus__terminalHeaderMeta">
+                    <span>
+                      {commandCount ? `${commandCount} blocks` : 'empty'}
+                    </span>
+                    <button
+                      type="button"
+                      className="gameplay-focus__terminalHelpButton"
+                      onClick={() => setIsSyntaxHelpOpen((current) => !current)}
+                      aria-label="Open code syntax hints"
+                      aria-expanded={isSyntaxHelpOpen}
+                    >
+                      ?
+                    </button>
+                  </div>
                 </div>
 
                 {editorMode === 'blocks' ? (
@@ -1542,6 +1613,62 @@ export const Gameplay = () => {
             </section>
           </div>
         </section>
+
+        {isSyntaxHelpOpen ? (
+          <div
+            className="gameplay-focus__helpOverlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="gameplay-syntax-title"
+          >
+            <button
+              type="button"
+              className="gameplay-focus__helpBackdrop"
+              aria-label="Close syntax hints"
+              onClick={() => setIsSyntaxHelpOpen(false)}
+            />
+            <section className="gameplay-focus__helpDialog arcade-panel p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-brand-700">
+                    Code Hint
+                  </p>
+                  <h2
+                    id="gameplay-syntax-title"
+                    className="mt-2 font-display text-2xl font-bold text-[var(--color-ink)]"
+                  >
+                    Valid syntax for this room
+                  </h2>
+                  <p className="mt-3 text-sm leading-6 text-[var(--text-1)]">
+                    Only the commands shown here are accepted in this room.
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  className="pixel-button pixel-button--ghost arcade-button arcade-button--soft"
+                  onClick={() => setIsSyntaxHelpOpen(false)}
+                >
+                  Close
+                </Button>
+              </div>
+
+              <div className="gameplay-focus__helpSections mt-5">
+                {syntaxSections.map((section) => (
+                  <article key={section.title} className="gameplay-focus__helpSection">
+                    <p className="gameplay-focus__helpSectionTitle">{section.title}</p>
+                    <div className="gameplay-focus__helpCodeList">
+                      {section.lines.map((line) => (
+                        <pre key={`${section.title}-${line}`} className="gameplay-focus__helpCode">
+                          {line}
+                        </pre>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          </div>
+        ) : null}
 
         <aside className="gameplay-focus__sidebar">
           <div className="gameplay-focus__sidebarScroll">

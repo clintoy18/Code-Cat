@@ -1610,6 +1610,37 @@ body {
     color: var(--text-1);
   }
 
+  .gameplay-focus__terminalHeaderMeta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .gameplay-focus__terminalHelpButton {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-0);
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      transform 140ms ease;
+  }
+
+  .gameplay-focus__terminalHelpButton:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(148, 163, 184, 0.22);
+    transform: translateY(-1px);
+  }
+
   .gameplay-focus__terminalBody {
     flex: none;
     min-height: 0;
@@ -1937,6 +1968,68 @@ body {
     font-size: 12px;
     line-height: 1.45;
     color: var(--text-1);
+  }
+
+  .gameplay-focus__helpOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+  }
+
+  .gameplay-focus__helpBackdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgba(7, 12, 22, 0.68);
+    backdrop-filter: blur(6px);
+  }
+
+  .gameplay-focus__helpDialog {
+    position: relative;
+    z-index: 1;
+    width: min(720px, 100%);
+    max-height: min(78dvh, 760px);
+    overflow: auto;
+  }
+
+  .gameplay-focus__helpSections {
+    display: grid;
+    gap: 14px;
+  }
+
+  .gameplay-focus__helpSection {
+    display: grid;
+    gap: 8px;
+  }
+
+  .gameplay-focus__helpSectionTitle {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text-1);
+  }
+
+  .gameplay-focus__helpCodeList {
+    display: grid;
+    gap: 8px;
+  }
+
+  .gameplay-focus__helpCode {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-0);
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
 
   .gameplay-focus__boardShell .game-stage__legend {
