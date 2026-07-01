@@ -20,10 +20,29 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
+      const currentToken = useAuthStore.getState().token;
+      const requestHeader =
+        error.config?.headers?.Authorization ??
+        error.config?.headers?.authorization;
+      const requestToken =
+        typeof requestHeader === 'string' &&
+        requestHeader.startsWith('Bearer ')
+          ? requestHeader.slice('Bearer '.length).trim()
+          : null;
+      const requestUrl = error.config?.url ?? '';
+      const isAuthEntryRequest =
+        requestUrl.includes('/auth/login') ||
+        requestUrl.includes('/auth/register');
 
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login';
+      if (!isAuthEntryRequest && (!requestToken || requestToken === currentToken)) {
+        useAuthStore.getState().logout();
+
+        if (
+          typeof window !== 'undefined' &&
+          !window.location.pathname.startsWith('/login')
+        ) {
+          window.location.href = '/login';
+        }
       }
     }
 
