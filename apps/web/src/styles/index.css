@@ -546,6 +546,90 @@ body {
     color: var(--text-1);
   }
 
+  .admin-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .admin-list__header {
+    display: none;
+  }
+
+  .admin-list__row {
+    display: grid;
+    gap: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background: rgba(255, 255, 255, 0.035);
+    padding: 16px 18px;
+  }
+
+  .admin-list__row--compact {
+    gap: 10px;
+  }
+
+  .admin-list__identity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 14px;
+    min-width: 0;
+  }
+
+  .admin-list__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-0);
+  }
+
+  .admin-list__subtitle {
+    margin: 4px 0 0;
+    font-size: 0.875rem;
+    color: var(--text-2);
+  }
+
+  .admin-list__cell {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .admin-list__value {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-0);
+  }
+
+  .admin-list__caption {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-2);
+  }
+
+  .admin-list__mobileLabel {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--color-ice);
+  }
+
+  .admin-list__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    font-size: 0.875rem;
+    color: var(--text-1);
+  }
+
+  .admin-list__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
   input[type='checkbox'] {
     width: 1rem;
     height: 1rem;
@@ -3327,5 +3411,44 @@ body {
 @media (min-width: 1480px) {
   .teacher-layoutEditor {
     grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-list__row--compact {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+
+@media (min-width: 1280px) {
+  .admin-list__header {
+    align-items: center;
+    color: var(--text-2);
+    display: grid;
+    font-size: 0.75rem;
+    font-weight: 700;
+    gap: 14px;
+    letter-spacing: 0.04em;
+    padding: 0 18px 2px;
+    text-transform: uppercase;
+  }
+
+  .admin-list__header--users,
+  .admin-list__row--users {
+    align-items: center;
+    grid-template-columns:
+      minmax(0, 2.2fr)
+      minmax(110px, 0.85fr)
+      repeat(3, minmax(110px, 0.75fr))
+      minmax(170px, auto);
+  }
+
+  .admin-list__mobileLabel {
+    display: none;
+  }
+
+  .admin-list__actions {
+    justify-content: flex-end;
   }
 }

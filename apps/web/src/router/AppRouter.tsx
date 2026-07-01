@@ -23,8 +23,14 @@ const Achievements = lazy(() =>
   import('@/pages/player/Achievements').then((module) => ({ default: module.Achievements })),
 );
 const Dashboard = lazy(() => import('@/pages/admin/Dashboard').then((module) => ({ default: module.Dashboard })));
+const AdminAnnouncements = lazy(() =>
+  import('@/pages/admin/Announcements').then((module) => ({ default: module.Announcements })),
+);
 const LevelManager = lazy(() =>
   import('@/pages/admin/LevelManager').then((module) => ({ default: module.LevelManager })),
+);
+const AdminUsers = lazy(() =>
+  import('@/pages/admin/Players').then((module) => ({ default: module.Users })),
 );
 const PlayerReports = lazy(() =>
   import('@/pages/admin/PlayerReports').then((module) => ({ default: module.PlayerReports })),
@@ -59,7 +65,9 @@ export const AppRouter = () => (
         </Route>
         <Route path="/admin" element={<AdminRoutes />}>
           <Route index element={<Dashboard />} />
+          <Route path="users" element={<AdminUsers />} />
           <Route path="levels" element={<LevelManager />} />
+          <Route path="announcements" element={<AdminAnnouncements />} />
           <Route path="reports" element={<PlayerReports />} />
         </Route>
         <Route path="/teacher" element={<TeacherRoutes />}>

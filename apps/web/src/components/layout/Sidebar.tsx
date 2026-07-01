@@ -17,7 +17,9 @@ const linksByRole: Record<Role, Array<{ to: string; label: string }>> = {
   ],
   [Role.ADMIN]: [
     { to: '/admin', label: 'Dashboard' },
+    { to: '/admin/users', label: 'Users' },
     { to: '/admin/levels', label: 'Levels' },
+    { to: '/admin/announcements', label: 'Announcements' },
     { to: '/admin/reports', label: 'Reports' },
   ],
 };
@@ -33,7 +35,7 @@ const roleHeadings: Record<Role, { title: string; copy: string }> = {
   },
   [Role.ADMIN]: {
     title: 'Admin workspace',
-    copy: 'Track rollout, content readiness, and player reporting.',
+    copy: 'Review platform activity, manage official content, and post system notices.',
   },
 };
 
